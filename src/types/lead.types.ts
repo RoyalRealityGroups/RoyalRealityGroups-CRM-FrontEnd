@@ -104,6 +104,8 @@ export interface CrossCheckResult {
     match_field: string;
     match_value: string;
   }[];
+  message?: string;
+  matchedFields?: string[];
 }
 
 export interface LeadChoices {

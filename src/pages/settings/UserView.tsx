@@ -198,6 +198,62 @@ const UserView: React.FC = () => {
           </TableContainer>
         </Box>
 
+        {/* Employee Information */}
+        <Box sx={{ mb: 4 }}>
+          <Typography variant="h6" sx={{ fontWeight: 600, color: '#006766', mb: 3 }}>Employee Information</Typography>
+          <TableContainer component={Paper} sx={{ border: '1px solid #e0e0e0' }}>
+            <Table size="small">
+              <TableBody>
+                <TableRow>
+                  <TableCell sx={labelCellSx}>Designation</TableCell>
+                  <TableCell sx={valueCellSx}>{user.designation || '-'}</TableCell>
+                  <TableCell sx={labelCellSx}>Joining Date</TableCell>
+                  <TableCell sx={valueCellSx}>
+                    {user.joining_date ? format(new Date(user.joining_date), 'dd-MM-yyyy') : '-'}
+                  </TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell sx={labelCellSx}>Reporting Manager</TableCell>
+                  <TableCell sx={valueCellSx}>{user.reporting_manager_name || '-'}</TableCell>
+                  <TableCell sx={labelCellSx}>Team Size</TableCell>
+                  <TableCell sx={valueCellSx}>{user.team_count ?? '-'}</TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Box>
+
+        {/* Performance Tracking */}
+        <Box sx={{ mb: 4 }}>
+          <Typography variant="h6" sx={{ fontWeight: 600, color: '#006766', mb: 3 }}>Performance Tracking</Typography>
+          <TableContainer component={Paper} sx={{ border: '1px solid #e0e0e0' }}>
+            <Table size="small">
+              <TableBody>
+                <TableRow>
+                  <TableCell sx={labelCellSx}>Leads Assigned</TableCell>
+                  <TableCell sx={valueCellSx}>
+                    <Chip label={user.leads_assigned ?? 0} color="primary" size="small" />
+                  </TableCell>
+                  <TableCell sx={labelCellSx}>Site Visits</TableCell>
+                  <TableCell sx={valueCellSx}>
+                    <Chip label={user.site_visits ?? 0} color="info" size="small" />
+                  </TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell sx={labelCellSx}>Bookings</TableCell>
+                  <TableCell sx={valueCellSx}>
+                    <Chip label={user.bookings ?? 0} color="success" size="small" />
+                  </TableCell>
+                  <TableCell sx={labelCellSx}>Registrations</TableCell>
+                  <TableCell sx={valueCellSx}>
+                    <Chip label={user.registrations ?? 0} color="warning" size="small" />
+                  </TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Box>
+
                 {/* Security & Access */}
         {/* <Box sx={{ mb: 4 }}>
           <Typography variant="h6" sx={{ fontWeight: 600, color: '#006766', mb: 3 }}>Security & Access</Typography>

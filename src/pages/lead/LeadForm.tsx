@@ -52,7 +52,7 @@ const LeadForm: React.FC = () => {
   const location = useLocation();
   const queryClient = useQueryClient();
   const { setBreadcrumbs } = useBreadcrumbs();
-  const { success: toastSuccess, error: toastError } = useToast();
+  const { success: toastSuccess, error: toastError, warning: toastWarning } = useToast();
   const isEdit = Boolean(id);
   const isViewMode = location.pathname.includes('/view/');
   const isEditMode = location.pathname.includes('/edit/');
@@ -140,12 +140,57 @@ const LeadForm: React.FC = () => {
     mutationFn: (data: LeadFormData) =>
       isEdit ? leadApi.updateLead(id!, data) : leadApi.createLead(data),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
       toastSuccess(`Lead ${isEdit ? 'updated' : 'created'} successfully`);
       queryClient.invalidateQueries({ queryKey: ['leads'] });
       navigate('/lead/list');
     },
     onError: (error: any) => {
-      toastError(error.response?.data?.message || `Failed to ${isEdit ? 'update' : 'create'} lead`);
+      const data = error.response?.data;
+      if (data?.has_duplicates && Array.isArray(data.duplicates)) {
+        // Group duplicates by matched field so the message is field-aware
+        // instead of a generic "Validation failed" toast.
+        const grouped: Record<string, { value: string; leadName: string; code: string }[]> = {};
+        for (const dup of data.duplicates) {
+          const field = dup.match_field || 'unknown';
+          if (!grouped[field]) grouped[field] = [];
+          grouped[field].push({
+            value: dup.match_value,
+            leadName: dup.lead?.name || '',
+            code: dup.lead?.code || '',
+          });
+        }
+        const fieldLabels: Record<string, string> = {
+          mobile: 'Mobile',
+          alternate_number: 'Alternate Mobile',
+          email: 'Email',
+        };
+        const orderedFields = ['mobile', 'alternate_number', 'email'].filter((f) => grouped[f]);
+        const lines = orderedFields.map((f) => {
+          const label = fieldLabels[f] || f;
+          const samples = grouped[f]
+            .slice(0, 2)
+            .map((d) => (d.code ? `${d.value} (${d.code})` : d.value))
+            .join(', ');
+          const more = grouped[f].length > 2 ? ` +${grouped[f].length - 2} more` : '';
+          return `${label}: ${samples}${more}`;
+        });
+        const msg =
+          lines.length > 0
+            ? `Duplicate ${lines.join(' • ')}`
+            : data.non_field_errors?.[0] || 'Duplicate lead detected';
+
+        setCrossCheckResult({
+          has_duplicates: true,
+          duplicates: data.duplicates,
+          message: data.non_field_errors?.[0] || msg,
+          matchedFields: orderedFields,
+        });
+        setCrossCheckOpen(true);
+        toastWarning(msg, 8000);
+        return;
+      }
+      toastError(typeof data === 'string' ? data : data?.detail || data?.message || `Failed to ${isEdit ? 'update' : 'create'} lead`);
     },
   });
 
@@ -461,14 +506,45 @@ const LeadForm: React.FC = () => {
         </form>
       </Paper>
 
+      {/* Cross Check Warning */}
+      {crossCheckResult?.has_duplicates && !crossCheckOpen && (
+        <Box sx={{ mb: 3 }}>
+          <Alert severity="warning" sx={{ mb: 1 }}>
+            Duplicate lead(s) detected — notification sent to your inbox
+          </Alert>
+          {crossCheckResult.duplicates.map((dup, i) => (
+            <Box key={i} sx={{ mb: 1, p: 1.5, bgcolor: 'grey.100', borderRadius: 1 }}>
+              <Typography variant="body2" fontWeight={600}>{dup.lead.name} ({dup.lead.code})</Typography>
+              <Typography variant="caption" display="block" color="text.secondary">
+                Owner: {dup.lead.assigned_employee?.name || 'Unassigned'} | Status: {dup.lead.status} | Last Follow-up: {dup.lead.last_follow_up_date || 'N/A'}
+              </Typography>
+              <Chip label={dup.match_field} size="small" color="warning" variant="outlined" sx={{ mt: 0.5 }} />
+            </Box>
+          ))}
+        </Box>
+      )}
+
       {/* Cross Check Warning Dialog */}
       <Dialog open={crossCheckOpen} onClose={handleCrossCheckCancel} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ color: 'warning.main' }}>Duplicate Lead Found!</DialogTitle>
         <DialogContent>
           <Alert severity="warning" sx={{ mb: 2 }}>
-            Similar leads exist in the system. Please review before proceeding.
+            {crossCheckResult?.matchedFields?.length
+              ? `Duplicate ${crossCheckResult.matchedFields
+                  .map((f) =>
+                    f === 'mobile'
+                      ? 'Mobile'
+                      : f === 'alternate_number'
+                      ? 'Alternate Mobile'
+                      : f === 'email'
+                      ? 'Email'
+                      : f
+                  )
+                  .join(' & ')} found. Review the matches below before proceeding.`
+              : crossCheckResult?.message ||
+                'Similar leads exist in the system. Please review before proceeding.'}
           </Alert>
-          
+
           {crossCheckResult?.duplicates.map((dup, index) => (
             <Box key={index} sx={{ mb: 2, p: 2, bgcolor: 'grey.100', borderRadius: 1 }}>
               <Typography variant="subtitle2">

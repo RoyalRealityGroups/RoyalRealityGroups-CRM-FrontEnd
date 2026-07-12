@@ -139,6 +139,16 @@ const UserList: React.FC = () => {
       minWidth: 180,
     },
     {
+      field: 'designation',
+      headerName: 'Designation',
+      width: 140,
+      renderCell: (params) => (
+        <Typography variant="body2" color="text.secondary">
+          {params.row.designation || '-'}
+        </Typography>
+      ),
+    },
+    {
       field: 'email',
       headerName: 'Email',
       flex: 1,

@@ -104,6 +104,9 @@ const UserForm: React.FC = () => {
       device_access: 3,
       is_active: true,
       group_ids: [],
+      designation: '',
+      joining_date: '',
+      reporting_manager: '',
     },
   });
 
@@ -143,6 +146,9 @@ const UserForm: React.FC = () => {
         device_access: userData.device_access || 3,
         is_active: userData.is_active,
         group_ids: userData.groups?.map((g) => g.id) || [],
+        designation: userData.designation || '',
+        joining_date: userData.joining_date || '',
+        reporting_manager: userData.reporting_manager || '',
       });
       
       if (userData.groups) {
@@ -517,6 +523,81 @@ const UserForm: React.FC = () => {
                         ))}
                       </Select>
                     </FormControl>
+                  )}
+                />
+              </Grid>
+            </Grid>
+
+            <Divider sx={{ my: 3 }} />
+
+            {/* Employee Information Section */}
+            <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: 'primary.main' }}>
+              Employee Information
+            </Typography>
+            <Grid container spacing={3}>
+              {/* Designation */}
+              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                <Typography variant="subtitle2" sx={{ mb: 0.5, fontWeight: 600, color: 'text.primary' }}>
+                  Designation
+                </Typography>
+                <Controller
+                  name="designation"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      {...field}
+                      placeholder="e.g., Team Leader, Director"
+                      fullWidth
+                      size="small"
+                      value={field.value || ''}
+                      disabled={isSubmitting}
+                    />
+                  )}
+                />
+              </Grid>
+
+              {/* Joining Date */}
+              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                <Typography variant="subtitle2" sx={{ mb: 0.5, fontWeight: 600, color: 'text.primary' }}>
+                  Joining Date
+                </Typography>
+                <Controller
+                  name="joining_date"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      {...field}
+                      type="date"
+                      fullWidth
+                      size="small"
+                      value={field.value || ''}
+                      disabled={isSubmitting}
+                      InputLabelProps={{ shrink: true }}
+                    />
+                  )}
+                />
+              </Grid>
+
+              {/* Reporting Manager */}
+              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                <Typography variant="subtitle2" sx={{ mb: 0.5, fontWeight: 600, color: 'text.primary' }}>
+                  Reporting Manager
+                </Typography>
+                <Controller
+                  name="reporting_manager"
+                  control={control}
+                  render={({ field }) => (
+                    <SearchableDropdown
+                      label=""
+                      apiEndpoint="/api/usermanagement/dropdowns/reporting-managers/"
+                      value={field.value ? { id: field.value, name: userData?.reporting_manager_name || '' } as any : null}
+                      onChange={(newValue: any) => {
+                        field.onChange(newValue?.id || null);
+                      }}
+                      disabled={isSubmitting}
+                      placeholder="Select reporting manager"
+                      size="small"
+                    />
                   )}
                 />
               </Grid>

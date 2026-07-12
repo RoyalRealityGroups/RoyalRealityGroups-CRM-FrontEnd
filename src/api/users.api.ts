@@ -12,6 +12,11 @@ export interface UserFormData {
   is_staff?: boolean;
   group_ids: number[];
   profilepicture?: File | null;
+  designation?: string;
+  joining_date?: string;
+  reporting_manager?: string;
+  user_status?: string;
+  must_reset_password?: boolean;
 }
 
 export interface UserDetail {
@@ -34,6 +39,17 @@ export interface UserDetail {
   groups?: Array<{ id: number; name: string }>;
   created_at: string;
   updated_at: string;
+  designation?: string;
+  joining_date?: string;
+  reporting_manager?: string;
+  reporting_manager_name?: string;
+  user_status?: string;
+  must_reset_password?: boolean;
+  leads_assigned?: number;
+  site_visits?: number;
+  bookings?: number;
+  registrations?: number;
+  team_count?: number;
 }
 
 export interface UserListParams {

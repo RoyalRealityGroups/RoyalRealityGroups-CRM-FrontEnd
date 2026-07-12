@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useEffect, useRef, useState } from 'react';
-import { Alert } from '@mui/material';
+import { Alert, Slide } from '@mui/material';
 import type { AlertColor } from '@mui/material';
 
 const DEFAULT_TOAST_DURATION = 15000; // 15 seconds
@@ -172,18 +172,18 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   return (
     <ToastContext.Provider value={value}>
       {children}
-      <div style={{ position: 'fixed', bottom: 20, right: 20, zIndex: 9999 }}>
+      <div style={{ position: 'fixed', top: 72, right: 24, zIndex: 9999, display: 'flex', flexDirection: 'column', gap: 8 }}>
         {toasts.map((toast) => (
-          <div key={toast.id} style={{ marginBottom: 8 }}>
+          <Slide key={toast.id} in direction="down" mountOnEnter unmountOnExit>
             <Alert
               onClose={() => closeToast(toast.id)}
               severity={toast.variant}
               variant="filled"
-              sx={{ minWidth: 300 }}
+              sx={{ minWidth: 300, boxShadow: 3 }}
             >
               {toast.message}
             </Alert>
-          </div>
+          </Slide>
         ))}
       </div>
     </ToastContext.Provider>
