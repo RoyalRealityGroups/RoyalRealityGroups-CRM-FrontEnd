@@ -1,0 +1,321 @@
+import React, { useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import {
+  Box,
+  Paper,
+  Typography,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Grid2 as Grid,
+  Divider,
+  Button,
+  CircularProgress,
+} from '@mui/material';
+import { Print as PrintIcon, Close as CloseIcon } from '@mui/icons-material';
+import { useQuery } from '@tanstack/react-query';
+import dayjs from 'dayjs';
+import { salesOrderApi } from '../../api/sales.api';
+
+const SalesOrderPrint: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+
+  const { data: order, isLoading } = useQuery({
+    queryKey: ['salesOrder', id],
+    queryFn: () => salesOrderApi.getById(id!),
+    enabled: Boolean(id),
+  });
+
+  useEffect(() => {
+    // Add print styles
+    const style = document.createElement('style');
+    style.innerHTML = `
+      @media print {
+        body * {
+          visibility: hidden;
+        }
+        .print-container, .print-container * {
+          visibility: visible;
+        }
+        .print-container {
+          position: absolute;
+          left: 0;
+          top: 0;
+          width: 100%;
+        }
+        .no-print {
+          display: none !important;
+        }
+        @page {
+          size: A4;
+          margin: 1cm;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  if (isLoading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (!order) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+        <Typography variant="h6" color="error">
+          Sales Order not found
+        </Typography>
+      </Box>
+    );
+  }
+
+  return (
+    <Box sx={{ p: 3 }}>
+      {/* Action Buttons */}
+      <Box className="no-print" sx={{ mb: 3, display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+        <Button
+          variant="outlined"
+          startIcon={<CloseIcon />}
+          onClick={() => navigate('/sales/orders')}
+        >
+          Close
+        </Button>
+        <Button variant="contained" startIcon={<PrintIcon />} onClick={handlePrint}>
+          Print
+        </Button>
+      </Box>
+
+      {/* Print Container */}
+      <Paper className="print-container" sx={{ p: 4, maxWidth: '210mm', mx: 'auto' }}>
+        {/* Header */}
+        <Box sx={{ textAlign: 'center', mb: 4 }}>
+          <Typography variant="h4" fontWeight={700} gutterBottom>
+            SALES ORDER
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Order Number: {order.order_number}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Date: {dayjs(order.order_date).format('DD/MM/YYYY')}
+          </Typography>
+        </Box>
+
+        <Divider sx={{ mb: 3 }} />
+
+        {/* Order & Customer Info */}
+        <Grid container spacing={3} sx={{ mb: 4 }}>
+          <Grid item xs={6}>
+            <Typography variant="subtitle2" fontWeight={600} gutterBottom>
+              Customer Details
+            </Typography>
+            <Typography variant="body2">
+              <strong>Name:</strong> {order.customer_name}
+            </Typography>
+            <Typography variant="body2">
+              <strong>Type:</strong> {order.customer_type}
+            </Typography>
+            <Typography variant="body2">
+              <strong>Credit Days:</strong> {order.credit_days} days
+            </Typography>
+          </Grid>
+          <Grid item xs={6}>
+            <Typography variant="subtitle2" fontWeight={600} gutterBottom>
+              Order Information
+            </Typography>
+            {order.reference_number && (
+              <Typography variant="body2">
+                <strong>Reference:</strong> {order.reference_number}
+              </Typography>
+            )}
+            {order.reference_date && (
+              <Typography variant="body2">
+                <strong>Reference Date:</strong> {dayjs(order.reference_date).format('DD/MM/YYYY')}
+              </Typography>
+            )}
+            <Typography variant="body2">
+              <strong>Status:</strong> {order.status}
+            </Typography>
+          </Grid>
+        </Grid>
+
+        {/* Addresses */}
+        <Grid container spacing={3} sx={{ mb: 4 }}>
+          <Grid item xs={6}>
+            <Typography variant="subtitle2" fontWeight={600} gutterBottom>
+              Billing Address
+            </Typography>
+            <Typography variant="body2" sx={{ whiteSpace: 'pre-line' }}>
+              {order.billing_address}
+            </Typography>
+          </Grid>
+          <Grid item xs={6}>
+            <Typography variant="subtitle2" fontWeight={600} gutterBottom>
+              Shipping Address
+            </Typography>
+            <Typography variant="body2" sx={{ whiteSpace: 'pre-line' }}>
+              {order.shipping_address}
+            </Typography>
+          </Grid>
+        </Grid>
+
+        {/* Items Table */}
+        <TableContainer sx={{ mb: 3 }}>
+          <Table size="small">
+            <TableHead>
+              <TableRow sx={{ bgcolor: 'grey.200' }}>
+                <TableCell sx={{ fontWeight: 600 }}>S.No</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Item Code</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Item Name</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>HSN</TableCell>
+                <TableCell sx={{ fontWeight: 600 }} align="right">
+                  Qty
+                </TableCell>
+                <TableCell sx={{ fontWeight: 600 }} align="right">
+                  UOM
+                </TableCell>
+                <TableCell sx={{ fontWeight: 600 }} align="right">
+                  Rate
+                </TableCell>
+                <TableCell sx={{ fontWeight: 600 }} align="right">
+                  Discount
+                </TableCell>
+                <TableCell sx={{ fontWeight: 600 }} align="right">
+                  Tax
+                </TableCell>
+                <TableCell sx={{ fontWeight: 600 }} align="right">
+                  Amount
+                </TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {order.items?.map((item, index) => (
+                <TableRow key={index}>
+                  <TableCell>{index + 1}</TableCell>
+                  <TableCell>{item.item_code}</TableCell>
+                  <TableCell>{item.item_name}</TableCell>
+                  <TableCell>{item.hsn_code || '-'}</TableCell>
+                  <TableCell align="right">{item.quantity.toFixed(3)}</TableCell>
+                  <TableCell align="right">{item.uom_name}</TableCell>
+                  <TableCell align="right">₹{item.rate.toFixed(2)}</TableCell>
+                  <TableCell align="right">
+                    {item.discount_amount ? `₹${item.discount_amount.toFixed(2)}` : '-'}
+                  </TableCell>
+                  <TableCell align="right">
+                    ₹{item.tax_amount?.toFixed(2) || '0.00'} ({item.tax_percentage}%)
+                  </TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 600 }}>
+                    ₹{item.line_total.toFixed(2)}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+
+        {/* Summary */}
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 4 }}>
+          <Box sx={{ width: 300 }}>
+            <Grid container spacing={1}>
+              <Grid item xs={6}>
+                <Typography variant="body2">Base Amount:</Typography>
+              </Grid>
+              <Grid item xs={6} textAlign="right">
+                <Typography variant="body2">₹{order.base_amount.toFixed(2)}</Typography>
+              </Grid>
+
+              <Grid item xs={6}>
+                <Typography variant="body2">Total Discount:</Typography>
+              </Grid>
+              <Grid item xs={6} textAlign="right">
+                <Typography variant="body2" color="error">
+                  -₹{order.discount_amount.toFixed(2)}
+                </Typography>
+              </Grid>
+
+              <Grid item xs={6}>
+                <Typography variant="body2">Taxable Amount:</Typography>
+              </Grid>
+              <Grid item xs={6} textAlign="right">
+                <Typography variant="body2">₹{order.taxable_amount.toFixed(2)}</Typography>
+              </Grid>
+
+              <Grid item xs={6}>
+                <Typography variant="body2">Total Tax:</Typography>
+              </Grid>
+              <Grid item xs={6} textAlign="right">
+                <Typography variant="body2">₹{order.tax_amount.toFixed(2)}</Typography>
+              </Grid>
+
+              <Grid item xs={12}>
+                <Divider sx={{ my: 1 }} />
+              </Grid>
+
+              <Grid item xs={6}>
+                <Typography variant="h6" fontWeight={700}>
+                  Grand Total:
+                </Typography>
+              </Grid>
+              <Grid item xs={6} textAlign="right">
+                <Typography variant="h6" fontWeight={700}>
+                  ₹{order.grand_total.toFixed(2)}
+                </Typography>
+              </Grid>
+            </Grid>
+          </Box>
+        </Box>
+
+        {/* Remarks */}
+        {order.remarks && (
+          <Box sx={{ mb: 4 }}>
+            <Typography variant="subtitle2" fontWeight={600} gutterBottom>
+              Remarks
+            </Typography>
+            <Typography variant="body2" sx={{ whiteSpace: 'pre-line' }}>
+              {order.remarks}
+            </Typography>
+          </Box>
+        )}
+
+        {/* Footer */}
+        <Box sx={{ mt: 6, pt: 3, borderTop: 1, borderColor: 'divider' }}>
+          <Grid container spacing={4}>
+            <Grid item xs={6}>
+              <Typography variant="body2">
+                <strong>Created By:</strong> {order.created_by_name}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {dayjs(order.created_at).format('DD/MM/YYYY HH:mm')}
+              </Typography>
+            </Grid>
+            <Grid item xs={6} textAlign="right">
+              <Box sx={{ mt: 4 }}>
+                <Divider sx={{ mb: 1 }} />
+                <Typography variant="body2" fontWeight={600}>
+                  Authorized Signature
+                </Typography>
+              </Box>
+            </Grid>
+          </Grid>
+        </Box>
+      </Paper>
+    </Box>
+  );
+};
+
+export default SalesOrderPrint;

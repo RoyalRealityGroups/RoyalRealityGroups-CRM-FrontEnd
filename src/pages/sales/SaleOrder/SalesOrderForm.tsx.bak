@@ -1,0 +1,547 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import {
+  Box,
+  Paper,
+  Typography,
+  Grid2 as Grid,
+  TextField,
+  Button,
+  Divider,
+  Alert,
+  CircularProgress,
+  Card,
+  CardContent,
+  IconButton,
+} from '@mui/material';
+import {
+  Save as SaveIcon,
+  Cancel as CancelIcon,
+  Upload as UploadIcon,
+  Close as CloseIcon,
+} from '@mui/icons-material';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import dayjs, { Dayjs } from 'dayjs';
+import SearchableDropdown from '../../components/common/SearchableDropdown';
+import SalesOrderItemGrid from './SalesOrderItemGrid';
+import type { SalesOrder, SalesOrderItem, CustomerType } from '../../types/sales.types';
+import type { DropdownOption } from '../../types/common.types';
+import { salesOrderApi } from '../../api/sales.api';
+import apiClient from '../../api/axios.config';
+
+const SalesOrderForm: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const isEditMode = Boolean(id);
+
+  // Form state
+  const [orderDate, setOrderDate] = useState<Dayjs>(dayjs());
+  const [referenceNumber, setReferenceNumber] = useState('');
+  const [referenceDate, setReferenceDate] = useState<Dayjs | null>(null);
+  const [customer, setCustomer] = useState<DropdownOption | null>(null);
+  const [customerType, setCustomerType] = useState<CustomerType | null>(null);
+  const [creditDays, setCreditDays] = useState(0);
+  const [billingAddress, setBillingAddress] = useState('');
+  const [shippingAddress, setShippingAddress] = useState('');
+  const [remarks, setRemarks] = useState('');
+  const [attachment, setAttachment] = useState<File | null>(null);
+  const [items, setItems] = useState<SalesOrderItem[]>([]);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Load existing order
+  const { data: existingOrder, isLoading: isLoadingOrder } = useQuery({
+    queryKey: ['salesOrder', id],
+    queryFn: () => salesOrderApi.getById(id!),
+    enabled: isEditMode,
+  });
+
+  // Get channel config to filter customer types
+  const { data: channelConfig } = useQuery({
+    queryKey: ['channelConfig'],
+    queryFn: () => fetch('/api/masters/channel-config/').then(res => res.json()),
+  });
+
+  // Populate form when editing
+  useEffect(() => {
+    if (existingOrder) {
+      setOrderDate(dayjs(existingOrder.order_date));
+      setReferenceNumber(existingOrder.reference_number || '');
+      setReferenceDate(existingOrder.reference_date ? dayjs(existingOrder.reference_date) : null);
+      setCustomer({
+        id: existingOrder.customer,
+        name: existingOrder.customer_name || '',
+      });
+      setCustomerType(existingOrder.customer_type);
+      setCreditDays(existingOrder.credit_days || 0);
+      setBillingAddress(existingOrder.billing_address || '');
+      setShippingAddress(existingOrder.shipping_address || '');
+      setRemarks(existingOrder.remarks || '');
+      setItems(existingOrder.items || []);
+    }
+  }, [existingOrder]);
+
+  // Fetch customer details when selected
+  const handleCustomerChange = async (option: DropdownOption | null) => {
+    setCustomer(option);
+    if (!option) {
+      setCustomerType(null);
+      setCreditDays(0);
+      setBillingAddress('');
+      setShippingAddress('');
+      return;
+    }
+
+    try {
+      const response = await apiClient.get(`/api/masters/channel-partners/${option.id}/`);
+      const customerData = response.data;
+      setCustomerType(customerData.partner_type);
+      setCreditDays(customerData.credit_days || 0);
+      
+      // Set addresses
+      if (customerData.locations && customerData.locations.length > 0) {
+        const primaryLocation = customerData.locations.find(loc => loc.is_primary) || customerData.locations[0];
+        const address = `${primaryLocation.address}, ${primaryLocation.area_name}, ${primaryLocation.city_name}, ${primaryLocation.state_name} - ${primaryLocation.pin_code}`;
+        setBillingAddress(address);
+        setShippingAddress(address);
+      }
+    } catch (error) {
+      console.error('Failed to fetch customer details:', error);
+    }
+  };
+
+  // Calculate totals
+  const calculateTotals = () => {
+    const baseAmount = items.reduce((sum, item) => sum + (item.quantity * item.rate), 0);
+    const totalDiscount = items.reduce((sum, item) => sum + (item.discount_amount || 0), 0);
+    const taxableAmount = items.reduce((sum, item) => sum + (item.taxable_amount || 0), 0);
+    const totalTax = items.reduce((sum, item) => sum + (item.tax_amount || 0), 0);
+    const grandTotal = items.reduce((sum, item) => sum + (item.line_total || 0), 0);
+
+    return {
+      baseAmount,
+      totalDiscount,
+      taxableAmount,
+      totalTax,
+      grandTotal,
+    };
+  };
+
+  const totals = calculateTotals();
+
+  // Validation
+  const validate = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    if (!orderDate) newErrors.orderDate = 'Order date is required';
+    if (!customer) newErrors.customer = 'Customer is required';
+    if (items.length === 0) newErrors.items = 'At least one item is required';
+    if (!billingAddress) newErrors.billingAddress = 'Billing address is required';
+    if (!shippingAddress) newErrors.shippingAddress = 'Shipping address is required';
+
+    // Validate items
+    items.forEach((item, index) => {
+      if (!item.item) newErrors[`item_${index}`] = 'Item is required';
+      if (item.quantity <= 0) newErrors[`quantity_${index}`] = 'Quantity must be greater than 0';
+      if (item.rate <= 0) newErrors[`rate_${index}`] = 'Rate must be greater than 0';
+    });
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // Create/Update mutation
+  const mutation = useMutation({
+    mutationFn: (formData: FormData) => {
+      if (isEditMode) {
+        return salesOrderApi.update(id!, formData);
+      }
+      return salesOrderApi.create(formData);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['salesOrders'] });
+      navigate('/sales/orders');
+    },
+  });
+
+  const handleSubmit = () => {
+    if (!validate()) return;
+
+    const formData = new FormData();
+    formData.append('order_date', orderDate.format('YYYY-MM-DD'));
+    formData.append('customer', customer!.id as string);
+    formData.append('customer_type', customerType!);
+    formData.append('credit_days', creditDays.toString());
+    formData.append('billing_address', billingAddress);
+    formData.append('shipping_address', shippingAddress);
+    formData.append('base_amount', totals.baseAmount.toString());
+    formData.append('discount_amount', totals.totalDiscount.toString());
+    formData.append('taxable_amount', totals.taxableAmount.toString());
+    formData.append('tax_amount', totals.totalTax.toString());
+    formData.append('grand_total', totals.grandTotal.toString());
+
+    if (referenceNumber) formData.append('reference_number', referenceNumber);
+    if (referenceDate) formData.append('reference_date', referenceDate.format('YYYY-MM-DD'));
+    if (remarks) formData.append('remarks', remarks);
+    if (attachment) formData.append('attachment', attachment);
+
+    // Add items as JSON
+    formData.append('items', JSON.stringify(items.map(item => ({
+      item: item.item,
+      quantity: item.quantity,
+      free_quantity: item.free_quantity || 0,
+      pb_rate: item.pb_rate || 0,
+      pb_rate_source: item.pb_rate_source || 'NOT_FOUND',
+      rate: item.rate,
+      discount_type: item.discount_type,
+      discount_value: item.discount_value || 0,
+      discount_amount: item.discount_amount || 0,
+      taxable_amount: item.taxable_amount || 0,
+      tax_percentage: item.tax_percentage || 0,
+      tax_amount: item.tax_amount || 0,
+      line_total: item.line_total,
+    }))));
+
+    mutation.mutate(formData);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setAttachment(e.target.files[0]);
+    }
+  };
+
+  const handleRemoveFile = () => {
+    setAttachment(null);
+  };
+
+  if (isEditMode && isLoadingOrder) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  // Get available customer types from channel config
+  const availableCustomerTypes = channelConfig ? [
+    channelConfig.show_distributors && 'DISTRIBUTOR',
+    channelConfig.show_superstockists && 'SUPERSTOCKIST',
+    channelConfig.show_retailers && 'RETAILER',
+  ].filter(Boolean) : ['RETAILER', 'DISTRIBUTOR', 'SUPERSTOCKIST'];
+
+  return (
+    <LocalizationProvider dateAdapter={AdapterDayjs}>
+      <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+      {/* Fixed Header */}
+      <Paper
+        elevation={1}
+        sx={{
+          p: 2,
+          borderRadius: 0,
+          flexShrink: 0,
+        }}
+      >
+        <Box display="flex" justifyContent="space-between" alignItems="center">
+          <Typography variant="h5" fontWeight={600}>
+            {isEditMode ? 'Edit Sales Order' : 'Create Sales Order'}
+          </Typography>
+          <Box display="flex" gap={2}>
+            <Button
+              variant="outlined"
+              startIcon={<CancelIcon />}
+              onClick={() => navigate('/sales/orders')}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<SaveIcon />}
+              onClick={handleSubmit}
+              disabled={mutation.isPending}
+            >
+              {mutation.isPending ? 'Saving...' : 'Save Order'}
+            </Button>
+          </Box>
+        </Box>
+      </Paper>
+
+      {/* Scrollable Content */}
+      <Box sx={{ flex: 1, overflow: 'auto', p: 3 }}>
+        {mutation.isError && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {mutation.error instanceof Error ? mutation.error.message : 'Failed to save sales order'}
+          </Alert>
+        )}
+
+        {Object.keys(errors).length > 0 && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            Please fix the errors before submitting
+          </Alert>
+        )}
+
+        {/* Order Details Section */}
+        <Card sx={{ mb: 2 }}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              Order Details
+            </Typography>
+            <Divider sx={{ mb: 2 }} />
+            <Grid container spacing={2}>
+              <Grid item xs={12} md={3}>
+                <DatePicker
+                  label="Order Date *"
+                  value={orderDate}
+                  onChange={(date) => date && setOrderDate(date)}
+                  format="DD-MM-YYYY"
+                  slotProps={{
+                    textField: {
+                      fullWidth: true,
+                      error: Boolean(errors.orderDate),
+                      helperText: errors.orderDate,
+                    },
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12} md={3}>
+                <TextField
+                  label="Reference Number"
+                  value={referenceNumber}
+                  onChange={(e) => setReferenceNumber(e.target.value)}
+                  fullWidth
+                />
+              </Grid>
+              <Grid item xs={12} md={3}>
+                <DatePicker
+                  label="Reference Date"
+                  value={referenceDate}
+                  onChange={(date) => setReferenceDate(date)}
+                  format="DD-MM-YYYY"
+                  slotProps={{ textField: { fullWidth: true } }}
+                />
+              </Grid>
+              <Grid item xs={12} md={3}>
+                <TextField
+                  label="Credit Days"
+                  type="number"
+                  value={creditDays}
+                  onChange={(e) => setCreditDays(parseInt(e.target.value) || 0)}
+                  fullWidth
+                  InputProps={{ readOnly: true }}
+                />
+              </Grid>
+            </Grid>
+          </CardContent>
+        </Card>
+
+        {/* Customer Section */}
+        <Card sx={{ mb: 2 }}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              Customer Information
+            </Typography>
+            <Divider sx={{ mb: 2 }} />
+            <Grid container spacing={2}>
+              <Grid size={{ xs: 12, md: 6 }}>
+                <SearchableDropdown
+                  value={customer}
+                  onChange={handleCustomerChange}
+                  apiEndpoint="/api/masters/channel-partners/mini/"
+                  label="Select Customer *"
+                  error={Boolean(errors.customer)}
+                  helperText={errors.customer}
+                  additionalFilters={customerType ? { partner_type: availableCustomerTypes.join(',') } : undefined}
+                />
+              </Grid>
+              <Grid size={{ xs: 12, md: 6 }}>
+                <TextField
+                  label="Customer Type"
+                  value={customerType || ''}
+                  fullWidth
+                  InputProps={{ readOnly: true }}
+                />
+              </Grid>
+            </Grid>
+          </CardContent>
+        </Card>
+
+        {/* Address Section */}
+        <Card sx={{ mb: 2 }}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              Address Information
+            </Typography>
+            <Divider sx={{ mb: 2 }} />
+            <Grid container spacing={2}>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  label="Billing Address *"
+                  value={billingAddress}
+                  onChange={(e) => setBillingAddress(e.target.value)}
+                  multiline
+                  rows={3}
+                  fullWidth
+                  error={Boolean(errors.billingAddress)}
+                  helperText={errors.billingAddress}
+                  InputProps={{ readOnly: true }}
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  label="Shipping Address *"
+                  value={shippingAddress}
+                  onChange={(e) => setShippingAddress(e.target.value)}
+                  multiline
+                  rows={3}
+                  fullWidth
+                  error={Boolean(errors.shippingAddress)}
+                  helperText={errors.shippingAddress}
+                />
+              </Grid>
+            </Grid>
+          </CardContent>
+        </Card>
+
+        {/* Line Items Section */}
+        <Card sx={{ mb: 2 }}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              Order Items *
+            </Typography>
+            <Divider sx={{ mb: 2 }} />
+            {errors.items && (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                {errors.items}
+              </Alert>
+            )}
+            <SalesOrderItemGrid
+              items={items}
+              onChange={setItems}
+              customerId={customer?.id as string}
+              customerType={customerType || undefined}
+            />
+          </CardContent>
+        </Card>
+
+        {/* Summary Section */}
+        <Card sx={{ mb: 2 }}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              Order Summary
+            </Typography>
+            <Divider sx={{ mb: 2 }} />
+            <Box sx={{ maxWidth: 400, ml: 'auto' }}>
+              <Grid container spacing={2}>
+                <Grid item xs={6}>
+                  <Typography variant="body2">Base Amount:</Typography>
+                </Grid>
+                <Grid item xs={6} textAlign="right">
+                  <Typography variant="body2" fontWeight={500}>
+                    ₹{totals.baseAmount.toFixed(2)}
+                  </Typography>
+                </Grid>
+
+                <Grid item xs={6}>
+                  <Typography variant="body2">Total Discount:</Typography>
+                </Grid>
+                <Grid item xs={6} textAlign="right">
+                  <Typography variant="body2" fontWeight={500} color="error">
+                    -₹{totals.totalDiscount.toFixed(2)}
+                  </Typography>
+                </Grid>
+
+                <Grid item xs={6}>
+                  <Typography variant="body2">Taxable Amount:</Typography>
+                </Grid>
+                <Grid item xs={6} textAlign="right">
+                  <Typography variant="body2" fontWeight={500}>
+                    ₹{totals.taxableAmount.toFixed(2)}
+                  </Typography>
+                </Grid>
+
+                <Grid item xs={6}>
+                  <Typography variant="body2">Total Tax:</Typography>
+                </Grid>
+                <Grid item xs={6} textAlign="right">
+                  <Typography variant="body2" fontWeight={500}>
+                    ₹{totals.totalTax.toFixed(2)}
+                  </Typography>
+                </Grid>
+
+                <Grid item xs={12}>
+                  <Divider />
+                </Grid>
+
+                <Grid item xs={6}>
+                  <Typography variant="h6" fontWeight={600}>
+                    Grand Total:
+                  </Typography>
+                </Grid>
+                <Grid item xs={6} textAlign="right">
+                  <Typography variant="h6" fontWeight={600} color="primary">
+                    ₹{totals.grandTotal.toFixed(2)}
+                  </Typography>
+                </Grid>
+              </Grid>
+            </Box>
+          </CardContent>
+        </Card>
+
+        {/* Additional Information */}
+        <Card sx={{ mb: 2 }}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              Additional Information
+            </Typography>
+            <Divider sx={{ mb: 2 }} />
+            <Grid container spacing={2}>
+              <Grid item xs={12}>
+                <TextField
+                  label="Remarks"
+                  value={remarks}
+                  onChange={(e) => setRemarks(e.target.value)}
+                  multiline
+                  rows={3}
+                  fullWidth
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <Box>
+                  <input
+                    accept="image/*,application/pdf"
+                    style={{ display: 'none' }}
+                    id="attachment-file"
+                    type="file"
+                    onChange={handleFileChange}
+                  />
+                  <label htmlFor="attachment-file">
+                    <Button
+                      variant="outlined"
+                      component="span"
+                      startIcon={<UploadIcon />}
+                    >
+                      Upload Attachment
+                    </Button>
+                  </label>
+                  {attachment && (
+                    <Box display="flex" alignItems="center" gap={1} mt={1}>
+                      <Typography variant="body2">{attachment.name}</Typography>
+                      <IconButton size="small" onClick={handleRemoveFile}>
+                        <CloseIcon />
+                      </IconButton>
+                    </Box>
+                  )}
+                </Box>
+              </Grid>
+            </Grid>
+          </CardContent>
+        </Card>
+      </Box>
+    </Box>
+    </LocalizationProvider>
+  );
+};
+
+export default SalesOrderForm;
