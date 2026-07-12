@@ -1,16 +1,14 @@
 import React from 'react';
-import { Box, Grid, Card, CardContent, Typography, Button, CardActionArea } from '@mui/material';
+import { Box, Grid, Card, CardContent, Typography, CardActionArea } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import {
   Person as LeadIcon,
-  CompareArrows as CrossCheckIcon,
-  FollowTheSigns as FollowUpIcon,
   Add as AddIcon,
+  FollowTheSigns as FollowUpIcon,
 } from '@mui/icons-material';
 import ScreenHeader from '../../components/common/ScreenHeader';
 import { useBreadcrumbs } from '../../contexts/BreadcrumbContext';
 import HomeIcon from '@mui/icons-material/Home';
-import FolderIcon from '@mui/icons-material/Folder';
 import { usePageTitle } from '../../hooks';
 
 const LeadHub: React.FC = () => {
@@ -35,15 +33,8 @@ const LeadHub: React.FC = () => {
       color: '#1976d2',
     },
     {
-      title: 'Cross Lead Check',
-      description: 'Check for duplicate leads',
-      icon: <CrossCheckIcon sx={{ fontSize: 40 }} />,
-      path: '/lead/cross-check',
-      color: '#ed6c02',
-    },
-    {
       title: 'Follow-ups',
-      description: 'Manage lead follow-ups',
+      description: 'Track due and overdue follow-ups',
       icon: <FollowUpIcon sx={{ fontSize: 40 }} />,
       path: '/lead/follow-ups',
       color: '#2e7d32',
@@ -63,7 +54,7 @@ const LeadHub: React.FC = () => {
 
       <Grid container spacing={3} sx={{ mt: 2 }}>
         {menuItems.map((item) => (
-          <Grid size={{ xs: 12, sm: 6, md: 3 }} key={item.path}>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }} key={item.path}>
             <Card
               sx={{
                 height: '100%',

@@ -19,6 +19,7 @@ import {
   Logout as LogoutIcon,
   Lock as LockIcon,
   Menu as MenuIcon,
+  SettingsOutlined as SettingsIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -177,6 +178,17 @@ const AppBar: React.FC<AppBarProps> = ({ onMenuClick }) => {
               <LockIcon fontSize="small" />
             </ListItemIcon>
             Change Password
+          </MenuItem>
+          <MenuItem
+            onClick={() => {
+              handleClose();
+              navigate('/settings');
+            }}
+          >
+            <ListItemIcon>
+              <SettingsIcon fontSize="small" />
+            </ListItemIcon>
+            Settings
           </MenuItem>
           <Divider sx={{ my: 0.5 }} />
           <MenuItem onClick={handleLogout}>

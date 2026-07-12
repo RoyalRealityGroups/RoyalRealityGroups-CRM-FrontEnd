@@ -176,6 +176,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       if (menuSubmenus && menuSubmenus.length > 0) {
         menuSubmenus.forEach((submenu) => {
           if (!submenu.menuitems || submenu.menuitems.length === 0) return;
+          if (submenu.name?.toLowerCase() === 'settings') return;
 
           if (isSuperuser(user)) {
             submenus.push(submenu);
