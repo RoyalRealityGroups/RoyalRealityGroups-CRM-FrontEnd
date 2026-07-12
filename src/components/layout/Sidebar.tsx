@@ -50,9 +50,16 @@ import type { Submenu } from '../../types/menu.types';
 import LordIcon from '../common/LordIcon';
 import SvgIcon from '../common/SvgIcon';
 
-const checkPermission = (userPermissions: string[], permission: string): boolean => {
-  if (!userPermissions || userPermissions.length === 0) return false;
-  return userPermissions.some(p => {
+const checkPermission = (userPermissions: string[], permission: string, user?: { permissions?: string[] }): boolean => {
+  const permSet = new Set<string>();
+  if (userPermissions && Array.isArray(userPermissions)) {
+    userPermissions.forEach(p => { if (typeof p === 'string') permSet.add(p); });
+  }
+  if (user?.permissions && Array.isArray(user.permissions)) {
+    user.permissions.forEach(p => { if (typeof p === 'string') permSet.add(p); });
+  }
+  if (permSet.size === 0) return false;
+  return Array.from(permSet).some(p => {
     if (p === permission) return true;
     if (p.includes('.') && p.split('.')[1] === permission) return true;
     if (permission.includes('.') && p === permission.split('.')[1]) return true;
@@ -186,12 +193,12 @@ const Sidebar: React.FC<SidebarProps> = ({
           const hasAccess = submenu.menuitems.some((menuitem) => {
             // Handle permissions as string array
             if (menuitem.permissions && menuitem.permissions.length > 0) {
-              return menuitem.permissions.some(p => checkPermission(userPermissions, p));
+              return menuitem.permissions.some(p => checkPermission(userPermissions, p, user));
             }
             // Handle permission as object { id, name, codename } or number
             if (menuitem.permission) {
               if (typeof menuitem.permission === 'object' && menuitem.permission.codename) {
-                return checkPermission(userPermissions, menuitem.permission.codename);
+                return checkPermission(userPermissions, menuitem.permission.codename, user);
               }
             }
             // No permissions defined — allow access

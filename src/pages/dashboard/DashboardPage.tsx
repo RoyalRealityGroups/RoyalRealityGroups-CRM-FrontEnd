@@ -233,15 +233,19 @@ useEffect(()=>{
     }
 
     loadDashboards()
-    loadOrderStats()
-    loadDispatchStats()
-    loadInvoiceStats()
-    loadPodStats()
-    loadTotalRevenue()
-    loadFulfillmentPercentage()
-    loadSalesTrend()
-    loadWeeklyCustomerData()
-    loadUserActivities()
+    if (hasPermission(user, 'view_salesorder')) {
+      loadOrderStats()
+      loadFulfillmentPercentage()
+      loadWeeklyCustomerData()
+    }
+    if (hasPermission(user, 'view_dispatchplan')) loadDispatchStats()
+    if (hasPermission(user, 'view_invoice')) loadInvoiceStats()
+    if (hasPermission(user, 'view_proofofdelivery')) loadPodStats()
+    if (hasPermission(user, 'view_receipt')) {
+      loadTotalRevenue()
+      loadSalesTrend()
+    }
+    if (canViewRecentActivity) loadUserActivities()
   }, [])
 
   // Get time-based greeting

@@ -101,8 +101,8 @@ export const useAuth = () => {
         }),
       ]);
 
-      // Update user permissions if fetched successfully
-      if (permissionsResult.status === 'fulfilled') {
+      // Update user permissions if fetched successfully (don't overwrite with empty)
+      if (permissionsResult.status === 'fulfilled' && permissionsResult.value.length > 0) {
         dispatch(setUser({ ...user, permissions: permissionsResult.value }));
       }
 
