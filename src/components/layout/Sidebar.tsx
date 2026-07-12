@@ -111,25 +111,25 @@ const Sidebar: React.FC<SidebarProps> = ({
     
     // Lords icons for main submenus — Royal Reality palette
     if (normalizedName.includes('dashboard')) {
-      return <LordIcon src="https://cdn.lordicon.com/axroojxh.json" trigger="hover" colors="primary:#F9B401" size={24} parentHover={isHovered} />;
+      return <LordIcon src="https://cdn.lordicon.com/axroojxh.json" trigger="hover" colors="primary:#FFFFFF" size={24} parentHover={isHovered} />;
     }
     if (normalizedName.includes('masters')) {
-      return <LordIcon src="https://cdn.lordicon.com/bsmnglum.json" trigger="hover" colors="primary:#F9B401,secondary:#F9B401" size={24} parentHover={isHovered} />;
+      return <LordIcon src="https://cdn.lordicon.com/bsmnglum.json" trigger="hover" colors="primary:#FFFFFF,secondary:#FFFFFF" size={24} parentHover={isHovered} />;
     }
     if (normalizedName.includes('import')) {
-      return <LordIcon src="https://cdn.lordicon.com/bimokqfw.json" trigger="hover" colors="primary:#F9B401" size={24} parentHover={isHovered} />;
+      return <LordIcon src="https://cdn.lordicon.com/bimokqfw.json" trigger="hover" colors="primary:#FFFFFF" size={24} parentHover={isHovered} />;
     }
     if (normalizedName.includes('price')) {
-      return <LordIcon src="https://cdn.lordicon.com/bsdkzyjd.json" trigger="hover" colors="primary:#F9B401,secondary:#F9B401" size={24} parentHover={isHovered} />;
+      return <LordIcon src="https://cdn.lordicon.com/bsdkzyjd.json" trigger="hover" colors="primary:#FFFFFF,secondary:#FFFFFF" size={24} parentHover={isHovered} />;
     }
     if (normalizedName.includes('sales')) {
-      return <LordIcon src="https://cdn.lordicon.com/oqhqyeud.json" trigger="hover" colors="primary:#F9B401,secondary:#F9B401" size={24} parentHover={isHovered} />;
+      return <LordIcon src="https://cdn.lordicon.com/oqhqyeud.json" trigger="hover" colors="primary:#FFFFFF,secondary:#FFFFFF" size={24} parentHover={isHovered} />;
     }
     if (normalizedName.includes('reports')) {
-      return <LordIcon src="https://cdn.lordicon.com/gqdnbnwt.json" trigger="hover" colors="primary:#F9B401,secondary:#F9B401" size={24} parentHover={isHovered} />;
+      return <LordIcon src="https://cdn.lordicon.com/gqdnbnwt.json" trigger="hover" colors="primary:#FFFFFF,secondary:#FFFFFF" size={24} parentHover={isHovered} />;
     }
     if (normalizedName.includes('settings')) {
-      return <LordIcon src="https://cdn.lordicon.com/asyunleq.json" trigger="hover" colors="primary:#F9B401" size={24} parentHover={isHovered} />;
+      return <LordIcon src="https://cdn.lordicon.com/asyunleq.json" trigger="hover" colors="primary:#FFFFFF" size={24} parentHover={isHovered} />;
     }
 
     // Fallback to regular icon map for backward compatibility

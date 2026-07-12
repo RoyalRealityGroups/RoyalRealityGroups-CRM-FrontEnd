@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { authApi } from '../api/auth.api';
+import { useAppSelector } from '../store/hooks';
 
 export interface ScreenPermission {
   id: number;
@@ -30,6 +31,10 @@ export interface PermissionContextValue {
 export const PermissionContext = createContext<PermissionContextValue | null>(null);
 
 export const PermissionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  // Use Redux selector directly (Redux Provider sits above us in the tree).
+  // We can't use useAuth() here because it pulls in react-router hooks, and this
+  // provider renders OUTSIDE <BrowserRouter>.
+  const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
   const [permissions, setPermissions] = useState<ScreenPermission[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -47,8 +52,14 @@ export const PermissionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   }, []);
 
   useEffect(() => {
+    if (!isAuthenticated) {
+      // No session yet — clear any stale permissions, don't hit a protected endpoint.
+      setPermissions([]);
+      setIsLoading(false);
+      return;
+    }
     fetchPermissions();
-  }, [fetchPermissions]);
+  }, [fetchPermissions, isAuthenticated]);
 
   const canView = useCallback((screenCode: string) => {
     const perm = permissions.find(p => p.screen_code === screenCode);
