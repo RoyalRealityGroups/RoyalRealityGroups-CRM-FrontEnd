@@ -65,16 +65,22 @@ const SiteVisitForm: React.FC = () => {
     queryKey: ['site-visit', id],
     queryFn: () => siteVisitApi.getSiteVisit(id!),
     enabled: !!id,
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   const { data: choices } = useQuery({
     queryKey: ['site-visit-choices'],
     queryFn: () => siteVisitApi.getChoices(),
+    staleTime: 5 * 60 * 1000,
+    refetchOnMount: 'always',
   });
 
   const { data: usersData } = useQuery({
     queryKey: ['site-visit-users'],
     queryFn: () => leadApi.getUsers(),
+    staleTime: 5 * 60 * 1000,
+    refetchOnMount: 'always',
   });
   const users: { id: string; name: string }[] = usersData || [];
 

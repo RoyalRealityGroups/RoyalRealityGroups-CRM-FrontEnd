@@ -124,7 +124,15 @@ const GroupForm: React.FC = () => {
 
   // Filter apps that have content types with permissions
   const filteredApps = useMemo(() => {
+    // ponytail: hide internal/system apps from the Add Group permission picker
+    const HIDDEN_APP_LABELS = new Set([
+      'admin', 'auth', 'contenttypes', 'core_users', 'dispatch',
+      'dynamic_preferences', 'general', 'invoice', 'receipt', 'receipts',
+      'sales', 'sessions', 'sitevisit', 'system', 'thirdparty',
+      'token_blacklist', 'delivery', 'dispatch',
+    ]);
     return appsData
+      .filter((app) => !HIDDEN_APP_LABELS.has((app.app_label || app.name || '').toLowerCase()))
       .filter((app) => app.contenttypedetails?.some((ct) => ct.permissions?.length > 0))
       .sort((a, b) => a.sequence - b.sequence || a.name.localeCompare(b.name));
   }, [appsData]);
@@ -392,7 +400,14 @@ const GroupForm: React.FC = () => {
                         }}
                         sx={{
                           '&.Mui-selected': {
-                            bgcolor: 'primary.50',
+                            bgcolor: 'action.selected',
+                            color: 'text.primary',
+                            '& .MuiListItemText-primary': {
+                              color: 'text.primary',
+                            },
+                          },
+                          '&:hover': {
+                            bgcolor: 'action.hover',
                           },
                         }}
                         selected={selectedAppId === app.id && !isAppExpanded}
@@ -402,6 +417,7 @@ const GroupForm: React.FC = () => {
                           primaryTypographyProps={{
                             fontSize: 14,
                             fontWeight: 600,
+                            color: 'text.primary',
                           }}
                         />
                         {contentTypes.length > 0 && (
@@ -419,12 +435,25 @@ const GroupForm: React.FC = () => {
                                   setSelectedAppId(app.id);
                                   setExpandedContentTypes(new Set([ct.id]));
                                 }}
-                                sx={{ pl: 4 }}
+                                sx={{
+                                  pl: 4,
+                                  '&.Mui-selected': {
+                                    bgcolor: 'action.selected',
+                                    color: 'text.primary',
+                                    '& .MuiListItemText-primary': {
+                                      color: 'text.primary',
+                                    },
+                                  },
+                                  '&:hover': {
+                                    bgcolor: 'action.hover',
+                                  },
+                                }}
                               >
                                 <ListItemText
                                   primary={ct.name || ct.model}
                                   primaryTypographyProps={{
                                     fontSize: 13,
+                                    color: 'text.primary',
                                   }}
                                 />
                               </ListItemButton>
