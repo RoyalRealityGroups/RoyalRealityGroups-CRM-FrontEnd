@@ -112,12 +112,14 @@ const FollowUps: React.FC = () => {
     onSuccess: () => {
       toastSuccess('Follow-up logged successfully');
       setDialogOpen(false);
+      setSelectedLead(null);
       setFormData({
         follow_up_date: new Date().toISOString().split('T')[0],
         follow_up_type: '',
         discussion_notes: '',
         next_follow_up_date: '',
       });
+      setActiveTab('all');
       queryClient.invalidateQueries({ queryKey: ['follow-ups'] });
     },
     onError: (error: any) => {

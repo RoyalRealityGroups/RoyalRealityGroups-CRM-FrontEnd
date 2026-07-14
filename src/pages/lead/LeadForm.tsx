@@ -195,7 +195,11 @@ const LeadForm: React.FC = () => {
   });
 
   const handleChange = (field: keyof LeadFormData) => (event: any) => {
-    const value = event.target?.value ?? event;
+    let value = event.target?.value ?? event;
+    // ponytail: strip non-digits + cap at 10 for phone fields
+    if (field === 'mobile' || field === 'alternate_number') {
+      value = value.replace(/\D/g, '').slice(0, 10);
+    }
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 

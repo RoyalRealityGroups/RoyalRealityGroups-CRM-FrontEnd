@@ -2201,7 +2201,7 @@ const handleShippingAreaCreate = async (data: any) => {
                   </Grid>
                   <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                     <Typography variant="subtitle2" sx={{ mb: 0.5, fontWeight: 600, color: 'text.primary' }}>Phone <Box component="span" sx={{ color: '#f44336', fontWeight: 600 }}>*</Box></Typography>
-                    <TextField value={userPhone} onChange={(e) => { setUserPhone(e.target.value.replace(/[^0-9+\-\s]/g, '')); setUserErrors(prev => { const n = {...prev}; delete n.phone; return n; }); }} placeholder="e.g., 9876543210" fullWidth size="small" disabled={isSubmitting} inputProps={{ maxLength: 15 }} error={!!userErrors.phone} helperText={userErrors.phone} />
+                    <TextField value={userPhone} onChange={(e) => { setUserPhone(e.target.value.replace(/\D/g, '').slice(0, 10)); setUserErrors(prev => { const n = {...prev}; delete n.phone; return n; }); }} placeholder="e.g., 9876543210" fullWidth size="small" disabled={isSubmitting} error={!!userErrors.phone} helperText={userErrors.phone} />
                   </Grid>
                   <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                     <Typography variant="subtitle2" sx={{ mb: 0.5, fontWeight: 600, color: 'text.primary' }}>Password <Box component="span" sx={{ color: '#f44336', fontWeight: 600 }}>*</Box></Typography>

@@ -25,7 +25,7 @@ export const PHONE_FIELD_HELPER_TEXT =
   'Enter mobile number with country code (up to 15 digits). Example: +91 9876543210';
 
 export const sanitizePhoneInput = (value: string): string =>
-  value.replace(/[^0-9+\-\s]/g, '').slice(0, CONTACT_PHONE_MAX_LENGTH);
+  value.replace(/\D/g, '').slice(0, 10);
 
 /**
  * Validate Indian GST number format
