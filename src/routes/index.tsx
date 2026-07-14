@@ -9,6 +9,7 @@ import { settingsRoutes } from './settingsRoutes';
 import { receiptsRoutes, receiptsPrintRoutes } from './receiptsRoutes';
 import { reportsRoutes } from './reportsRoutes';
 import { siteVisitRoutes } from './siteVisitRoutes';
+import { inventoryRoutes } from './inventoryRoutes';
 import ProtectedRoute from '../components/auth/ProtectedRoute';
 import { Layout } from '../components/layout';
 
@@ -46,6 +47,7 @@ export const AppRoutes = () => (
       {receiptsRoutes}
       {reportsRoutes}
       {siteVisitRoutes}
+      {inventoryRoutes}
     </Route>
 
     {/* 404 Route */}
