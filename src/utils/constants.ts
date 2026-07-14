@@ -81,8 +81,6 @@ export const ROUTES = {
   LOGIN: '/login',
   FORGOT_PASSWORD: '/forgot-password',
   DASHBOARD: '/dashboard',
-  DASHBOARDBUILDER: '/dashboard-builder',
-  DASHBOARDBUILDER_PAGE: '/dashboard-builder/:dashboardId',
   MASTERS_COUNTRY: '/masters/country',
   NOT_FOUND: '*',
 } as const;

@@ -34,7 +34,6 @@ const TaxList = lazy(() => import('../pages/masters/Tax/TaxList'));
 const ItemTaxCompositionList = lazy(() => import('../pages/masters/Item/ItemTaxCompositionList'));
 const OutletTypeList = lazy(() => import('../pages/masters/OutletType/OutletTypeList'));
 const AgentList = lazy(() => import('../pages/masters/Agent/AgentList'));
-const ItemSettings = lazy(() => import('../pages/masters/Item/ItemSettings'));
 const ItemView = lazy(() => import('../pages/masters/Item/ItemView'));
 const ProjectList = lazy(() => import('../pages/masters/Project/ProjectList'));
 const ProjectView = lazy(() => import('../pages/masters/Project/ProjectView'));
@@ -83,7 +82,6 @@ export const mastersRoutes = (
     <Route path="masters/items/add" element={<ItemForm />} />
     <Route path="masters/items/edit/:id" element={<ItemForm />} />
     <Route path="masters/items/view/:id" element={withSuspense(ItemView)} />
-    <Route path="masters/settings/item-settings" element={withSuspense(ItemSettings)} />
 
     <Route path="masters/projects" element={withSuspense(ProjectList)} />
     <Route path="masters/projects/view/:id" element={withSuspense(ProjectView)} />

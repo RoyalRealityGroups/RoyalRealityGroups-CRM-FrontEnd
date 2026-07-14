@@ -13,8 +13,6 @@ import { Layout } from '../components/layout';
 
 const Dashboard = lazy(() => import('../pages/dashboard/DashboardPage'));
 const NotFound = lazy(() => import('../pages/NotFound'));
-const DashBoardBuilderPage = lazy(() => import('../pages/dashboard-builder/DashboardBuilderPage'));
-const DashBoardBuilderList = lazy(() => import('../pages/dashboard-builder/DashboardListPage'));
 export const AppRoutes = () => (
   <Routes>
     {/* Public Routes */}
@@ -38,22 +36,6 @@ export const AppRoutes = () => (
         element={
           <Suspense fallback={<PageLoader />}>
             <Dashboard />
-          </Suspense>
-        }
-      />
-       <Route
-        path={ROUTES.DASHBOARDBUILDER.substring(1)}
-        element={
-          <Suspense fallback={<PageLoader />}>
-            <DashBoardBuilderList />
-          </Suspense>
-        }
-      />
-      <Route
-        path={ROUTES.DASHBOARDBUILDER_PAGE.substring(1)}
-        element={
-          <Suspense fallback={<PageLoader />}>
-            <DashBoardBuilderPage />
           </Suspense>
         }
       />
