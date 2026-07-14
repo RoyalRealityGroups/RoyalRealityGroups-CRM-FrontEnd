@@ -7,6 +7,7 @@ const LeadList = lazy(() => import('../pages/lead/LeadList'));
 const LeadForm = lazy(() => import('../pages/lead/LeadForm'));
 const CrossLeadCheck = lazy(() => import('../pages/lead/CrossLeadCheck'));
 const FollowUps = lazy(() => import('../pages/lead/FollowUps'));
+const FollowUpView = lazy(() => import('../pages/lead/FollowUpView'));
 
 const withSuspense = (Component: React.LazyExoticComponent<any>) => (
   <Suspense fallback={<PageLoader />}>
@@ -23,5 +24,6 @@ export const leadRoutes = (
     <Route path="lead/view/:id" element={withSuspense(LeadForm)} />
     <Route path="lead/cross-check" element={withSuspense(CrossLeadCheck)} />
     <Route path="lead/follow-ups" element={withSuspense(FollowUps)} />
+    <Route path="lead/follow-ups/view/:id" element={withSuspense(FollowUpView)} />
   </>
 );

@@ -17,7 +17,7 @@ export const notificationApi = {
     return response.data?.results ?? response.data ?? [];
   },
 
-  markAsRead: async (id: string): Promise<void> => {
+  markAsRead: async (id: string | number): Promise<void> => {
     await apiClient.patch(`/api/system/Notification/Clear/${id}/`);
   },
 

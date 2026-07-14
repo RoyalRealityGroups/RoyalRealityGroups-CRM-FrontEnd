@@ -26,6 +26,7 @@ import {
   Search as SearchIcon,
   Add as AddIcon,
   Visibility as ViewIcon,
+  EventNote as FollowUpIcon,
 } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { leadApi } from '../../api/lead.api';
@@ -156,6 +157,11 @@ const LeadList: React.FC = () => {
           <Tooltip title="View">
             <IconButton size="small" onClick={() => navigate(`/lead/view/${params.row.id}`)}>
               <ViewIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Follow-up">
+            <IconButton size="small" color="success" onClick={() => navigate('/lead/follow-ups', { state: { leadId: params.row.id } })}>
+              <FollowUpIcon fontSize="small" />
             </IconButton>
           </Tooltip>
           <Tooltip title="Edit">

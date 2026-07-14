@@ -3,8 +3,7 @@ import { Box, Grid, Card, CardContent, Typography, CardActionArea } from '@mui/m
 import { useNavigate } from 'react-router-dom';
 import {
   Person as LeadIcon,
-  Add as AddIcon,
-  FollowTheSigns as FollowUpIcon,
+  EventNote as FollowUpIcon,
 } from '@mui/icons-material';
 import ScreenHeader from '../../components/common/ScreenHeader';
 import { useBreadcrumbs } from '../../contexts/BreadcrumbContext';
@@ -34,17 +33,10 @@ const LeadHub: React.FC = () => {
     },
     {
       title: 'Follow-ups',
-      description: 'Track due and overdue follow-ups',
+      description: 'Manage lead follow-ups and reminders',
       icon: <FollowUpIcon sx={{ fontSize: 40 }} />,
       path: '/lead/follow-ups',
       color: '#2e7d32',
-    },
-    {
-      title: 'Add New Lead',
-      description: 'Create a new lead entry',
-      icon: <AddIcon sx={{ fontSize: 40 }} />,
-      path: '/lead/add',
-      color: '#9c27b0',
     },
   ];
 

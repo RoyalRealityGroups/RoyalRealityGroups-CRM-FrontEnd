@@ -1,11 +1,11 @@
-﻿import React, { useState } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import {
   Box,
   Paper,
   Grid,
+  Typography,
   TextField,
   Button,
-  Typography,
   FormControl,
   InputLabel,
   Select,
@@ -22,9 +22,11 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  InputAdornment,
+  IconButton,
+  Tooltip,
 } from '@mui/material';
-import { Add as AddIcon, Today as TodayIcon, Warning as WarningIcon, Person as PersonIcon, EventAvailableOutlined, HistoryOutlined } from '@mui/icons-material';
+import { Add as AddIcon, Today as TodayIcon, Warning as WarningIcon, Person as PersonIcon, EventAvailableOutlined, Visibility as ViewIcon } from '@mui/icons-material';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { leadApi } from '../../api/lead.api';
 import ScreenHeader from '../../components/common/ScreenHeader';
@@ -32,8 +34,7 @@ import { useBreadcrumbs } from '../../contexts/BreadcrumbContext';
 import { useToast } from '../../contexts/ToastContext';
 import { usePageTitle } from '../../hooks';
 import HomeIcon from '@mui/icons-material/Home';
-import type { LeadFollowUp, LeadFollowUpFormData, LeadChoices, Lead } from '../../types/lead.types';
-import Autocomplete from '@mui/material/Autocomplete';
+import type { LeadFollowUp, LeadFollowUpFormData, Lead, LeadChoices } from '../../types/lead.types';
 import { getPageContainerStyles, getContentSectionStyles } from '../../utils/spacing';
 
 const FollowUps: React.FC = () => {
@@ -45,13 +46,16 @@ const FollowUps: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'due_today' | 'overdue' | 'all'>('due_today');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
-  const [leadSearchQuery, setLeadSearchQuery] = useState('');
   const [formData, setFormData] = useState<Partial<LeadFollowUpFormData>>({
     follow_up_date: new Date().toISOString().split('T')[0],
     follow_up_type: '',
     discussion_notes: '',
     next_follow_up_date: '',
   });
+
+  const location = useLocation();
+  const navigate = useNavigate();
+  const leadIdFromState = (location.state as { leadId?: string } | null)?.leadId;
 
   React.useEffect(() => {
     setBreadcrumbs([
@@ -92,21 +96,27 @@ const FollowUps: React.FC = () => {
     queryFn: () => leadApi.getFollowUps(),
   });
 
-  // Fetch choices
   const { data: choices } = useQuery({
     queryKey: ['lead-choices'],
     queryFn: () => leadApi.getChoices(),
   });
 
-  // Lead search for new follow-up dialog
-  const { data: leadSearchData } = useQuery({
-    queryKey: ['lead-search', leadSearchQuery],
-    queryFn: () => leadApi.getLeads({ search: leadSearchQuery, page_size: 20 }),
-    enabled: leadSearchQuery.length > 0,
+  // ponytail: prefetch lead when arriving via nav state — only way the dialog opens
+  const { data: preloadedLead } = useQuery({
+    queryKey: ['lead', leadIdFromState],
+    queryFn: () => leadApi.getLead(leadIdFromState!),
+    enabled: !!leadIdFromState,
   });
-  const leadOptions = leadSearchData?.results || [];
 
-  // Create follow-up mutation
+  useEffect(() => {
+    if (preloadedLead) {
+      setSelectedLead(preloadedLead);
+      setDialogOpen(true);
+      // ponytail: clear router state so refresh doesn't re-trigger the dialog
+      navigate(location.pathname, { replace: true });
+    }
+  }, [preloadedLead]);
+
   const createMutation = useMutation({
     mutationFn: (data: LeadFollowUpFormData) => leadApi.createFollowUp(data),
     onSuccess: () => {
@@ -119,13 +129,26 @@ const FollowUps: React.FC = () => {
         discussion_notes: '',
         next_follow_up_date: '',
       });
-      setActiveTab('all');
       queryClient.invalidateQueries({ queryKey: ['follow-ups'] });
     },
     onError: (error: any) => {
       toastError(error.response?.data?.message || 'Failed to log follow-up');
     },
   });
+
+  const handleSaveFollowUp = () => {
+    if (!selectedLead || !formData.follow_up_type || !formData.follow_up_date) {
+      toastError('Please fill all required fields');
+      return;
+    }
+    createMutation.mutate({
+      lead_id: selectedLead.id,
+      follow_up_date: formData.follow_up_date,
+      follow_up_type: formData.follow_up_type,
+      discussion_notes: formData.discussion_notes || '',
+      next_follow_up_date: formData.next_follow_up_date,
+    });
+  };
 
   const rawData = activeTab === 'due_today' ? dueTodayData : activeTab === 'overdue' ? overdueData : allData;
   const currentData = Array.isArray(rawData) ? rawData : rawData?.results;
@@ -150,31 +173,6 @@ const FollowUps: React.FC = () => {
     ? allData.length
     : (allData?.results?.length ?? 0);
 
-  const handleOpenDialog = (lead: Lead) => {
-    setSelectedLead(lead);
-    setFormData({
-      follow_up_date: new Date().toISOString().split('T')[0],
-      follow_up_type: '',
-      discussion_notes: '',
-      next_follow_up_date: '',
-    });
-    setDialogOpen(true);
-  };
-
-  const handleSaveFollowUp = () => {
-    if (!selectedLead || !formData.follow_up_type || !formData.follow_up_date) {
-      toastError('Please fill all required fields');
-      return;
-    }
-    createMutation.mutate({
-      lead_id: selectedLead.id,
-      follow_up_date: formData.follow_up_date,
-      follow_up_type: formData.follow_up_type,
-      discussion_notes: formData.discussion_notes || '',
-      next_follow_up_date: formData.next_follow_up_date,
-    });
-  };
-
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'NEW_LEAD': return 'default';
@@ -195,10 +193,7 @@ const FollowUps: React.FC = () => {
     <Box sx={getPageContainerStyles()}>
       <ScreenHeader
         title="Follow-ups"
-        
-        showAddButton={true}
-        addButtonText="New Follow-up"
-        onAdd={() => { setSelectedLead(null); setDialogOpen(true); }}
+        showAddButton={false}
       />
 
       <Paper sx={getContentSectionStyles()}>
@@ -308,7 +303,7 @@ const FollowUps: React.FC = () => {
                   <TableCell>Assigned To</TableCell>
                   <TableCell>Type</TableCell>
                   <TableCell>Next Follow-up</TableCell>
-                  <TableCell>Actions</TableCell>
+                  <TableCell align="right">Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -333,26 +328,12 @@ const FollowUps: React.FC = () => {
                         ? new Date(followUp.next_follow_up_date).toLocaleDateString()
                         : '-'}
                     </TableCell>
-                    <TableCell>
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        startIcon={<AddIcon />}
-                        onClick={() => handleOpenDialog({
-                          id: followUp.lead?.id || '',
-                          name: followUp.lead?.name || '',
-                          code: followUp.lead?.code || '',
-                          mobile: followUp.lead?.mobile || '',
-                          status: followUp.lead?.status || '',
-                          lead_source: '',
-                          assigned_employee: { id: '', name: followUp.lead?.assigned_employee || '', code: '' },
-                          cross_lead_override: false,
-                          created_on: '',
-                          modified_on: '',
-                        })}
-                      >
-                        Log Follow-up
-                      </Button>
+                    <TableCell align="right">
+                      <Tooltip title="View">
+                        <IconButton size="small" onClick={() => navigate(`/lead/follow-ups/view/${followUp.id}`)}>
+                          <ViewIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -388,13 +369,13 @@ const FollowUps: React.FC = () => {
                 ? 'Nothing scheduled for today.'
                 : activeTab === 'overdue'
                 ? 'No follow-ups are past their scheduled date.'
-                : 'Click "New Follow-up" above to log your first interaction.'}
+                : 'No follow-ups logged yet.'}
             </Typography>
           </Box>
         )}
       </Paper>
 
-      {/* Quick Follow-up Dialog */}
+      {/* Quick Follow-up Dialog — opens only when arriving via ?leadId= */}
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -403,30 +384,15 @@ const FollowUps: React.FC = () => {
           </Box>
         </DialogTitle>
         <DialogContent>
-          {/* Lead Selection / Info */}
-          {selectedLead ? (
-            <Paper variant="outlined" sx={{ p: 1.5, mb: 2, bgcolor: 'grey.50', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <Box>
-                <Typography variant="subtitle2">{selectedLead.name}</Typography>
-                <Typography variant="caption" color="text.secondary">
-                  {selectedLead.code} | {selectedLead.mobile}
-                </Typography>
-              </Box>
-              <Button size="small" onClick={() => setSelectedLead(null)}>Change</Button>
+          {selectedLead && (
+            <Paper variant="outlined" sx={{ p: 1.5, mb: 2, bgcolor: 'grey.50' }}>
+              <Typography variant="subtitle2">{selectedLead.name}</Typography>
+              <Typography variant="caption" color="text.secondary">
+                {[selectedLead.code, selectedLead.mobile, selectedLead.email].filter(Boolean).join(' | ')}
+              </Typography>
             </Paper>
-          ) : (
-            <Autocomplete
-              options={leadOptions}
-              getOptionLabel={(opt) => `${opt.name} (${opt.code})`}
-              onInputChange={(_, val) => setLeadSearchQuery(val)}
-              onChange={(_, val) => setSelectedLead(val)}
-              renderInput={(params) => (
-                <TextField {...params} label="Search Lead *" required />
-              )}
-              sx={{ mb: 2 }}
-            />
           )}
-          
+
           <Grid container spacing={2}>
             <Grid size={{ xs: 12, md: 6 }}>
               <TextField
@@ -447,7 +413,7 @@ const FollowUps: React.FC = () => {
                   label="Follow-up Type"
                   onChange={(e) => setFormData({ ...formData, follow_up_type: e.target.value })}
                 >
-                  {choices?.follow_up_types.map((type) => (
+                  {choices?.follow_up_types?.map((type) => (
                     <MenuItem key={type.value} value={type.value}>
                       {type.label}
                     </MenuItem>
