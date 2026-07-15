@@ -25,7 +25,7 @@ import {
   IconButton,
   Tooltip,
 } from '@mui/material';
-import { Add as AddIcon, Today as TodayIcon, Warning as WarningIcon, Person as PersonIcon, EventAvailableOutlined, Visibility as ViewIcon } from '@mui/icons-material';
+import { Add as AddIcon, Today as TodayIcon, Warning as WarningIcon, Person as PersonIcon, EventAvailableOutlined, Visibility as ViewIcon, Edit as EditIcon } from '@mui/icons-material';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { leadApi } from '../../api/lead.api';
@@ -48,6 +48,7 @@ const FollowUps: React.FC = () => {
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [formData, setFormData] = useState<Partial<LeadFollowUpFormData>>({
     follow_up_date: new Date().toISOString().split('T')[0],
+    follow_up_time: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false }),
     follow_up_type: '',
     discussion_notes: '',
     next_follow_up_date: '',
@@ -125,11 +126,14 @@ const FollowUps: React.FC = () => {
       setSelectedLead(null);
       setFormData({
         follow_up_date: new Date().toISOString().split('T')[0],
+        follow_up_time: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false }),
         follow_up_type: '',
         discussion_notes: '',
         next_follow_up_date: '',
       });
-      queryClient.invalidateQueries({ queryKey: ['follow-ups'] });
+      queryClient.invalidateQueries({ queryKey: ['follow-ups-all'] });
+      queryClient.invalidateQueries({ queryKey: ['follow-ups-due-today'] });
+      queryClient.invalidateQueries({ queryKey: ['follow-ups-overdue'] });
     },
     onError: (error: any) => {
       toastError(error.response?.data?.message || 'Failed to log follow-up');
@@ -144,6 +148,7 @@ const FollowUps: React.FC = () => {
     createMutation.mutate({
       lead_id: selectedLead.id,
       follow_up_date: formData.follow_up_date,
+      follow_up_time: formData.follow_up_time || '',
       follow_up_type: formData.follow_up_type,
       discussion_notes: formData.discussion_notes || '',
       next_follow_up_date: formData.next_follow_up_date,
@@ -334,6 +339,11 @@ const FollowUps: React.FC = () => {
                           <ViewIcon fontSize="small" />
                         </IconButton>
                       </Tooltip>
+                      <Tooltip title="Edit">
+                        <IconButton size="small" onClick={() => navigate(`/lead/follow-ups/view/${followUp.id}`, { state: { editing: true } })}>
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -403,6 +413,16 @@ const FollowUps: React.FC = () => {
                 onChange={(e) => setFormData({ ...formData, follow_up_date: e.target.value })}
                 InputLabelProps={{ shrink: true }}
                 required
+              />
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <TextField
+                fullWidth
+                label="Follow-up Time"
+                type="time"
+                value={formData.follow_up_time || ''}
+                onChange={(e) => setFormData({ ...formData, follow_up_time: e.target.value })}
+                InputLabelProps={{ shrink: true }}
               />
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>

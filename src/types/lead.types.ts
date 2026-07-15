@@ -64,6 +64,7 @@ export interface LeadFollowUp {
     assigned_employee?: string;
   };
   follow_up_date: string;
+  follow_up_time?: string;
   follow_up_type: string;
   discussion_notes?: string;
   next_follow_up_date?: string;
@@ -77,6 +78,7 @@ export interface LeadFollowUp {
 export interface LeadFollowUpFormData {
   lead_id: string;
   follow_up_date: string;
+  follow_up_time?: string;
   follow_up_type: string;
   discussion_notes?: string;
   next_follow_up_date?: string;

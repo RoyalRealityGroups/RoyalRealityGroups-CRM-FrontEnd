@@ -2,7 +2,7 @@ import React, { createContext, useCallback, useEffect, useRef, useState } from '
 import { Alert, Slide } from '@mui/material';
 import type { AlertColor } from '@mui/material';
 
-const DEFAULT_TOAST_DURATION = 15000; // 15 seconds
+const DEFAULT_TOAST_DURATION = 5000; // 5 seconds
 
 export interface ToastOptions {
   /**
