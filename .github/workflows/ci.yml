@@ -1,4 +1,4 @@
-name: React Production Build
+name: RRG Production Build
 
 on:
   push:
