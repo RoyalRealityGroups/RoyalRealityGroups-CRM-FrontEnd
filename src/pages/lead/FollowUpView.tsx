@@ -97,6 +97,7 @@ const FollowUpView: React.FC = () => {
     follow_up_type: '',
     discussion_notes: '',
     next_follow_up_date: '',
+    lead_id: '',
   });
 
   // Auto-enter edit mode when navigated from list page Edit icon
@@ -108,6 +109,7 @@ const FollowUpView: React.FC = () => {
         follow_up_type: followUp.follow_up_type || '',
         discussion_notes: followUp.discussion_notes || '',
         next_follow_up_date: followUp.next_follow_up_date || '',
+        lead_id: followUp.lead!.id,
       });
       setNewLeadStatus(followUp.lead?.status || '');
       setIsEditing(true);
@@ -155,6 +157,7 @@ const FollowUpView: React.FC = () => {
       follow_up_type: followUp.follow_up_type || '',
       discussion_notes: followUp.discussion_notes || '',
       next_follow_up_date: followUp.next_follow_up_date || '',
+      lead_id: followUp.lead!.id,
     });
     setNewLeadStatus(followUp.lead?.status || '');
     setIsEditing(true);
