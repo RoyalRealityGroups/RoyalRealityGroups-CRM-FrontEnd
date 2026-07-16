@@ -7,7 +7,6 @@ import {
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { projectsApi } from '../../../api/projects';
-import apiClient from '../../../api/axios.config';
 import { useToast } from '../../../contexts/ToastContext';
 import { usePageTitle } from '../../../hooks';
 import { useBreadcrumbs } from '../../../contexts/BreadcrumbContext';
@@ -48,15 +47,6 @@ const ProjectFormPage: React.FC = () => {
     queryFn: () => projectsApi.choices(),
   });
 
-  const { data: locationsData } = useQuery({
-    queryKey: ['locations-mini'],
-    queryFn: async () => {
-      const r = await apiClient.get('/api/masters/locations/mini/');
-      return Array.isArray(r.data) ? r.data : r.data.results || [];
-    },
-  });
-  const locations: any[] = Array.isArray(locationsData) ? locationsData : locationsData?.results || [];
-
   useEffect(() => {
     if (isEdit && project) {
       setForm({
@@ -64,17 +54,7 @@ const ProjectFormPage: React.FC = () => {
         developer_name: project.developer_name || '',
         project_type: project.project_type,
         location: project.location || null,
-        address: project.address || '',
         approval_type: project.approval_type,
-        rera_number: project.rera_number || '',
-        total_area: project.total_area || '',
-        launch_date: project.launch_date || null,
-        possession_date: project.possession_date || null,
-        description: project.description || '',
-        image_url: project.image_url || '',
-        brochure_url: project.brochure_url || '',
-        layout_plan_url: project.layout_plan_url || '',
-        floor_plan_url: project.floor_plan_url || '',
         status: project.status,
         is_active: project.is_active,
       });
@@ -84,17 +64,7 @@ const ProjectFormPage: React.FC = () => {
         developer_name: '',
         project_type: 'PLOT',
         location: null,
-        address: '',
         approval_type: 'PENDING',
-        rera_number: '',
-        total_area: '',
-        launch_date: null,
-        possession_date: null,
-        description: '',
-        image_url: '',
-        brochure_url: '',
-        layout_plan_url: '',
-        floor_plan_url: '',
         status: 'UPCOMING',
         is_active: true,
       });
@@ -186,72 +156,9 @@ const ProjectFormPage: React.FC = () => {
           </Grid>
 
           <Grid size={{ xs: 12, md: 6 }}>
-            <FormControl fullWidth>
-              <InputLabel>Location</InputLabel>
-              <Select label="Location" value={form.location || ''}
-                onChange={(e) => setForm({ ...form, location: e.target.value || null })}>
-                <MenuItem value="">— None —</MenuItem>
-                {locations.map((l: any) => (
-                  <MenuItem key={l.id} value={l.id}>{l.name}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid size={{ xs: 12, md: 6 }}>
-            <TextField fullWidth label="RERA Number"
-              value={form.rera_number}
-              onChange={(e) => setForm({ ...form, rera_number: e.target.value })} />
-          </Grid>
-
-          <Grid size={{ xs: 12 }}>
-            <TextField fullWidth multiline rows={2} label="Address"
-              value={form.address}
-              onChange={(e) => setForm({ ...form, address: e.target.value })} />
-          </Grid>
-
-          <Grid size={{ xs: 12, md: 4 }}>
-            <TextField fullWidth label="Total Area" placeholder='e.g. "5 acres"'
-              value={form.total_area}
-              onChange={(e) => setForm({ ...form, total_area: e.target.value })} />
-          </Grid>
-          <Grid size={{ xs: 12, md: 4 }}>
-            <TextField fullWidth type="date" label="Launch Date"
-              InputLabelProps={{ shrink: true }}
-              value={form.launch_date || ''}
-              onChange={(e) => setForm({ ...form, launch_date: e.target.value || null })} />
-          </Grid>
-          <Grid size={{ xs: 12, md: 4 }}>
-            <TextField fullWidth type="date" label="Possession Date"
-              InputLabelProps={{ shrink: true }}
-              value={form.possession_date || ''}
-              onChange={(e) => setForm({ ...form, possession_date: e.target.value || null })} />
-          </Grid>
-
-          <Grid size={{ xs: 12 }}>
-            <TextField fullWidth multiline rows={3} label="Description"
-              value={form.description}
-              onChange={(e) => setForm({ ...form, description: e.target.value })} />
-          </Grid>
-
-          <Grid size={{ xs: 12, md: 6 }}>
-            <TextField fullWidth label="Image URL"
-              value={form.image_url || ''}
-              onChange={(e) => setForm({ ...form, image_url: e.target.value })} />
-          </Grid>
-          <Grid size={{ xs: 12, md: 6 }}>
-            <TextField fullWidth label="Brochure URL"
-              value={form.brochure_url || ''}
-              onChange={(e) => setForm({ ...form, brochure_url: e.target.value })} />
-          </Grid>
-          <Grid size={{ xs: 12, md: 6 }}>
-            <TextField fullWidth label="Layout Plan URL"
-              value={form.layout_plan_url || ''}
-              onChange={(e) => setForm({ ...form, layout_plan_url: e.target.value })} />
-          </Grid>
-          <Grid size={{ xs: 12, md: 6 }}>
-            <TextField fullWidth label="Floor Plan URL"
-              value={form.floor_plan_url || ''}
-              onChange={(e) => setForm({ ...form, floor_plan_url: e.target.value })} />
+            <TextField fullWidth label="Location"
+              value={form.location ?? ''}
+              onChange={(e) => setForm({ ...form, location: e.target.value || null })} />
           </Grid>
         </Grid>
 

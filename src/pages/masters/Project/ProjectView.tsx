@@ -1,12 +1,11 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  Box, Paper, Grid, Typography, Chip, Button, Divider,
+  Box, Paper, Grid, Typography, Chip, Button,
   CircularProgress, Alert,
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import { useQuery } from '@tanstack/react-query';
 import { projectsApi } from '../../../api/projects';
 import { usePageTitle } from '../../../hooks';
@@ -78,7 +77,6 @@ const ProjectView: React.FC = () => {
     <Box sx={{ p: 2 }}>
       <ScreenHeader
         title={project.name}
-        subtitle={`${project.code} · ${project.project_type_display || project.project_type}`}
       />
 
       <Paper sx={{ p: 3, mb: 2 }}>
@@ -106,111 +104,23 @@ const ProjectView: React.FC = () => {
           </Box>
         </Box>
 
-        {project.image_url && (
-          <Box sx={{ mb: 3, textAlign: 'center' }}>
-            <img
-              src={project.image_url}
-              alt={project.name}
-              style={{ maxWidth: '100%', maxHeight: 300, borderRadius: 4 }}
-            />
-          </Box>
-        )}
-
         <Grid container spacing={4}>
           <Grid size={{ xs: 12, md: 6 }}>
-            <Typography variant="h6" gutterBottom>Identification</Typography>
-            <Field label="Project Code" value={project.code} />
             <Field label="Project Name" value={project.name} />
-            <Field label="Developer" value={project.developer_name} />
-            <Field label="RERA Number" value={project.rera_number} />
-          </Grid>
-
-          <Grid size={{ xs: 12, md: 6 }}>
-            <Typography variant="h6" gutterBottom>Classification</Typography>
+            <Field label="Developer Name" value={project.developer_name} />
             <Field label="Project Type" value={project.project_type_display || project.project_type} />
+          </Grid>
+
+          <Grid size={{ xs: 12, md: 6 }}>
+            <Field label="Location" value={project.location} />
             <Field label="Approval Type" value={project.approval_type_display || project.approval_type} />
-            <Field label="Total Area" value={project.total_area} />
-            <Field label="Location" value={project.location_name} />
-          </Grid>
-
-          <Grid size={{ xs: 12, md: 6 }}>
-            <Typography variant="h6" gutterBottom>Timeline</Typography>
-            <Field
-              label="Launch Date"
-              value={project.launch_date ? new Date(project.launch_date).toLocaleDateString() : null}
-            />
-            <Field
-              label="Possession Date"
-              value={project.possession_date ? new Date(project.possession_date).toLocaleDateString() : null}
-            />
-          </Grid>
-
-          <Grid size={{ xs: 12, md: 6 }}>
-            <Typography variant="h6" gutterBottom>Address</Typography>
-            <Typography variant="body2" sx={{ whiteSpace: 'pre-line' }}>
-              {project.address || '—'}
-            </Typography>
-          </Grid>
-
-          {project.description && (
-            <Grid size={{ xs: 12 }}>
-              <Divider sx={{ my: 1 }} />
-              <Typography variant="h6" gutterBottom>Description</Typography>
-              <Typography variant="body2" sx={{ whiteSpace: 'pre-line' }}>
-                {project.description}
-              </Typography>
-            </Grid>
-          )}
-
-          {(project.brochure_url || project.layout_plan_url || project.floor_plan_url) && (
-            <Grid size={{ xs: 12 }}>
-              <Divider sx={{ my: 1 }} />
-              <Typography variant="h6" gutterBottom>Marketing Assets</Typography>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
-                {project.brochure_url && (
-                  <Button
-                    startIcon={<OpenInNewIcon />}
-                    href={project.brochure_url}
-                    target="_blank"
-                    rel="noopener"
-                  >
-                    Brochure
-                  </Button>
-                )}
-                {project.layout_plan_url && (
-                  <Button
-                    startIcon={<OpenInNewIcon />}
-                    href={project.layout_plan_url}
-                    target="_blank"
-                    rel="noopener"
-                  >
-                    Layout Plan
-                  </Button>
-                )}
-                {project.floor_plan_url && (
-                  <Button
-                    startIcon={<OpenInNewIcon />}
-                    href={project.floor_plan_url}
-                    target="_blank"
-                    rel="noopener"
-                  >
-                    Floor Plan
-                  </Button>
-                )}
-              </Box>
-            </Grid>
-          )}
-
-          <Grid size={{ xs: 12 }}>
-            <Divider sx={{ my: 1 }} />
-            <Typography variant="caption" color="text.secondary">
-              Created by {project.created_by_name || '—'} on{' '}
-              {project.created_on ? new Date(project.created_on).toLocaleString() : '—'}
-              {project.modified_by_name && (
-                <> · Last modified by {project.modified_by_name} on{' '}
-                {project.modified_on ? new Date(project.modified_on).toLocaleString() : '—'}</>
-              )}
-            </Typography>
+            <Field label="Project Status" value={
+              <Chip
+                label={project.status_display || project.status}
+                color={statusColor(project.status)}
+                size="small"
+              />
+            } />
           </Grid>
         </Grid>
       </Paper>
