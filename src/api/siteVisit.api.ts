@@ -19,12 +19,12 @@ export const siteVisitApi = {
     return response.data;
   },
 
-  createSiteVisit: async (data: SiteVisitFormData): Promise<SiteVisit> => {
-    const response = await apiClient.post(BASE, data);
+  createSiteVisit: async (data: SiteVisitFormData | FormData): Promise<SiteVisit> => {
+    const response = await apiClient.post(BASE, data);  // ponytail: axios sets multipart header automatically when body is FormData
     return response.data;
   },
 
-  updateSiteVisit: async (id: string, data: SiteVisitFormData): Promise<SiteVisit> => {
+  updateSiteVisit: async (id: string, data: SiteVisitFormData | FormData): Promise<SiteVisit> => {
     const response = await apiClient.put(`${BASE}${id}/`, data);
     return response.data;
   },

@@ -12,11 +12,15 @@ import {
   InputLabel,
   Select,
   Divider,
-  Alert,
   CircularProgress,
   IconButton,
 } from '@mui/material';
-import { ArrowBack as ArrowBackIcon, Save as SaveIcon, Upload as UploadIcon, Delete as DeleteIcon } from '@mui/icons-material';
+import {
+  ArrowBack as ArrowBackIcon,
+  Save as SaveIcon,
+  AddPhotoAlternate as AddPhotoIcon,
+  Delete as DeleteIcon,
+} from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { siteVisitApi } from '../../api/siteVisit.api';
 import { leadApi } from '../../api/lead.api';
@@ -26,7 +30,7 @@ import { useToast } from '../../contexts/ToastContext';
 import { usePageTitle } from '../../hooks';
 import HomeIcon from '@mui/icons-material/Home';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
-import type { SiteVisit, SiteVisitFormData, SiteVisitStatus } from '../../types/siteVisit.types';
+import type { SiteVisitFormData, SiteVisitStatus } from '../../types/siteVisit.types';
 import { getPageContainerStyles, getContentSectionStyles } from '../../utils/spacing';
 
 const emptyForm: SiteVisitFormData = {
@@ -40,6 +44,13 @@ const emptyForm: SiteVisitFormData = {
   photos: [],
 };
 
+const DEFAULT_STATUSES: { value: SiteVisitStatus; label: string }[] = [
+  { value: 'SCHEDULED', label: 'Scheduled' },
+  { value: 'CONFIRMED', label: 'Confirmed' },
+  { value: 'COMPLETED', label: 'Completed' },
+  { value: 'CANCELLED', label: 'Cancelled' },
+];
+
 const SiteVisitForm: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -50,72 +61,78 @@ const SiteVisitForm: React.FC = () => {
 
   const isEditMode = location.pathname.includes('/edit/');
   const isViewMode = location.pathname.includes('/view/');
+  const disabled = isViewMode;
+
   usePageTitle(isViewMode ? 'View Site Visit' : isEditMode ? 'Edit Site Visit' : 'Schedule Site Visit');
 
   const [formData, setFormData] = useState<SiteVisitFormData>(emptyForm);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [filePreviews, setFilePreviews] = useState<string[]>([]);
 
+  // --- Breadcrumbs ---
   useEffect(() => {
+    const label = isViewMode ? 'View' : isEditMode ? 'Edit' : 'Schedule';
     setBreadcrumbs([
       { label: 'Home', path: '/', icon: <HomeIcon fontSize="small" /> },
       { label: 'Site Visit Management', path: '/sitevisit', icon: <LocationOnIcon fontSize="small" /> },
-      ...(id ? [{ label: isViewMode ? 'View' : 'Edit', path: location.pathname, icon: <LocationOnIcon fontSize="small" /> }] : []),
+      { label },
     ]);
-  }, [setBreadcrumbs, id, isViewMode, location.pathname]);
+    return () => setBreadcrumbs([]);
+  }, [setBreadcrumbs, isViewMode, isEditMode]);
 
+  // --- Queries ---
   const { data: existing, isLoading } = useQuery({
     queryKey: ['site-visit', id],
     queryFn: () => siteVisitApi.getSiteVisit(id!),
     enabled: !!id,
     staleTime: 0,
-    refetchOnMount: 'always',
   });
 
   const { data: choices } = useQuery({
     queryKey: ['site-visit-choices'],
     queryFn: () => siteVisitApi.getChoices(),
     staleTime: 5 * 60 * 1000,
-    refetchOnMount: 'always',
   });
 
   const { data: usersData } = useQuery({
     queryKey: ['site-visit-users'],
     queryFn: () => leadApi.getUsers(),
     staleTime: 5 * 60 * 1000,
-    refetchOnMount: 'always',
   });
   const users: { id: string; name: string }[] = usersData || [];
 
+  // --- Populate form on edit/view ---
   useEffect(() => {
-    if (existing) {
-      const empId =
-        typeof existing.assigned_employee === 'string'
-          ? existing.assigned_employee
-          : existing.assigned_employee?.id || '';
-      setFormData({
-        customer_name: existing.customer_name || '',
-        project_name: existing.project_name || '',
-        visit_date: existing.visit_date || '',
-        assigned_employee: empId,
-        status: existing.status || 'SCHEDULED',
-        customer_feedback: existing.customer_feedback || '',
-        remarks: existing.remarks || '',
-        photos: existing.photos || [],
-      });
-    }
+    if (!existing) return;
+    const empId =
+      typeof existing.assigned_employee === 'string'
+        ? existing.assigned_employee
+        : existing.assigned_employee?.id || '';
+    setFormData({
+      customer_name: existing.customer_name || '',
+      project_name: existing.project_name || '',
+      visit_date: existing.visit_date || '',
+      assigned_employee: empId,
+      status: existing.status || 'SCHEDULED',
+      customer_feedback: existing.customer_feedback || '',
+      remarks: existing.remarks || '',
+      photos: existing.photos || [],
+    });
   }, [existing]);
 
+  // --- Mutations ---
   const createMutation = useMutation({
-    mutationFn: (data: SiteVisitFormData) => siteVisitApi.createSiteVisit(data),
-    onSuccess: (created) => {
+    mutationFn: (data: FormData) => siteVisitApi.createSiteVisit(data),
+    onSuccess: () => {
       toastSuccess('Site visit scheduled successfully');
       queryClient.invalidateQueries({ queryKey: ['site-visits'] });
-      navigate(`/sitevisit/edit/${created.id}`, { replace: true });
+      navigate('/sitevisit');
     },
     onError: (err: any) => toastError(err.response?.data?.message || 'Failed to schedule site visit'),
   });
 
   const updateMutation = useMutation({
-    mutationFn: (data: SiteVisitFormData) => siteVisitApi.updateSiteVisit(id!, data),
+    mutationFn: (data: FormData) => siteVisitApi.updateSiteVisit(id!, data as any),
     onSuccess: () => {
       toastSuccess('Site visit updated successfully');
       queryClient.invalidateQueries({ queryKey: ['site-visits'] });
@@ -124,18 +141,54 @@ const SiteVisitForm: React.FC = () => {
     onError: (err: any) => toastError(err.response?.data?.message || 'Failed to update site visit'),
   });
 
+  // --- Single save handler: all data + photos in one request ---
   const handleSave = () => {
     if (!formData.customer_name || !formData.project_name || !formData.visit_date || !formData.assigned_employee) {
       toastError('Please fill all required fields');
       return;
     }
+
+    const fd = new FormData();
+    fd.append('customer_name', formData.customer_name);
+    fd.append('project_name', formData.project_name);
+    fd.append('visit_date', formData.visit_date);
+    fd.append('assigned_employee', formData.assigned_employee);
+    fd.append('status', formData.status);
+    if (formData.customer_feedback) fd.append('customer_feedback', formData.customer_feedback);
+    if (formData.remarks) fd.append('remarks', formData.remarks);
+    for (const f of selectedFiles) fd.append('photos', f);
+
     if (isEditMode) {
-      updateMutation.mutate(formData);
+      updateMutation.mutate(fd);
     } else {
-      createMutation.mutate(formData);
+      createMutation.mutate(fd);
     }
   };
 
+  // --- File picker: just adds to local state ---
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    const newFiles = Array.from(files);
+    setSelectedFiles((prev) => [...prev, ...newFiles]);
+    setFilePreviews((prev) => [...prev, ...newFiles.map((f) => URL.createObjectURL(f))]);
+    e.target.value = '';
+  };
+
+  const handleRemoveFile = (idx: number) => {
+    URL.revokeObjectURL(filePreviews[idx]);
+    setSelectedFiles((prev) => prev.filter((_, i) => i !== idx));
+    setFilePreviews((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const handleRemoveSavedPhoto = (idx: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      photos: (prev.photos || []).filter((_, i) => i !== idx),
+    }));
+  };
+
+  // --- Loading state ---
   if (id && isLoading) {
     return (
       <Box sx={getPageContainerStyles()}>
@@ -146,8 +199,9 @@ const SiteVisitForm: React.FC = () => {
     );
   }
 
-  const disabled = isViewMode;
+  const statuses = choices?.statuses || DEFAULT_STATUSES;
   const showCompletion = formData.status === 'COMPLETED';
+  const isSaving = createMutation.isPending || updateMutation.isPending;
 
   return (
     <Box sx={getPageContainerStyles()}>
@@ -157,6 +211,7 @@ const SiteVisitForm: React.FC = () => {
       />
 
       <Paper sx={getContentSectionStyles()}>
+        {/* Header */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
           <Typography variant="h6" sx={{ fontWeight: 600 }}>Visit Details</Typography>
           <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/sitevisit')} variant="outlined" size="small">
@@ -165,6 +220,7 @@ const SiteVisitForm: React.FC = () => {
         </Box>
         <Divider sx={{ mb: 3 }} />
 
+        {/* Schedule Section */}
         <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'primary.main', mb: 2 }}>
           Schedule
         </Typography>
@@ -190,8 +246,9 @@ const SiteVisitForm: React.FC = () => {
           <Grid size={{ xs: 12, sm: 6, md: 4 }}>
             <TextField
               fullWidth required size="small"
-              label="Visit Date" type="date"
-              InputLabelProps={{ shrink: true }}
+              label="Visit Date"
+              type="date"
+              slotProps={{ inputLabel: { shrink: true } }}
               value={formData.visit_date}
               disabled={disabled}
               onChange={(e) => setFormData({ ...formData, visit_date: e.target.value })}
@@ -219,12 +276,7 @@ const SiteVisitForm: React.FC = () => {
                 value={formData.status}
                 onChange={(e) => setFormData({ ...formData, status: e.target.value as SiteVisitStatus })}
               >
-                {(choices?.statuses || [
-                  { value: 'SCHEDULED', label: 'Scheduled' },
-                  { value: 'CONFIRMED', label: 'Confirmed' },
-                  { value: 'COMPLETED', label: 'Completed' },
-                  { value: 'CANCELLED', label: 'Cancelled' },
-                ]).map((s) => (
+                {statuses.map((s) => (
                   <MenuItem key={s.value} value={s.value}>{s.label}</MenuItem>
                 ))}
               </Select>
@@ -232,6 +284,7 @@ const SiteVisitForm: React.FC = () => {
           </Grid>
         </Grid>
 
+        {/* Completion Details Section */}
         {showCompletion && (
           <>
             <Divider sx={{ my: 3 }} />
@@ -239,7 +292,7 @@ const SiteVisitForm: React.FC = () => {
               Completion Details
             </Typography>
             <Grid container spacing={3}>
-              <Grid size={{ xs: 12 }}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField
                   fullWidth size="small" multiline rows={3}
                   label="Customer Feedback"
@@ -248,7 +301,7 @@ const SiteVisitForm: React.FC = () => {
                   onChange={(e) => setFormData({ ...formData, customer_feedback: e.target.value })}
                 />
               </Grid>
-              <Grid size={{ xs: 12 }}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField
                   fullWidth size="small" multiline rows={3}
                   label="Remarks"
@@ -261,83 +314,80 @@ const SiteVisitForm: React.FC = () => {
           </>
         )}
 
+        {/* Photo Section */}
         <Divider sx={{ my: 3 }} />
         <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'primary.main', mb: 2 }}>
-          Photo
+          Photos
         </Typography>
-        <Grid container spacing={3}>
-          <Grid size={{ xs: 12 }}>
-            {!disabled && (
-              <Button
-                variant="outlined"
-                component="label"
-                startIcon={<UploadIcon />}
-                size="small"
-                disabled={!id}
-                sx={{ mb: 1 }}
-              >
-                {id ? 'Upload Photo' : 'Save first to upload photos'}
-                <input
-                  type="file"
-                  hidden
-                  accept="image/*"
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (!file || !id) return;
-                    try {
-                      const result = await siteVisitApi.uploadPhoto(id, file);
-                      setFormData({ ...formData, photos: result.photos });
-                      toastSuccess('Photo uploaded');
-                    } catch {
-                      toastError('Failed to upload photo');
-                    }
-                    e.target.value = '';
-                  }}
-                />
-              </Button>
-            )}
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
-              {(formData.photos || []).map((url, idx) => (
-                <Box key={idx} sx={{ position: 'relative', width: 100, height: 100 }}>
-                  <img
-                    src={url}
-                    alt={`Photo ${idx + 1}`}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 4 }}
-                  />
-                  {!disabled && (
-                    <IconButton
-                      size="small"
-                      sx={{ position: 'absolute', top: -8, right: -8, bgcolor: 'error.main', color: 'white', '&:hover': { bgcolor: 'error.dark' } }}
-                      onClick={async () => {
-                        if (!id) return;
-                        try {
-                          const result = await siteVisitApi.removePhoto(id, url);
-                          setFormData({ ...formData, photos: result.photos });
-                          toastSuccess('Photo removed');
-                        } catch {
-                          toastError('Failed to remove photo');
-                        }
-                      }}
-                    >
-                      <DeleteIcon sx={{ fontSize: 14 }} />
-                    </IconButton>
-                  )}
-                </Box>
-              ))}
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, alignItems: 'center' }}>
+          {/* Saved photos (from server, edit/view mode) */}
+          {(formData.photos || []).map((url, idx) => (
+            <Box key={`saved-${idx}`} sx={{ position: 'relative', width: 100, height: 100 }}>
+              <img
+                src={url}
+                alt={`Photo ${idx + 1}`}
+                style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 4 }}
+              />
+              {!disabled && (
+                <IconButton
+                  size="small"
+                  onClick={() => handleRemoveSavedPhoto(idx)}
+                  sx={{ position: 'absolute', top: -8, right: -8, bgcolor: 'error.main', color: 'white', '&:hover': { bgcolor: 'error.dark' }, width: 22, height: 22 }}
+                >
+                  <DeleteIcon sx={{ fontSize: 14 }} />
+                </IconButton>
+              )}
             </Box>
-          </Grid>
-        </Grid>
+          ))}
+          {/* New files selected (not yet saved) */}
+          {filePreviews.map((url, idx) => (
+            <Box key={`new-${idx}`} sx={{ position: 'relative', width: 100, height: 100 }}>
+              <img
+                src={url}
+                alt={`New ${idx + 1}`}
+                style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 4 }}
+              />
+              {!disabled && (
+                <IconButton
+                  size="small"
+                  onClick={() => handleRemoveFile(idx)}
+                  sx={{ position: 'absolute', top: -8, right: -8, bgcolor: 'error.main', color: 'white', '&:hover': { bgcolor: 'error.dark' }, width: 22, height: 22 }}
+                >
+                  <DeleteIcon sx={{ fontSize: 14 }} />
+                </IconButton>
+              )}
+            </Box>
+          ))}
+          {/* Add photo button (looks like a thumbnail placeholder) */}
+          {!disabled && (
+            <Box
+              component="label"
+              sx={{
+                width: 100, height: 100, border: '2px dashed', borderColor: 'grey.400',
+                borderRadius: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: 'pointer', '&:hover': { borderColor: 'primary.main', bgcolor: 'action.hover' },
+              }}
+            >
+              <AddPhotoIcon sx={{ fontSize: 32, color: 'grey.500' }} />
+              <input type="file" hidden multiple accept="image/*" onChange={handleFileSelect} />
+            </Box>
+          )}
+          {disabled && (formData.photos || []).length === 0 && (
+            <Typography variant="body2" color="text.secondary">No photos</Typography>
+          )}
+        </Box>
 
+        {/* Single Save Button */}
         {!disabled && (
-          <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
+          <Box sx={{ mt: 4, display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
             <Button onClick={() => navigate('/sitevisit')} color="inherit">Cancel</Button>
             <Button
               variant="contained"
               startIcon={<SaveIcon />}
               onClick={handleSave}
-              disabled={createMutation.isPending || updateMutation.isPending}
+              disabled={isSaving}
             >
-              {isEditMode ? 'Update' : 'Schedule Visit'}
+              {isSaving ? 'Saving...' : isEditMode ? 'Update' : 'Schedule Visit'}
             </Button>
           </Box>
         )}
