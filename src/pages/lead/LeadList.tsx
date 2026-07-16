@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Paper,
@@ -27,6 +28,7 @@ import {
   Delete as DeleteIcon,
   Search as SearchIcon,
   Visibility as ViewIcon,
+  EventNote as FollowUpIcon,
 } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { leadApi } from '../../api/lead.api';
@@ -68,6 +70,7 @@ const emptyForm: LeadFormData = {
 
 const LeadList: React.FC = () => {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const { setBreadcrumbs } = useBreadcrumbs();
   const { success: toastSuccess, error: toastError } = useToast();
   usePageTitle('Leads');
@@ -259,7 +262,7 @@ const LeadList: React.FC = () => {
       valueGetter: (value: any) => value?.name || '-',
     },
     {
-      field: 'actions', headerName: 'Actions', width: 130, sortable: false, filterable: false,
+      field: 'actions', headerName: 'Actions', width: 160, sortable: false, filterable: false,
       renderCell: (params) => (
         <Box>
           <Tooltip title="View">
@@ -270,6 +273,11 @@ const LeadList: React.FC = () => {
           <Tooltip title="Edit">
             <IconButton size="small" onClick={() => handleOpenEdit(params.row)}>
               <EditIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Follow-up">
+            <IconButton size="small" color="success" onClick={() => navigate('/lead/follow-ups', { state: { leadId: params.row.id, leadCode: params.row.code, leadName: params.row.name, leadMobile: params.row.mobile, leadEmail: params.row.email } })}>
+              <FollowUpIcon fontSize="small" />
             </IconButton>
           </Tooltip>
           <Tooltip title="Delete">
