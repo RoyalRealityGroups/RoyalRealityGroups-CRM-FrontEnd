@@ -206,17 +206,66 @@ const FollowUps: React.FC = () => {
       valueFormatter: (value: any) => value ? new Date(value).toLocaleDateString() : '-',
     },
     {
-      field: 'follow_up_type', headerName: 'Type', width: 120,
+      field: 'follow_up_time', headerName: 'Time', width: 100,
+      valueFormatter: (value: any) => value ? value.slice(0, 5) : '-',
+    },
+    {
+      field: 'follow_up_type', headerName: 'Type', width: 150, headerAlign: 'center', align: 'center',
       renderCell: (params) => (
-        <Chip
-          label={choices?.follow_up_types.find((t) => t.value === params.value)?.label || params.value}
-          size="small" variant="outlined"
-        />
+        <Select
+          value={params.value}
+          size="small"
+          variant="outlined"
+          IconComponent={() => null}
+          sx={{
+            height: 32,
+            '& .MuiSelect-select': { py: 0.5, pr: '8px !important', display: 'flex', alignItems: 'center', justifyContent: 'center' },
+            '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
+            '&:hover .MuiOutlinedInput-notchedOutline': { border: 'none' },
+          }}
+          onChange={async (e) => {
+            const newType = e.target.value;
+            try {
+              await leadApi.updateFollowUp(params.row.id, {
+                lead_id: params.row.lead?.id || '',
+                follow_up_date: params.row.follow_up_date,
+                follow_up_type: newType,
+                follow_up_time: params.row.follow_up_time || undefined,
+                discussion_notes: params.row.discussion_notes || undefined,
+                next_follow_up_date: params.row.next_follow_up_date || undefined,
+              });
+              toastSuccess('Type updated');
+              refetch();
+            } catch {
+              toastError('Failed to update type');
+            }
+          }}
+          renderValue={(value) => (
+            <Chip
+              label={choices?.follow_up_types.find((t) => t.value === value)?.label || value}
+              size="small"
+              color={
+                value === 'CALL' ? 'primary' :
+                value === 'WHATSAPP' ? 'success' :
+                value === 'MEETING' ? 'warning' :
+                value === 'SITE_VISIT' ? 'info' : 'default'
+              }
+            />
+          )}
+        >
+          {(choices?.follow_up_types || []).map((t) => (
+            <MenuItem key={t.value} value={t.value}>{t.label}</MenuItem>
+          ))}
+        </Select>
       ),
     },
     {
       field: 'next_follow_up_date', headerName: 'Next Follow-up', width: 130,
       valueFormatter: (value: any) => value ? new Date(value).toLocaleDateString() : '-',
+    },
+    {
+      field: 'discussion_notes', headerName: 'Notes', flex: 1, minWidth: 150,
+      valueGetter: (_value: any, row: LeadFollowUp) => row.discussion_notes || '-',
     },
     {
       field: 'created_by', headerName: 'Created By', width: 120,
@@ -250,9 +299,7 @@ const FollowUps: React.FC = () => {
     <Box sx={{ p: 2 }}>
       <ScreenHeader
         title="Follow-ups"
-        showAddButton
-        addButtonText="Add Follow-up"
-        onAdd={handleOpenCreate}
+        showAddButton={false}
       />
 
       <Paper sx={{ p: 2, mb: 2 }}>
