@@ -211,13 +211,47 @@ const LeadList: React.FC = () => {
       valueGetter: (value) => choices?.lead_sources.find((s) => s.value === value)?.label || value,
     },
     {
-      field: 'status', headerName: 'Status', width: 150,
+      field: 'status', headerName: 'Status', width: 160, headerAlign: 'center', align: 'center',
       renderCell: (params) => (
-        <Chip
-          label={choices?.lead_statuses.find((s) => s.value === params.value)?.label || params.value}
-          color={statusColors[params.value] || 'default'}
+        <Select
+          value={params.value}
           size="small"
-        />
+          variant="outlined"
+          IconComponent={() => null}
+          sx={{
+            height: 32,
+            '& .MuiSelect-select': { py: 0.5, pr: '8px !important', display: 'flex', alignItems: 'center', justifyContent: 'center' },
+            '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
+            '&:hover .MuiOutlinedInput-notchedOutline': { border: 'none' },
+          }}
+          onChange={async (e) => {
+            const newStatus = e.target.value;
+            try {
+              await leadApi.updateLead(params.row.id, {
+                name: params.row.name,
+                mobile: params.row.mobile,
+                lead_source: params.row.lead_source,
+                assigned_employee: params.row.assigned_employee?.id || null,
+                status: newStatus,
+              } as any);
+              toastSuccess('Status updated');
+              refetch();
+            } catch {
+              toastError('Failed to update status');
+            }
+          }}
+          renderValue={(value) => (
+            <Chip
+              label={choices?.lead_statuses.find((s) => s.value === value)?.label || value}
+              color={statusColors[value as string] || 'default'}
+              size="small"
+            />
+          )}
+        >
+          {(choices?.lead_statuses || []).map((s) => (
+            <MenuItem key={s.value} value={s.value}>{s.label}</MenuItem>
+          ))}
+        </Select>
       ),
     },
     {
@@ -263,13 +297,19 @@ const LeadList: React.FC = () => {
             size="small"
             placeholder="Search leads..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => { setSearchQuery(e.target.value); setPaginationModel((p) => ({ ...p, page: 0 })); }}
             InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon /></InputAdornment> }}
             sx={{ width: 300 }}
           />
           <FormControl size="small" sx={{ minWidth: 150 }}>
-            <InputLabel>Status</InputLabel>
-            <Select value={statusFilter} label="Status" onChange={(e) => setStatusFilter(e.target.value)}>
+            <InputLabel shrink>Status</InputLabel>
+            <Select
+              value={statusFilter}
+              label="Status"
+              displayEmpty
+              notched
+              onChange={(e) => { setStatusFilter(e.target.value); setPaginationModel((p) => ({ ...p, page: 0 })); }}
+            >
               <MenuItem value="">All</MenuItem>
               {choices?.lead_statuses.map((s) => (
                 <MenuItem key={s.value} value={s.value}>{s.label}</MenuItem>
