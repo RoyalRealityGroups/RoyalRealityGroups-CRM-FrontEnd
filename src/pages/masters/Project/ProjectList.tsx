@@ -150,15 +150,52 @@ const ProjectList: React.FC = () => {
     { field: 'name', headerName: 'Name', flex: 1, minWidth: 200 },
     { field: 'developer_name', headerName: 'Developer', flex: 1, minWidth: 150 },
     {
-      field: 'status', headerName: 'Status', width: 120,
+      field: 'status', headerName: 'Status', width: 160, headerAlign: 'center', align: 'center',
       renderCell: (p) => {
-        const s = p.row.status;
-        const color: any =
-          s === 'ACTIVE' ? 'success' :
-          s === 'UPCOMING' ? 'info' :
-          s === 'COMPLETED' ? 'default' :
-          s === 'SOLD_OUT' ? 'warning' : 'default';
-        return <Chip size="small" label={p.row.status_display || s} color={color} />;
+        const statusColor: any =
+          p.row.status === 'ACTIVE' ? 'success' :
+          p.row.status === 'UPCOMING' ? 'info' :
+          p.row.status === 'COMPLETED' ? 'default' :
+          p.row.status === 'SOLD_OUT' ? 'warning' : 'default';
+        return (
+          <Select
+            value={p.row.status}
+            size="small"
+            variant="outlined"
+            IconComponent={() => null}
+            sx={{
+              height: 32,
+              '& .MuiSelect-select': { py: 0.5, pr: '8px !important', display: 'flex', alignItems: 'center', justifyContent: 'center' },
+              '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
+              '&:hover .MuiOutlinedInput-notchedOutline': { border: 'none' },
+            }}
+            onChange={async (e) => {
+              try {
+                await projectsApi.update(p.row.id, { ...p.row, status: e.target.value } as any);
+                success('Status updated');
+                refetch();
+              } catch {
+                toastError('Failed to update status');
+              }
+            }}
+            renderValue={(value) => (
+              <Chip
+                size="small"
+                label={choices?.project_statuses?.find((c) => c.value === value)?.label || p.row.status_display || value}
+                color={
+                  value === 'ACTIVE' ? 'success' :
+                  value === 'UPCOMING' ? 'info' :
+                  value === 'COMPLETED' ? 'default' :
+                  value === 'SOLD_OUT' ? 'warning' : 'default'
+                }
+              />
+            )}
+          >
+            {(choices?.project_statuses || []).map((c) => (
+              <MenuItem key={c.value} value={c.value}>{c.label}</MenuItem>
+            ))}
+          </Select>
+        );
       },
     },
     {
