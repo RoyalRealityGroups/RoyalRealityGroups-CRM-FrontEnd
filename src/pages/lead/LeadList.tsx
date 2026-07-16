@@ -77,7 +77,6 @@ const LeadList: React.FC = () => {
   useEffect(() => {
     setBreadcrumbs([
       { label: 'Home', path: '/', icon: <HomeIcon fontSize="small" /> },
-      { label: 'Masters', path: '/masters', icon: <FolderIcon fontSize="small" /> },
       { label: 'Lead Management', path: '/lead', icon: <PersonIcon fontSize="small" /> },
       { label: 'Lead List', path: '/lead/list', icon: <PersonIcon fontSize="small" /> },
     ]);
