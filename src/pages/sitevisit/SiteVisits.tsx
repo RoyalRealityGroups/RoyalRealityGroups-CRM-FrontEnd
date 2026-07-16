@@ -256,13 +256,47 @@ const SiteVisits: React.FC = () => {
       valueGetter: (_value: any, row: SiteVisit) => getEmployeeName(row.assigned_employee),
     },
     {
-      field: 'status', headerName: 'Status', width: 130,
+      field: 'status', headerName: 'Status', width: 160, headerAlign: 'center', align: 'center',
       renderCell: (params) => (
-        <Chip
-          label={statuses.find((s) => s.value === params.value)?.label || params.value}
-          color={statusColors[params.value as SiteVisitStatus] || 'default'}
+        <Select
+          value={params.value}
           size="small"
-        />
+          variant="outlined"
+          IconComponent={() => null}
+          sx={{
+            height: 32,
+            '& .MuiSelect-select': { py: 0.5, pr: '8px !important', display: 'flex', alignItems: 'center', justifyContent: 'center' },
+            '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
+            '&:hover .MuiOutlinedInput-notchedOutline': { border: 'none' },
+          }}
+          onChange={async (e) => {
+            const newStatus = e.target.value;
+            try {
+              const fd = new FormData();
+              fd.append('customer_name', params.row.customer_name);
+              fd.append('project_name', params.row.project_name);
+              fd.append('visit_date', params.row.visit_date);
+              fd.append('assigned_employee', typeof params.row.assigned_employee === 'string' ? params.row.assigned_employee : params.row.assigned_employee?.id || '');
+              fd.append('status', newStatus);
+              await siteVisitApi.updateSiteVisit(params.row.id, fd as any);
+              toastSuccess('Status updated');
+              refetch();
+            } catch {
+              toastError('Failed to update status');
+            }
+          }}
+          renderValue={(value) => (
+            <Chip
+              label={statuses.find((s) => s.value === value)?.label || value}
+              color={statusColors[value as SiteVisitStatus] || 'default'}
+              size="small"
+            />
+          )}
+        >
+          {statuses.map((s) => (
+            <MenuItem key={s.value} value={s.value}>{s.label}</MenuItem>
+          ))}
+        </Select>
       ),
     },
     {
