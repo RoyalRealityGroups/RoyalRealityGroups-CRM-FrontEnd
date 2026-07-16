@@ -105,6 +105,10 @@ export const leadApi = {
     const response = await apiClient.get('/api/usermanagement/mini/users/User/', {
       params: { page_size: 1000, is_active: true },
     });
-    return response.data.results || response.data;
+    const data = response.data.results || response.data;
+    return (data || []).map((u: any) => ({
+      id: u.id,
+      name: u.fullname?.trim() || u.username || u.first_name || 'Unknown',
+    }));
   },
 };

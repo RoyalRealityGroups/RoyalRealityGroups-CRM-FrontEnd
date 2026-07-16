@@ -37,4 +37,18 @@ export const siteVisitApi = {
     const response = await apiClient.get(`${BASE}choices/`);
     return response.data;
   },
+
+  uploadPhoto: async (id: string, file: File): Promise<{ url: string; photos: string[] }> => {
+    const formData = new FormData();
+    formData.append('photo', file);
+    const response = await apiClient.post(`${BASE}${id}/upload-photo/`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  },
+
+  removePhoto: async (id: string, url: string): Promise<{ photos: string[] }> => {
+    const response = await apiClient.post(`${BASE}${id}/remove-photo/`, { url });
+    return response.data;
+  },
 };

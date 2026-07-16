@@ -14,8 +14,9 @@ import {
   Divider,
   Alert,
   CircularProgress,
+  IconButton,
 } from '@mui/material';
-import { ArrowBack as ArrowBackIcon, Save as SaveIcon } from '@mui/icons-material';
+import { ArrowBack as ArrowBackIcon, Save as SaveIcon, Upload as UploadIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { siteVisitApi } from '../../api/siteVisit.api';
 import { leadApi } from '../../api/lead.api';
@@ -105,10 +106,10 @@ const SiteVisitForm: React.FC = () => {
 
   const createMutation = useMutation({
     mutationFn: (data: SiteVisitFormData) => siteVisitApi.createSiteVisit(data),
-    onSuccess: () => {
+    onSuccess: (created) => {
       toastSuccess('Site visit scheduled successfully');
       queryClient.invalidateQueries({ queryKey: ['site-visits'] });
-      navigate('/sitevisit');
+      navigate(`/sitevisit/edit/${created.id}`, { replace: true });
     },
     onError: (err: any) => toastError(err.response?.data?.message || 'Failed to schedule site visit'),
   });
@@ -256,15 +257,76 @@ const SiteVisitForm: React.FC = () => {
                   onChange={(e) => setFormData({ ...formData, remarks: e.target.value })}
                 />
               </Grid>
-              <Grid size={{ xs: 12 }}>
-                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                  Photos: {(formData.photos?.length || 0)} attached
-                </Typography>
-                {/* Photo upload placeholder — wire to backend when API supports it */}
-              </Grid>
             </Grid>
           </>
         )}
+
+        <Divider sx={{ my: 3 }} />
+        <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'primary.main', mb: 2 }}>
+          Photo
+        </Typography>
+        <Grid container spacing={3}>
+          <Grid size={{ xs: 12 }}>
+            {!disabled && (
+              <Button
+                variant="outlined"
+                component="label"
+                startIcon={<UploadIcon />}
+                size="small"
+                disabled={!id}
+                sx={{ mb: 1 }}
+              >
+                {id ? 'Upload Photo' : 'Save first to upload photos'}
+                <input
+                  type="file"
+                  hidden
+                  accept="image/*"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file || !id) return;
+                    try {
+                      const result = await siteVisitApi.uploadPhoto(id, file);
+                      setFormData({ ...formData, photos: result.photos });
+                      toastSuccess('Photo uploaded');
+                    } catch {
+                      toastError('Failed to upload photo');
+                    }
+                    e.target.value = '';
+                  }}
+                />
+              </Button>
+            )}
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
+              {(formData.photos || []).map((url, idx) => (
+                <Box key={idx} sx={{ position: 'relative', width: 100, height: 100 }}>
+                  <img
+                    src={url}
+                    alt={`Photo ${idx + 1}`}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 4 }}
+                  />
+                  {!disabled && (
+                    <IconButton
+                      size="small"
+                      sx={{ position: 'absolute', top: -8, right: -8, bgcolor: 'error.main', color: 'white', '&:hover': { bgcolor: 'error.dark' } }}
+                      onClick={async () => {
+                        if (!id) return;
+                        try {
+                          const result = await siteVisitApi.removePhoto(id, url);
+                          setFormData({ ...formData, photos: result.photos });
+                          toastSuccess('Photo removed');
+                        } catch {
+                          toastError('Failed to remove photo');
+                        }
+                      }}
+                    >
+                      <DeleteIcon sx={{ fontSize: 14 }} />
+                    </IconButton>
+                  )}
+                </Box>
+              ))}
+            </Box>
+          </Grid>
+        </Grid>
 
         {!disabled && (
           <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
