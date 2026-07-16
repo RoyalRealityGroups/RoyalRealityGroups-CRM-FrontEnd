@@ -309,8 +309,8 @@ const SiteVisits: React.FC = () => {
             sx={{ width: 300 }}
           />
           <FormControl size="small" sx={{ minWidth: 150 }}>
-            <InputLabel>Status</InputLabel>
-            <Select value={statusFilter} label="Status" onChange={(e) => setStatusFilter(e.target.value as any)}>
+            <InputLabel shrink>Status</InputLabel>
+            <Select value={statusFilter} label="Status" displayEmpty notched onChange={(e) => setStatusFilter(e.target.value as any)}>
               <MenuItem value="">All</MenuItem>
               {statuses.map((s) => (
                 <MenuItem key={s.value} value={s.value}>{s.label}</MenuItem>
