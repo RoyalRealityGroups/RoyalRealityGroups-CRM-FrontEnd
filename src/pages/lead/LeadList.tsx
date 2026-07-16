@@ -86,6 +86,7 @@ const LeadList: React.FC = () => {
   const [form, setForm] = useState<LeadFormData>(emptyForm);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [viewItem, setViewItem] = useState<Lead | null>(null);
+  const [duplicates, setDuplicates] = useState<any[] | null>(null);
 
   useEffect(() => {
     setBreadcrumbs([
@@ -131,7 +132,14 @@ const LeadList: React.FC = () => {
       handleCloseDialog();
       refetch();
     },
-    onError: (err: any) => toastError(err.response?.data?.message || 'Save failed'),
+    onError: (err: any) => {
+      const resData = err.response?.data;
+      if (resData?.has_duplicates && resData?.duplicates) {
+        setDuplicates(resData.duplicates);
+      } else {
+        toastError(resData?.message || resData?.non_field_errors?.[0] || 'Save failed');
+      }
+    },
   });
 
   const deleteMutation = useMutation({
@@ -201,6 +209,7 @@ const LeadList: React.FC = () => {
     if (form.property_requirement) payload.property_requirement = form.property_requirement;
     if (form.remarks) payload.remarks = form.remarks;
     if (form.assigned_employee_id) payload.assigned_employee = form.assigned_employee_id;
+    if (form.cross_lead_override) payload.cross_lead_override = true;
     saveMutation.mutate(payload);
   };
 
@@ -505,6 +514,66 @@ const LeadList: React.FC = () => {
           <Button onClick={() => setViewItem(null)}>Close</Button>
           <Button variant="contained" onClick={() => { if (viewItem) { setViewItem(null); handleOpenEdit(viewItem); } }}>
             Edit
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Duplicate Lead Dialog */}
+      <Dialog open={!!duplicates} onClose={() => setDuplicates(null)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ color: 'warning.main' }}>Duplicate Lead Found</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" sx={{ mb: 2 }}>
+            A lead with the same details already exists:
+          </Typography>
+          {duplicates?.map((dup, idx) => (
+            <Paper key={idx} variant="outlined" sx={{ p: 2, mb: 1.5 }}>
+              <Grid container spacing={1}>
+                <Grid size={{ xs: 6 }}>
+                  <Typography variant="caption" color="text.secondary">Lead ID</Typography>
+                  <Typography variant="body2" fontWeight={600}>{dup.lead?.code}</Typography>
+                </Grid>
+                <Grid size={{ xs: 6 }}>
+                  <Typography variant="caption" color="text.secondary">Name</Typography>
+                  <Typography variant="body2" fontWeight={600}>{dup.lead?.name}</Typography>
+                </Grid>
+                <Grid size={{ xs: 6 }}>
+                  <Typography variant="caption" color="text.secondary">Status</Typography>
+                  <Typography variant="body2">{dup.lead?.status}</Typography>
+                </Grid>
+                <Grid size={{ xs: 6 }}>
+                  <Typography variant="caption" color="text.secondary">Assigned To</Typography>
+                  <Typography variant="body2">{dup.lead?.assigned_employee?.name || '-'}</Typography>
+                </Grid>
+                <Grid size={{ xs: 6 }}>
+                  <Typography variant="caption" color="text.secondary">Matched Field</Typography>
+                  <Chip label={dup.match_field} size="small" color="warning" />
+                </Grid>
+                <Grid size={{ xs: 6 }}>
+                  <Typography variant="caption" color="text.secondary">Matched Value</Typography>
+                  <Typography variant="body2" fontWeight={600}>{dup.match_value}</Typography>
+                </Grid>
+                {dup.lead?.last_follow_up_date && (
+                  <Grid size={{ xs: 12 }}>
+                    <Typography variant="caption" color="text.secondary">Last Follow-up</Typography>
+                    <Typography variant="body2">{new Date(dup.lead.last_follow_up_date).toLocaleDateString()}</Typography>
+                  </Grid>
+                )}
+              </Grid>
+            </Paper>
+          ))}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDuplicates(null)}>Cancel</Button>
+          <Button
+            variant="contained"
+            color="warning"
+            onClick={() => {
+              setDuplicates(null);
+              setForm({ ...form, cross_lead_override: true });
+              toastSuccess('Override enabled — click Create again to save');
+            }}
+          >
+            Override & Create Anyway
           </Button>
         </DialogActions>
       </Dialog>
