@@ -320,16 +320,20 @@ const Sidebar: React.FC<SidebarProps> = ({
                     </ListItem>
                     {!collapsed && hasChildren && (
                       <Collapse in={isExpanded} timeout="auto" unmountOnExit>
-                        <List component="div" disablePadding>
+                        <List component="div" disablePadding sx={{ bgcolor: 'rgba(255,255,255,0.05)', py: 0.5 }}>
                           {visibleMenuitems.map((mi) => {
                             const miPath = mi.path || mi.link || '';
+                            const isActive = location.pathname === miPath;
                             return (
                               <ListItem key={mi.id} disablePadding>
                                 <ListItemButton
-                                  selected={location.pathname === miPath}
+                                  selected={isActive}
                                   onClick={() => { if (miPath) handleNavigate(miPath); }}
-                                  sx={{ pl: 4, minHeight: '40px' }}
+                                  sx={{ pl: 5, minHeight: '38px', py: 0.5 }}
                                 >
+                                  <ListItemIcon sx={{ minWidth: 28, justifyContent: 'center' }}>
+                                    <Box sx={{ width: 5, height: 5, borderRadius: '50%', bgcolor: isActive ? 'primary.light' : 'grey.500' }} />
+                                  </ListItemIcon>
                                   <ListItemText primary={mi.name} primaryTypographyProps={{ fontSize: '0.85rem' }} />
                                 </ListItemButton>
                               </ListItem>
