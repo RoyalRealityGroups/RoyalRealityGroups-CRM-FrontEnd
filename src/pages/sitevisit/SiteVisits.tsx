@@ -44,6 +44,8 @@ import HomeIcon from '@mui/icons-material/Home';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import type { SiteVisit, SiteVisitStatus } from '../../types/siteVisit.types';
 
+import { API_BASE_URL } from '../../utils/constants';
+
 const statusColors: Record<SiteVisitStatus, 'default' | 'primary' | 'success' | 'warning' | 'error' | 'info'> = {
   SCHEDULED: 'info',
   CONFIRMED: 'primary',
@@ -232,6 +234,11 @@ const SiteVisits: React.FC = () => {
     if (!v) return '-';
     if (typeof v === 'string') return users.find((u) => u.id === v)?.name || v;
     return v.name;
+  };
+
+  const getPhotoUrl = (url: string) => {
+    if (url.startsWith('http')) return url;
+    return `${API_BASE_URL}${url}`;
   };
 
   const statuses = choices?.statuses || DEFAULT_STATUSES;
@@ -474,7 +481,7 @@ const SiteVisits: React.FC = () => {
                   <Typography variant="caption" color="text.secondary">Photos</Typography>
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 0.5 }}>
                     {viewItem.photos.map((url, idx) => (
-                      <img key={idx} src={url} alt={`Photo ${idx + 1}`}
+                      <img key={idx} src={getPhotoUrl(url)} alt={`Photo ${idx + 1}`}
                         style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 4 }} />
                     ))}
                   </Box>
