@@ -12,8 +12,9 @@ export interface Project {
   approval_type_display?: string;
   status: 'UPCOMING' | 'ACTIVE' | 'COMPLETED' | 'SOLD_OUT' | string;
   status_display?: string;
-  is_active: boolean;
+  /** Project image / thumbnail (ImageField → URL string from DRF) */
   sub?: string | null;
+  is_active: boolean;
   is_deleted?: boolean;
   created_by?: string;
   created_by_name?: string;

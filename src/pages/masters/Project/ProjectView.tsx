@@ -349,10 +349,10 @@ const ProjectView: React.FC = () => {
             </Box>
           </Box>
 
-          {project.image_url && (
+          {project.sub && (
             <Box sx={{ mb: 3, textAlign: 'center' }}>
               <img
-                src={project.image_url}
+                src={typeof project.sub === 'string' ? project.sub : undefined}
                 alt={project.name}
                 style={{ maxWidth: '100%', maxHeight: 300, borderRadius: 4 }}
               />
@@ -365,34 +365,13 @@ const ProjectView: React.FC = () => {
               <Field label="Project Code" value={project.code} />
               <Field label="Project Name" value={project.name} />
               <Field label="Developer" value={project.developer_name} />
-              <Field label="RERA Number" value={project.rera_number} />
             </Grid>
 
             <Grid size={{ xs: 12, md: 6 }}>
               <Typography variant="h6" gutterBottom>Classification</Typography>
               <Field label="Project Type" value={project.project_type_display || project.project_type} />
               <Field label="Approval Type" value={project.approval_type_display || project.approval_type} />
-              <Field label="Total Area" value={project.total_area} />
-              <Field label="Location" value={project.location_name} />
-            </Grid>
-
-            <Grid size={{ xs: 12, md: 6 }}>
-              <Typography variant="h6" gutterBottom>Timeline</Typography>
-              <Field
-                label="Launch Date"
-                value={project.launch_date ? new Date(project.launch_date).toLocaleDateString() : null}
-              />
-              <Field
-                label="Possession Date"
-                value={project.possession_date ? new Date(project.possession_date).toLocaleDateString() : null}
-              />
-            </Grid>
-
-            <Grid size={{ xs: 12, md: 6 }}>
-              <Typography variant="h6" gutterBottom>Address</Typography>
-              <Typography variant="body2" sx={{ whiteSpace: 'pre-line' }}>
-                {project.address || '—'}
-              </Typography>
+              <Field label="Location" value={project.location} />
             </Grid>
           </Grid>
         </Paper>

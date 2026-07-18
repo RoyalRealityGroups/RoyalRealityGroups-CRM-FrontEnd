@@ -19,7 +19,7 @@ const NotFound = lazy(() => import('../pages/NotFound'));
 
 // Wires React Router's navigate into the axios interceptor so auth failures
 // redirect using SPA navigation instead of a full page reload.
-const NavigateInjector: React.FC = () => {
+const NavigateInjector = () => {
   const navigate = useNavigate();
   useEffect(() => { setNavigateRef(navigate); }, [navigate]);
   return null;
