@@ -7,9 +7,10 @@
 import { useNavigate } from 'react-router-dom'
 import { useAppSelector } from '../../store/hooks';
 import { hasPermission } from '../../utils/permissions';
-import { useTheme, Box, Typography, Grid, Paper, Button, Tabs, Tab } from '@mui/material';
-import { Dashboard as DashboardIcon } from '@mui/icons-material';
+import { useTheme, Box, Typography, Grid, Paper, Button, Tabs, Tab, ToggleButtonGroup, ToggleButton, CircularProgress } from '@mui/material';
+import { Dashboard as DashboardIcon, Person as PersonIcon, House as HouseIcon } from '@mui/icons-material';
 import { useState, useEffect } from 'react';
+import { reReportsApi } from '../../api/reReports';
 import { dashboardsApi, type DashboardListItem } from '../../api/dashboards.api';
 import { salesOrderApi } from '../../api/sales.api';
 import { dispatchApi } from '../../api/dispatch.api';
@@ -55,6 +56,29 @@ const DashboardPage = () => {
   const [activityPage, setActivityPage] = useState(1)
   const [hasMoreActivities, setHasMoreActivities] = useState(true)
   const [loadingMoreActivities, setLoadingMoreActivities] = useState(false)
+
+  // Real Estate Dashboard states
+  const [dashboardMode, setDashboardMode] = useState<'sales' | 'real-estate'>('sales')
+  const [reSummary, setReSummary] = useState<any>(null)
+  const [loadingRe, setLoadingRe] = useState(false)
+
+  const loadReSummary = async () => {
+    try {
+      setLoadingRe(true)
+      const data = await reReportsApi.getDashboardSummary()
+      setReSummary(data)
+    } catch (error) {
+      console.error('Failed to load Real Estate summary:', error)
+    } finally {
+      setLoadingRe(false)
+    }
+  }
+
+  useEffect(() => {
+    if (dashboardMode === 'real-estate') {
+      loadReSummary()
+    }
+  }, [dashboardMode])
 
   // Check view_recentactivity permission from both user.permissions and permissionsSlice
   const canViewRecentActivity = (() => {
@@ -335,13 +359,30 @@ useEffect(()=>{
         borderColor: 'divider',
         flexShrink: 0 
       }}>
-        <Box sx={{ px: { xs: 2, sm: 3 }, py: 0.75 }}>
-          <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>
-            {getGreeting()}, {user?.first_name || user?.username}! 👋
-          </Typography>
-          <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
-            Here's your sales overview for today
-          </Typography>
+        <Box sx={{ px: { xs: 2, sm: 3 }, py: 0.75, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Box>
+            <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>
+              {getGreeting()}, {user?.first_name || user?.username}! 👋
+            </Typography>
+            <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
+              {dashboardMode === 'sales' ? "Here's your sales overview for today" : "Here's your real estate overview for today"}
+            </Typography>
+          </Box>
+          <ToggleButtonGroup
+            value={dashboardMode}
+            exclusive
+            onChange={(_, val) => val && setDashboardMode(val)}
+            size="small"
+            color="primary"
+            sx={{ height: 32 }}
+          >
+            <ToggleButton value="sales" sx={{ textTransform: 'none' }}>
+              <PersonIcon fontSize="inherit" sx={{ mr: 0.5 }} /> Distribution
+            </ToggleButton>
+            <ToggleButton value="real-estate" sx={{ textTransform: 'none' }}>
+              <HouseIcon fontSize="inherit" sx={{ mr: 0.5 }} /> Real Estate
+            </ToggleButton>
+          </ToggleButtonGroup>
         </Box>
 
         {/* Dashboard Tabs */}
@@ -412,89 +453,162 @@ useEffect(()=>{
       <Box sx={{ flex: 1, overflow: 'auto', px: { xs: 2, sm: 3 }, py: 2, pb: 4 }}>
       {selectedDashboard ? (
         <DashboardViewer dashboardId={selectedDashboard} />
+      ) : dashboardMode === 'real-estate' ? (
+        loadingRe ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+            <CircularProgress />
+          </Box>
+        ) : (
+          <>
+            {/* Real Estate KPI Metrics Grid */}
+            <Grid container spacing={3} sx={{ mb: 4 }}>
+              <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                <StatsCard
+                  title="Total Leads"
+                  value={reSummary?.leads?.total || 0}
+                  icon={PersonIcon}
+                  color="primary"
+                  onClick={() => navigate('/lead/list')}
+                />
+              </Grid>
+              <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                <StatsCard
+                  title="Site Visits"
+                  value={reSummary?.site_visits?.total || 0}
+                  icon={TrendingUpIcon}
+                  color="secondary"
+                  onClick={() => navigate('/lead/site-visits')}
+                />
+              </Grid>
+              <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                <StatsCard
+                  title="Bookings"
+                  value={reSummary?.bookings?.total || 0}
+                  icon={ShoppingCartIcon}
+                  color="success"
+                  onClick={() => navigate('/bookings')}
+                />
+              </Grid>
+              <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                <StatsCard
+                  title="Total Revenue"
+                  value={`₹${(reSummary?.revenue?.total || 0).toLocaleString('en-IN')}`}
+                  icon={DollarSignIcon}
+                  color="info"
+                />
+              </Grid>
+            </Grid>
+
+            {/* Real Estate Charts Section */}
+            <Grid container spacing={3} sx={{ mb: 4 }}>
+              <Grid size={{ xs: 12, lg: 6 }}>
+                <DonutChartCard
+                  data={[
+                    { name: 'New Leads', value: reSummary?.leads?.new || 0, color: '#00A27B' },
+                    { name: 'Site Visits', value: reSummary?.leads?.site_visit_scheduled || 0, color: '#F2AC57' },
+                    { name: 'Bookings', value: reSummary?.leads?.booking || 0, color: '#0091AE' },
+                    { name: 'Registrations', value: reSummary?.leads?.registration || 0, color: '#7C98B6' },
+                    { name: 'Lost', value: reSummary?.leads?.lost || 0, color: '#E15241' },
+                  ]}
+                  title="Lead Pipeline Stage Distribution"
+                  formatter={(value) => `${value} leads`}
+                  showLegendValues={true}
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12, lg: 6 }}>
+                <BarChartCard
+                  data={[
+                    { name: 'Total Revenue Value', 'Total Sales': reSummary?.revenue?.total || 0, Collections: reSummary?.revenue?.collections || 0 },
+                  ]}
+                  dataKeys={['Total Sales', 'Collections']}
+                  xAxisKey="name"
+                  title="Sales Value vs Downpayment Collections (Total)"
+                  colors={['#00A27B', '#F2AC57']}
+                  formatter={(value) => `₹${Number(value).toLocaleString()}`}
+                />
+              </Grid>
+            </Grid>
+          </>
+        )
       ) : (
         <>
-      {/* KPI Metrics Grid */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid size={{ xs: 12, md: 6, lg: 4 }}>
-        <StatsCard
-          title="Pending Orders"
-          value={stats.totalOrders.value}
-          icon={ShoppingCartIcon}
-          color="primary"
-          // onClick={() => navigate('/sales/orders')}
-        />
-        </Grid>
-        <Grid size={{ xs: 12, md: 6, lg: 4 }}>
-        <StatsCard
-          title="Pending Invoices"
-          value={stats.pendingInvoices.value}
-          icon={ReceiptIcon}
-          color="warning"
-          // onClick={() => navigate('/sales/invoice')}
-        />
-        </Grid>
-        <Grid size={{ xs: 12, md: 6, lg: 4 }}>
-        <StatsCard
-          title="Pending Dispatches"
-          value={stats.activeDispatches.value}
-          icon={TruckIcon}
-          color="info"
-          // onClick={() => navigate('/sales/dispatch')}
-        />
-        </Grid>
-        <Grid size={{ xs: 12, md: 6, lg: 4 }}>
-        <StatsCard
-          title="Total Revenue"
-          value={stats.totalRevenue.value}
-          icon={DollarSignIcon}
-          color="success"
-          // onClick={() => navigate('/receipts')}
-        />
-        </Grid>
-        <Grid size={{ xs: 12, md: 6, lg: 4 }}>
-        <StatsCard
-          title="Order Fulfillment"
-          value={stats.orderFulfillment.value}
-          icon={TrendingUpIcon}
-          color="secondary"
-        />
-        </Grid>
-        <Grid size={{ xs: 12, md: 6, lg: 4 }}>
-        <StatsCard
-          title="Pending PODs"
-          value={stats.pendingPODs.value}
-          icon={ClipboardListIcon}
-          color="error"
-          // onClick={() => navigate('/sales/pod')}
-        />
-        </Grid>
-      </Grid>
+          {/* KPI Metrics Grid */}
+          <Grid container spacing={3} sx={{ mb: 4 }}>
+            <Grid size={{ xs: 12, md: 6, lg: 4 }}>
+              <StatsCard
+                title="Pending Orders"
+                value={stats.totalOrders.value}
+                icon={ShoppingCartIcon}
+                color="primary"
+              />
+            </Grid>
+            <Grid size={{ xs: 12, md: 6, lg: 4 }}>
+              <StatsCard
+                title="Pending Invoices"
+                value={stats.pendingInvoices.value}
+                icon={ReceiptIcon}
+                color="warning"
+              />
+            </Grid>
+            <Grid size={{ xs: 12, md: 6, lg: 4 }}>
+              <StatsCard
+                title="Pending Dispatches"
+                value={stats.activeDispatches.value}
+                icon={TruckIcon}
+                color="info"
+              />
+            </Grid>
+            <Grid size={{ xs: 12, md: 6, lg: 4 }}>
+              <StatsCard
+                title="Total Revenue"
+                value={stats.totalRevenue.value}
+                icon={DollarSignIcon}
+                color="success"
+              />
+            </Grid>
+            <Grid size={{ xs: 12, md: 6, lg: 4 }}>
+              <StatsCard
+                title="Order Fulfillment"
+                value={stats.orderFulfillment.value}
+                icon={TrendingUpIcon}
+                color="secondary"
+              />
+            </Grid>
+            <Grid size={{ xs: 12, md: 6, lg: 4 }}>
+              <StatsCard
+                title="Pending PODs"
+                value={stats.pendingPODs.value}
+                icon={ClipboardListIcon}
+                color="error"
+              />
+            </Grid>
+          </Grid>
 
-      {/* Charts Section */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid size={{ xs: 12, lg: 6 }}>
-        {/* Sales Revenue Trend */}
-        <AreaChartCard
-          data={salesTrendChartData}
-          dataKey="revenue"
-          xAxisKey="name"
-          title="Sales Revenue Trend (Last 7 Days)"
-          color="#00A27B"
-          formatter={(value) => `₹${(value / 1000).toFixed(1)}K`}
-        />
-        </Grid>
+          {/* Charts Section */}
+          <Grid container spacing={3} sx={{ mb: 4 }}>
+            <Grid size={{ xs: 12, lg: 6 }}>
+              {/* Sales Revenue Trend */}
+              <AreaChartCard
+                data={salesTrendChartData}
+                dataKey="revenue"
+                xAxisKey="name"
+                title="Sales Revenue Trend (Last 7 Days)"
+                color="#00A27B"
+                formatter={(value) => `₹${(value / 1000).toFixed(1)}K`}
+              />
+            </Grid>
 
-        <Grid size={{ xs: 12, lg: 6 }}>
-        {/* Order Status Distribution */}
-        <DonutChartCard
-          data={orderStatusData}
-          title="Order Status Distribution"
-          formatter={(value) => `${value} orders`}
-          showLegendValues={true}
-        />
-        </Grid>
-      </Grid>
+            <Grid size={{ xs: 12, lg: 6 }}>
+              {/* Order Status Distribution */}
+              <DonutChartCard
+                data={orderStatusData}
+                title="Order Status Distribution"
+                formatter={(value) => `${value} orders`}
+                showLegendValues={true}
+              />
+            </Grid>
+          </Grid>
 
       {/* Bottom Section */}
       <Grid container spacing={3}>

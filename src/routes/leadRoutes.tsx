@@ -6,6 +6,9 @@ const LeadList = lazy(() => import('../pages/lead/LeadList'));
 const LeadForm = lazy(() => import('../pages/lead/LeadForm'));
 const FollowUps = lazy(() => import('../pages/lead/FollowUps'));
 const FollowUpView = lazy(() => import('../pages/lead/FollowUpView'));
+const SiteVisits = lazy(() => import('../pages/lead/SiteVisits'));
+const Bookings = lazy(() => import('../pages/lead/Bookings'));
+const DocumentVault = lazy(() => import('../pages/documents/DocumentVault'));
 
 const withSuspense = (Component: React.LazyExoticComponent<any>) => (
   <Suspense fallback={<PageLoader />}>
@@ -22,5 +25,8 @@ export const leadRoutes = (
     <Route path="lead/view/:id" element={withSuspense(LeadForm)} />
     <Route path="lead/follow-ups" element={withSuspense(FollowUps)} />
     <Route path="lead/follow-ups/view/:id" element={withSuspense(FollowUpView)} />
+    <Route path="lead/site-visits" element={withSuspense(SiteVisits)} />
+    <Route path="bookings" element={withSuspense(Bookings)} />
+    <Route path="documents" element={withSuspense(DocumentVault)} />
   </>
 );

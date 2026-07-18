@@ -108,7 +108,14 @@ const ReportsHub: React.FC = () => {
       path: '/reports/pod',
       permission: 'view_proofofdelivery',
     },
-    // Add more reports here as they are implemented
+    {
+      id: 'real-estate-reports',
+      name: 'Real Estate Reports',
+      description: 'Analytics on leads by source, project booking status, revenue collections, and employee performance',
+      icon: <AssessmentIcon sx={{ fontSize: 48 }} />,
+      path: '/reports/real-estate',
+      permission: 'view_reports',
+    },
   ];
 
   // Filter reports based on user permissions

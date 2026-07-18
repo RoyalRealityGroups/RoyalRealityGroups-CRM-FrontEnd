@@ -83,10 +83,11 @@ const AppBar: React.FC<AppBarProps> = ({ onMenuClick }) => {
     <MuiAppBar position="fixed">
       <Toolbar sx={{ minHeight: { xs: '60px !important', sm: '68px !important' }, gap: 1 }}>
         <IconButton
-          color="inherit"
+          color="default"
           edge="start"
           onClick={onMenuClick}
           aria-label="open navigation"
+          sx={{ color: 'text.secondary' }}
         >
           <MenuIcon />
         </IconButton>
@@ -130,7 +131,7 @@ const AppBar: React.FC<AppBarProps> = ({ onMenuClick }) => {
             sx={{
               fontWeight: 600,
               fontSize: { xs: '0.9375rem', sm: '1rem' },
-              color: '#FFFFFF',
+              color: 'text.primary',
               whiteSpace: 'nowrap',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
@@ -146,28 +147,26 @@ const AppBar: React.FC<AppBarProps> = ({ onMenuClick }) => {
               onClick={handleNotifOpen}
               sx={{
                 p: 1,
-                color: 'rgba(255,255,255,0.8)',
-                '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' },
+                color: 'text.secondary',
+                '&:hover': { backgroundColor: 'rgba(79, 70, 229, 0.04)' },
               }}
-              color="inherit"
             >
               <Badge badgeContent={unreadCount} color="error">
                 <NotificationsOutlined sx={{ fontSize: 20 }} />
               </Badge>
             </IconButton>
           </Tooltip>
-          <Box sx={{ width: 1, height: 24, backgroundColor: 'rgba(255,255,255,0.15)' }} />
+          <Box sx={{ width: 1, height: 24, backgroundColor: 'rgba(15, 23, 42, 0.08)' }} />
           <Tooltip title="Account menu">
             <IconButton onClick={handleMenu} sx={{ p: 0.5 }} aria-label="account menu">
               <Avatar
                 sx={{
                   width: 32,
                   height: 32,
-                  backgroundColor: 'rgba(255,255,255,0.16)',
+                  backgroundColor: 'primary.main',
                   color: '#FFFFFF',
                   fontWeight: 700,
                   fontSize: '0.8125rem',
-                  border: '2px solid rgba(255,255,255,0.3)',
                 }}
               >
                 {userInitials}
@@ -196,7 +195,7 @@ const AppBar: React.FC<AppBarProps> = ({ onMenuClick }) => {
               <Typography variant="body2" color="text.secondary">No notifications</Typography>
             </MenuItem>
           ) : notifications.slice(0, 10).map((n) => (
-            <MenuItem key={n.id} onClick={() => { notificationApi.markAsRead(n.id); handleNotifClose(); }} sx={{ whiteSpace: 'normal', py: 1.5 }}>
+            <MenuItem key={n.id} onClick={() => { notificationApi.markAsRead(String(n.id)); handleNotifClose(); }} sx={{ whiteSpace: 'normal', py: 1.5 }}>
               <ListItemIcon sx={{ minWidth: 36, mt: 0.25, alignSelf: 'flex-start' }}>
                 <NotificationsOutlined fontSize="small" color="primary" />
               </ListItemIcon>
