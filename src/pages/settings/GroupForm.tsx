@@ -128,7 +128,7 @@ const GroupForm: React.FC = () => {
     const HIDDEN_APP_LABELS = new Set([
       'admin', 'auth', 'contenttypes', 'core_users', 'dispatch',
       'dynamic_preferences', 'general', 'invoice', 'receipt', 'receipts',
-      'sales', 'sessions', 'sitevisit', 'system', 'thirdparty',
+      'sales', 'sessions', 'system', 'thirdparty',
       'token_blacklist', 'delivery', 'dispatch',
     ]);
     return appsData
