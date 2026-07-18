@@ -184,6 +184,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       receipt_long: <ReceiptLongIcon />,
       local_shipping: <LocalShippingIcon />,
       receipt: <ReceiptIcon />,
+      booking: <ReceiptIcon />,
       verified: <VerifiedIcon />,
     };
     

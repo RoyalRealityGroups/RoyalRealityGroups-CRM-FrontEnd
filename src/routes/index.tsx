@@ -10,6 +10,7 @@ import { receiptsRoutes, receiptsPrintRoutes } from './receiptsRoutes';
 import { reportsRoutes } from './reportsRoutes';
 import { siteVisitRoutes } from './siteVisitRoutes';
 import { inventoryRoutes } from './inventoryRoutes';
+import { bookingRoutes } from './bookingRoutes';
 import ProtectedRoute from '../components/auth/ProtectedRoute';
 import { Layout } from '../components/layout';
 import { setNavigateRef } from '../api/axios.config';
@@ -60,6 +61,7 @@ export const AppRoutes = () => (
       {reportsRoutes}
       {siteVisitRoutes}
       {inventoryRoutes}
+      {bookingRoutes}
     </Route>
 
     {/* 404 Route */}
