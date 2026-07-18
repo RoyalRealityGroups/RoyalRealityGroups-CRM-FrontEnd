@@ -157,7 +157,6 @@ const Sidebar: React.FC<SidebarProps> = ({
     if (normalizedName.includes('settings')) {
       return <LordIcon src="https://cdn.lordicon.com/asyunleq.json" trigger="hover" colors={isHovered ? "primary:#4F46E5" : "primary:#475569"} size={24} parentHover={isHovered} />;
     }
-
     // Fallback to regular icon map for backward compatibility
     const iconMap: Record<string, React.ReactElement> = {
       people: <PeopleIcon />,
@@ -283,23 +282,24 @@ const Sidebar: React.FC<SidebarProps> = ({
           <List>
             {allSubmenus.map((submenu) => {
               const isLeadMgmt = submenu.name?.toLowerCase() === 'lead management';
+              const isInventoryMgmt = submenu.name?.toLowerCase() === 'inventory management';
               const hasChildren = submenu.menuitems && submenu.menuitems.length > 0;
               const isExpanded = expandedSubmenu === submenu.id;
-              const activeLeadMenuItem = isLeadMgmt && hasChildren
+              const activeChildMenuItem = (isLeadMgmt || isInventoryMgmt) && hasChildren
                 ? submenu.menuitems!.find(mi => location.pathname === (mi.path || mi.link || ''))
                 : null;
               const visibleMenuitems = hasChildren
                 ? submenu.menuitems!.filter(checkMenuItemAccess).sort((a, b) => a.sequence - b.sequence)
                 : [];
 
-              if (isLeadMgmt) {
+              if (isLeadMgmt || isInventoryMgmt) {
                 return (
                   <React.Fragment key={submenu.id}>
                     <ListItem disablePadding>
                       <Tooltip title={collapsed && !isMobile ? submenu.name : ''} placement="right" arrow>
                         <ListItemButton
                           onClick={() => handleSubmenuClick(submenu)}
-                          selected={!!activeLeadMenuItem}
+                          selected={!!activeChildMenuItem}
                           onMouseEnter={() => setHoveredSubmenu(submenu.id)}
                           onMouseLeave={() => setHoveredSubmenu(null)}
                           sx={{
