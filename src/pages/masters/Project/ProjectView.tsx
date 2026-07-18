@@ -312,7 +312,6 @@ const ProjectView: React.FC = () => {
     <Box sx={{ p: 2 }}>
       <ScreenHeader
         title={project.name}
-        subtitle={`${project.code} · ${project.project_type_display || project.project_type}`}
       />
 
       <Paper sx={{ mb: 2 }}>

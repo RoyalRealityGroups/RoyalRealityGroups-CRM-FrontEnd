@@ -8,22 +8,12 @@ export interface Project {
   project_type: 'PLOT' | 'FLAT' | 'VILLA' | 'MIXED' | string;
   project_type_display?: string;
   location?: string | null;
-  location_name?: string | null;
-  address?: string;
   approval_type: 'GVMC' | 'VMRDA' | 'DTCP' | 'HMDA' | 'PANCHAYAT' | 'PENDING' | 'NA' | string;
   approval_type_display?: string;
-  rera_number?: string;
-  total_area?: string;
-  launch_date?: string | null;
-  possession_date?: string | null;
-  description?: string;
-  image_url?: string | null;
-  brochure_url?: string | null;
-  layout_plan_url?: string | null;
-  floor_plan_url?: string | null;
   status: 'UPCOMING' | 'ACTIVE' | 'COMPLETED' | 'SOLD_OUT' | string;
   status_display?: string;
   is_active: boolean;
+  sub?: string | null;
   is_deleted?: boolean;
   created_by?: string;
   created_by_name?: string;
@@ -38,19 +28,10 @@ export interface ProjectFormData {
   developer_name?: string;
   project_type: string;
   location?: string | null;
-  address?: string;
   approval_type: string;
-  rera_number?: string;
-  total_area?: string;
-  launch_date?: string | null;
-  possession_date?: string | null;
-  description?: string;
-  image_url?: string | null;
-  brochure_url?: string | null;
-  layout_plan_url?: string | null;
-  floor_plan_url?: string | null;
   status: string;
   is_active: boolean;
+  sub?: string | null;
 }
 
 export interface ProjectMini {

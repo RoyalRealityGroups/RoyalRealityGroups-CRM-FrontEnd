@@ -1,48 +1,46 @@
 import React from 'react';
 import { Box, Grid, Card, CardContent, Typography, CardActionArea } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import {
-  Person as LeadIcon,
-  EventNote as FollowUpIcon,
-} from '@mui/icons-material';
+import { Landscape as PlotIcon, Apartment as FlatIcon } from '@mui/icons-material';
 import ScreenHeader from '../../components/common/ScreenHeader';
 import { useBreadcrumbs } from '../../contexts/BreadcrumbContext';
 import HomeIcon from '@mui/icons-material/Home';
+import InventoryIcon from '@mui/icons-material/Inventory2';
 import { usePageTitle } from '../../hooks';
 
-const LeadHub: React.FC = () => {
+const InventoryHub: React.FC = () => {
   const navigate = useNavigate();
   const { setBreadcrumbs } = useBreadcrumbs();
 
   React.useEffect(() => {
     setBreadcrumbs([
       { label: 'Home', path: '/', icon: <HomeIcon fontSize="small" /> },
-      { label: 'Lead Management', path: '/lead', icon: <LeadIcon fontSize="small" /> },
+      { label: 'Inventory Management', path: '/inventory', icon: <InventoryIcon fontSize="small" /> },
     ]);
   }, [setBreadcrumbs]);
 
-  usePageTitle('Lead Management');
+  usePageTitle('Inventory Management');
 
   const menuItems = [
     {
-      title: 'Lead List',
-      description: 'View and manage all leads',
-      icon: <LeadIcon sx={{ fontSize: 40 }} />,
-      path: '/lead/list',
-      color: '#1976d2',
+      title: 'Plot Inventory',
+      description: 'Manage plots and their status',
+      icon: <PlotIcon sx={{ fontSize: 40 }} />,
+      path: '/inventory/plots',
+      color: '#2e7d32',
     },
     {
-      title: 'Follow-ups',
-      description: 'Manage lead follow-ups and reminders',
-      icon: <FollowUpIcon sx={{ fontSize: 40 }} />,
-      path: '/lead/follow-ups',
-      color: '#2e7d32',
+      title: 'Flat Inventory',
+      description: 'Manage flats by tower, floor, and unit',
+      icon: <FlatIcon sx={{ fontSize: 40 }} />,
+      path: '/inventory/flats',
+      color: '#1976d2',
     },
   ];
 
   return (
     <Box>
-      <ScreenHeader title="Lead Management" showAddButton={false} />
+      <ScreenHeader title="Inventory Management" showAddButton={false} />
 
       <Grid container spacing={3} sx={{ mt: 2 }}>
         {menuItems.map((item) => (
@@ -73,4 +71,4 @@ const LeadHub: React.FC = () => {
   );
 };
 
-export default LeadHub;
+export default InventoryHub;

@@ -12,6 +12,7 @@ import {
   IconButton,
   Tooltip,
   SwipeableDrawer,
+  Collapse,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -41,12 +42,14 @@ import {
   LocalShipping as LocalShippingIcon,
   Receipt as ReceiptIcon,
   Verified as VerifiedIcon,
+  ExpandMore,
+  ExpandLess,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAppSelector } from '../../store/hooks';
 import { useMenu } from '../../hooks/useMenu';
 import { isSuperuser } from '../../utils/permissions';
-import type { Submenu } from '../../types/menu.types';
+import type { Submenu, MenuItemDetail } from '../../types/menu.types';
 import LordIcon from '../common/LordIcon';
 import SvgIcon from '../common/SvgIcon';
 
@@ -92,12 +95,28 @@ const Sidebar: React.FC<SidebarProps> = ({
   const { permissions: userPermissions } = useAppSelector((state) => state.permissions);
   const { menus, isLoading } = useMenu();
   const [hoveredSubmenu, setHoveredSubmenu] = React.useState<number | null>(null);
+  const [expandedSubmenu, setExpandedSubmenu] = React.useState<number | null>(null);
 
   const handleNavigate = (path: string) => {
     navigate(path);
     if (isMobile) {
       onMobileClose();
     }
+  };
+
+  const handleSubmenuClick = (submenu: Submenu) => {
+    if (submenu.menuitems && submenu.menuitems.length > 0 && !collapsed) {
+      setExpandedSubmenu(expandedSubmenu === submenu.id ? null : submenu.id);
+    } else if (submenu.click) {
+      handleNavigate(submenu.click);
+    }
+  };
+
+  const checkMenuItemAccess = (menuitem: MenuItemDetail): boolean => {
+    if (menuitem.permissions && menuitem.permissions.length > 0) {
+      return menuitem.permissions.some(p => checkPermission(userPermissions, p, user));
+    }
+    return true;
   };
 
   const getIcon = (iconName?: string, submenuId?: number, submenuName?: string): React.ReactElement => {
@@ -222,6 +241,16 @@ const Sidebar: React.FC<SidebarProps> = ({
     return `/${submenu.name.toLowerCase().replace(/\s+/g, '-')}`;
   };
 
+  // ponytail: auto-expand submenu whose menuitem matches current path
+  React.useEffect(() => {
+    const current = allSubmenus.find(s =>
+      s.menuitems?.some(mi => location.pathname === (mi.path || mi.link || ''))
+    );
+    if (current) {
+      setExpandedSubmenu(current.id);
+    }
+  }, [location.pathname, allSubmenus]);
+
   const drawerContent = (
     <>
     {/* {!isMobile && (
@@ -252,44 +281,97 @@ const Sidebar: React.FC<SidebarProps> = ({
           </Box>
         ) : (
           <List>
-            {allSubmenus.map((submenu) => (
-              <ListItem key={submenu.id} disablePadding>
-                <Tooltip 
-                  title={collapsed && !isMobile ? submenu.name : ''} 
-                  placement="right"
-                  arrow
-                >
-                  <ListItemButton 
-                    onClick={() => handleNavigate(getSubmenuPath(submenu))}
-                    selected={location.pathname === getSubmenuPath(submenu)}
-                    onMouseEnter={() => setHoveredSubmenu(submenu.id)}
-                    onMouseLeave={() => setHoveredSubmenu(null)}
-                    sx={{
-                      justifyContent: collapsed && !isMobile ? 'center' : 'initial',
-                      px: isMobile ? 2 : (collapsed ? 0 : 2),
-                      minHeight: '48px',
-                    }}
-                  >
-                    <ListItemIcon 
-                      sx={{ 
-                        minWidth: collapsed && !isMobile ? 'auto' : 56,
-                        justifyContent: 'center',
+            {allSubmenus.map((submenu) => {
+              const isLeadMgmt = submenu.name?.toLowerCase() === 'lead management';
+              const hasChildren = submenu.menuitems && submenu.menuitems.length > 0;
+              const isExpanded = expandedSubmenu === submenu.id;
+              const activeLeadMenuItem = isLeadMgmt && hasChildren
+                ? submenu.menuitems!.find(mi => location.pathname === (mi.path || mi.link || ''))
+                : null;
+              const visibleMenuitems = hasChildren
+                ? submenu.menuitems!.filter(checkMenuItemAccess).sort((a, b) => a.sequence - b.sequence)
+                : [];
+
+              if (isLeadMgmt) {
+                return (
+                  <React.Fragment key={submenu.id}>
+                    <ListItem disablePadding>
+                      <Tooltip title={collapsed && !isMobile ? submenu.name : ''} placement="right" arrow>
+                        <ListItemButton
+                          onClick={() => handleSubmenuClick(submenu)}
+                          selected={!!activeLeadMenuItem}
+                          onMouseEnter={() => setHoveredSubmenu(submenu.id)}
+                          onMouseLeave={() => setHoveredSubmenu(null)}
+                          sx={{
+                            justifyContent: collapsed && !isMobile ? 'center' : 'initial',
+                            px: isMobile ? 2 : (collapsed ? 0 : 2),
+                            minHeight: '48px',
+                          }}
+                        >
+                          <ListItemIcon sx={{ minWidth: collapsed && !isMobile ? 'auto' : 56, justifyContent: 'center' }}>
+                            {getIcon(submenu.icon, submenu.id, submenu.name)}
+                          </ListItemIcon>
+                          {(!collapsed || isMobile) && (
+                            <ListItemText primary={submenu.name} primaryTypographyProps={{ fontSize: { xs: '0.9rem', sm: '1rem' } }} />
+                          )}
+                          {!collapsed && hasChildren && (isExpanded ? <ExpandLess /> : <ExpandMore />)}
+                        </ListItemButton>
+                      </Tooltip>
+                    </ListItem>
+                    {!collapsed && hasChildren && (
+                      <Collapse in={isExpanded} timeout="auto" unmountOnExit>
+                        <List component="div" disablePadding sx={{ bgcolor: 'rgba(255,255,255,0.05)', py: 0.5 }}>
+                          {visibleMenuitems.map((mi) => {
+                            const miPath = mi.path || mi.link || '';
+                            const isActive = location.pathname === miPath;
+                            return (
+                              <ListItem key={mi.id} disablePadding>
+                                <ListItemButton
+                                  selected={isActive}
+                                  onClick={() => { if (miPath) handleNavigate(miPath); }}
+                                  sx={{ pl: 5, minHeight: '38px', py: 0.5 }}
+                                >
+                                  <ListItemIcon sx={{ minWidth: 28, justifyContent: 'center' }}>
+                                    <Box sx={{ width: 5, height: 5, borderRadius: '50%', bgcolor: isActive ? 'primary.light' : 'grey.500' }} />
+                                  </ListItemIcon>
+                                  <ListItemText primary={mi.name} primaryTypographyProps={{ fontSize: '0.85rem' }} />
+                                </ListItemButton>
+                              </ListItem>
+                            );
+                          })}
+                        </List>
+                      </Collapse>
+                    )}
+                  </React.Fragment>
+                );
+              }
+
+              // Old flat behavior for other submenus
+              return (
+                <ListItem key={submenu.id} disablePadding>
+                  <Tooltip title={collapsed && !isMobile ? submenu.name : ''} placement="right" arrow>
+                    <ListItemButton
+                      onClick={() => handleNavigate(getSubmenuPath(submenu))}
+                      selected={location.pathname === getSubmenuPath(submenu)}
+                      onMouseEnter={() => setHoveredSubmenu(submenu.id)}
+                      onMouseLeave={() => setHoveredSubmenu(null)}
+                      sx={{
+                        justifyContent: collapsed && !isMobile ? 'center' : 'initial',
+                        px: isMobile ? 2 : (collapsed ? 0 : 2),
+                        minHeight: '48px',
                       }}
                     >
-                      {getIcon(submenu.icon, submenu.id, submenu.name)}
-                    </ListItemIcon>
-                    {(!collapsed || isMobile) && (
-                      <ListItemText 
-                        primary={submenu.name}
-                        primaryTypographyProps={{
-                          fontSize: { xs: '0.9rem', sm: '1rem' },
-                        }}
-                      />
-                    )}
-                  </ListItemButton>
-                </Tooltip>
-              </ListItem>
-            ))}
+                      <ListItemIcon sx={{ minWidth: collapsed && !isMobile ? 'auto' : 56, justifyContent: 'center' }}>
+                        {getIcon(submenu.icon, submenu.id, submenu.name)}
+                      </ListItemIcon>
+                      {(!collapsed || isMobile) && (
+                        <ListItemText primary={submenu.name} primaryTypographyProps={{ fontSize: { xs: '0.9rem', sm: '1rem' } }} />
+                      )}
+                    </ListItemButton>
+                  </Tooltip>
+                </ListItem>
+              );
+            })}
           </List>
         )}
       </Box>

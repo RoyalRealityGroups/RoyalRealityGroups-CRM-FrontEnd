@@ -1,73 +1,135 @@
-# React + TypeScript + Vite
+# Real Estate CRM — Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React + TypeScript + Vite frontend for the Real Estate CRM application.
 
-Currently, two official plugins are available:
+## Tech Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **React 18** with **TypeScript**
+- **Vite** for dev server and bundling
+- **Material UI (MUI)** for components
+- **React Router** for routing
+- **TanStack Query (React Query)** for data fetching/caching
+- **React Hook Form** + **Zod** for forms and validation
 
-## React Compiler
+## Prerequisites
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Node.js** 18+ (recommended: 20+)
+- **npm** 9+ (or pnpm / yarn)
 
-## Expanding the ESLint configuration
+## Install
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+# From this directory (FE)
+npm install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Environment Variables
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+Create a `.env` file in this folder with:
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```env
+VITE_API_BASE_URL=http://localhost:8000
+VITE_APP_NAME=Real Estate CRM
 ```
+
+Adjust the API URL to match your backend (default Django dev server runs on `:8000`).
+
+## Run (development)
+
+```bash
+npm run dev
+```
+
+App will be available at: **http://localhost:5173**
+
+The Vite dev server proxies API calls to the backend — see `vite.config.ts`.
+
+## Build (production)
+
+```bash
+npm run build
+```
+
+Outputs optimized static files to `dist/`.
+
+## Preview production build
+
+```bash
+npm run preview
+```
+
+Runs the production build locally on http://localhost:4173 for verification before deploying.
+
+## Lint
+
+```bash
+npm run lint
+```
+
+## Project Structure
+
+```
+src/
+├── api/              # API client per domain (lead, sales, inventory, etc.)
+├── components/       # Reusable UI components (layout, common, forms)
+├── contexts/         # React contexts (auth, breadcrumb, toast, theme)
+├── hooks/            # Custom hooks
+├── pages/            # Page components grouped by module
+│   ├── lead/
+│   ├── sitevisit/
+│   ├── inventory/
+│   ├── sales/
+│   └── settings/
+├── routes/           # Route definitions per module
+├── store/            # Redux store (auth, menu, permissions)
+├── types/            # TypeScript types/interfaces
+└── utils/            # Helpers, constants, spacing, permissions
+```
+
+## Available Modules
+
+- **Lead Management** — leads, follow-ups, cross-lead check
+- **Site Visit Management** — schedule and complete site visits
+- **Inventory Management** — plots and flats inventory
+- **Sales** — orders, schemes, dispatch
+- **Masters** — products, customers, projects
+- **Reports** — sales / receipt / dispatch reports
+- **Settings** — users, groups, permissions
+
+## Common Tasks
+
+### Add a new page
+
+1. Create the page in `src/pages/<module>/`
+2. Register lazy import + route in `src/routes/<module>Routes.tsx`
+3. Add the route in `src/routes/index.tsx`
+
+### Add a new API endpoint
+
+1. Add the method to the relevant API file in `src/api/`
+2. Create types in `src/types/` if needed
+3. Use via `useQuery` / `useMutation` from TanStack Query
+
+## Troubleshooting
+
+### Dropdowns are empty until page refresh
+
+The dropdowns use React Query with `refetchOnMount: 'always'`. If you still see empty dropdowns:
+- Check that the backend API is responding (open DevTools → Network tab)
+- Verify `.env` `VITE_API_BASE_URL` matches the running backend
+
+### 401 Unauthorized
+
+- Ensure you're logged in and JWT token is valid
+- Check that the backend URL in `.env` is correct
+
+### Login page redirect loops
+
+Clear browser cookies and local storage, then log in again.
+
+## Need Help?
+
+Refer to:
+- `package.json` for all available scripts
+- `vite.config.ts` for build/dev config
+- `tsconfig.json` for TypeScript config
