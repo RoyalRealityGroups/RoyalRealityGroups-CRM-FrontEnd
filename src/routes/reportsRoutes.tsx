@@ -10,6 +10,7 @@ const DispatchPlanningReportPage = lazy(() => import('../pages/dispatch/Dispatch
 const InvoiceReportPage = lazy(() => import('../pages/invoice/InvoiceReportPage'));
 const ReceiptReportPage = lazy(() => import('../pages/receipts/ReceiptReportPage'));
 const PODReportPage = lazy(() => import('../pages/delivery/PODReportPage'));
+const RealEstateReports = lazy(() => import('../pages/reports/RealEstateReports'));
 
 const withSuspense = (Component: React.LazyExoticComponent<any>) => (
   <Suspense fallback={<PageLoader />}>
@@ -43,6 +44,11 @@ export const reportsRoutes = (
     <Route path="reports/pod" element={
       <ProtectedRoute permission="view_proofofdelivery">
         {withSuspense(PODReportPage)}
+      </ProtectedRoute>
+    } />
+    <Route path="reports/real-estate" element={
+      <ProtectedRoute permission="view_reports">
+        {withSuspense(RealEstateReports)}
       </ProtectedRoute>
     } />
   </>

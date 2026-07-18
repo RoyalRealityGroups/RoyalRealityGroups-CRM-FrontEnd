@@ -8,8 +8,10 @@ import {
   Alert,
   InputAdornment,
   IconButton,
+  Paper,
+  Fade,
 } from '@mui/material';
-import { Visibility, VisibilityOff, PersonOutline, LockOutlined } from '@mui/icons-material';
+import { Visibility, VisibilityOff, PersonOutline, LockOutlined, ShieldOutlined } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { Button, TextField } from '../common';
 import { useAuth } from '../../hooks/useAuth';
@@ -56,7 +58,7 @@ const Login: React.FC = () => {
 
   const getFriendlyGeneralError = (err: any): string => {
     if (!err?.response)
-      return 'Unable to connect to the server. Please check your internet connection and try again.';
+      return 'Unable to connect to the server. Please check your internet connection.';
     const data = err.response?.data || {};
     const rawMessage = data?.detail || data?.message || data?.error || '';
     const message = String(rawMessage).trim();
@@ -134,29 +136,39 @@ const Login: React.FC = () => {
         minHeight: '100vh',
         width: '100vw',
         display: 'flex',
-        backgroundColor: '#F5F7F8',
+        backgroundColor: '#F8FAFC',
+        overflow: 'hidden',
+        position: 'relative',
       }}
     >
-      {/* Left brand panel — solid teal, restrained */}
+      {/* Brand Left Panel with dynamic mesh styling */}
       <Box
         sx={{
           display: { xs: 'none', md: 'flex' },
-          flex: 5,
-          backgroundColor: '#003D52',
+          flex: 6.5,
           color: '#FFFFFF',
           flexDirection: 'column',
           justifyContent: 'space-between',
-          px: 6,
+          px: 8,
           py: 6,
+          position: 'relative',
+          overflow: 'hidden',
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+        <div className="mesh-background" />
+        <div className="mesh-glow-1" />
+        <div className="mesh-glow-2" />
+
+        {/* Branding */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, zIndex: 1 }}>
           <Box
             sx={{
-              width: 40,
-              height: 40,
-              borderRadius: 1,
+              width: 44,
+              height: 44,
+              borderRadius: '8px',
               overflow: 'hidden',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
+              border: '2px solid rgba(16, 185, 129, 0.4)',
               backgroundColor: '#001218',
             }}
           >
@@ -167,170 +179,215 @@ const Login: React.FC = () => {
               sx={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 38%', display: 'block' }}
             />
           </Box>
-          <Typography sx={{ fontSize: '0.9375rem', fontWeight: 600 }}>
-            Royal Reality Groups
+          <Typography sx={{ fontSize: '1.1rem', fontWeight: 700, letterSpacing: '0.02em', color: '#10B981', fontFamily: '"Outfit", sans-serif' }}>
+            ROYAL REALITY GROUPS
           </Typography>
         </Box>
 
-        <Box sx={{ maxWidth: 460 }}>
-          <Typography sx={{ fontSize: '2.25rem', fontWeight: 700, lineHeight: 1.2, letterSpacing: '-0.01em' }}>
-            Run your real-estate business with one calm workspace.
+        {/* Product Callout */}
+        <Box sx={{ maxWidth: 520, zIndex: 1 }}>
+          <Typography sx={{ fontSize: '2.5rem', fontWeight: 700, lineHeight: 1.25, letterSpacing: '-0.02em', fontFamily: '"Outfit", sans-serif' }}>
+            Elevate Real Estate Operations with Luxury Frameworks.
           </Typography>
-          <Typography sx={{ mt: 2, fontSize: '0.9375rem', color: 'rgba(255,255,255,0.75)', lineHeight: 1.55 }}>
-            Projects, leads, follow-ups, and dashboards — for the teams that build the homes.
+          <Typography sx={{ mt: 3, fontSize: '1rem', color: 'rgba(255,255,255,0.7)', lineHeight: 1.6, fontWeight: 400 }}>
+            Unified real estate pipelines, site visit feedback controls, automated invoice distributions, and interactive reports modules. Designed for modern builders.
           </Typography>
         </Box>
 
-        <Typography sx={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.55)' }}>
-          © {new Date().getFullYear()} Royal Reality Groups
-        </Typography>
+        {/* Footer brand stamp */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, zIndex: 1, color: 'rgba(255,255,255,0.4)' }}>
+          <ShieldOutlined sx={{ fontSize: 16 }} />
+          <Typography sx={{ fontSize: '0.75rem', letterSpacing: '0.02em' }}>
+            © {new Date().getFullYear()} Royal Reality Groups CRM. Enterprise Core.
+          </Typography>
+        </Box>
       </Box>
 
-      {/* Right form panel — plain white */}
+      {/* Right Login Form Panel (Consistent Clean Light Layout) */}
       <Box
         sx={{
-          flex: { xs: 1, md: 6 },
+          flex: { xs: 1, md: 5.5 },
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          px: { xs: 3, sm: 5, md: 8 },
+          px: { xs: 3, sm: 6, md: 8 },
           py: 6,
-          overflowY: 'auto',
-          backgroundColor: '#FFFFFF',
+          zIndex: 1,
+          backgroundColor: '#F8FAFC',
+          borderLeft: { md: '1px solid rgba(79, 70, 229, 0.08)' },
         }}
       >
-        <Box sx={{ width: '100%', maxWidth: 400 }}>
-          {/* Mobile-only brand mark */}
-          <Box sx={{ display: { xs: 'flex', md: 'none' }, alignItems: 'center', gap: 1.5, mb: 4 }}>
-            <Box
-              sx={{
-                width: 36,
-                height: 36,
-                borderRadius: 1,
-                overflow: 'hidden',
-                backgroundColor: '#001218',
-              }}
-            >
+        <Fade in timeout={800}>
+          <Paper
+            elevation={0}
+            sx={{
+              width: '100%',
+              maxWidth: 420,
+              p: { xs: 4, md: 5 },
+              borderRadius: '16px',
+              border: '1px solid rgba(79, 70, 229, 0.08)',
+              boxShadow: '0 12px 32px rgba(79, 70, 229, 0.04)',
+              backgroundColor: '#FFFFFF',
+            }}
+          >
+            {/* Logo header */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 4 }}>
               <Box
-                component="img"
-                src="/logo.jpeg"
-                alt="Royal Reality Groups"
-                sx={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 38%', display: 'block' }}
-              />
-            </Box>
-            <Typography sx={{ fontSize: '0.9375rem', fontWeight: 600 }}>
-              Royal Reality Groups
-            </Typography>
-          </Box>
-
-          <Typography variant="h2" sx={{ fontSize: '1.75rem', fontWeight: 700, letterSpacing: '-0.01em' }}>
-            Sign in
-          </Typography>
-          <Typography sx={{ mt: 0.75, mb: 4, fontSize: '0.875rem', color: 'text.secondary' }}>
-            Use your work account to continue.
-          </Typography>
-
-          {(formError || error) && !validationErrors.username && !validationErrors.password && (
-            <Alert severity="error" sx={{ mb: 3 }}>
-              {formError || error}
-            </Alert>
-          )}
-
-          <Box component="form" onSubmit={handleSubmit} noValidate>
-            <Box sx={{ mb: 2 }}>
-              <TextField
-                name="username"
-                label="Username"
-                value={formData.username}
-                onChange={handleChange}
-                error={!!validationErrors.username}
-                helperText={validationErrors.username}
-                required
-                fullWidth
-                autoFocus
-                disabled={isLoading}
-                placeholder="Enter your username"
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <PersonOutline fontSize="small" />
-                    </InputAdornment>
-                  ),
+                sx={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 1,
+                  overflow: 'hidden',
+                  backgroundColor: '#001218',
                 }}
-              />
-            </Box>
-
-            <Box sx={{ mb: 2.5 }}>
-              <TextField
-                name="password"
-                label="Password"
-                type={showPassword ? 'text' : 'password'}
-                value={formData.password}
-                onChange={handleChange}
-                error={!!validationErrors.password}
-                helperText={validationErrors.password}
-                required
-                fullWidth
-                disabled={isLoading}
-                placeholder="Enter your password"
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <LockOutlined fontSize="small" />
-                    </InputAdornment>
-                  ),
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton
-                        onClick={() => setShowPassword(!showPassword)}
-                        edge="end"
-                        disabled={isLoading}
-                        size="small"
-                      >
-                        {showPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                }}
-              />
-            </Box>
-
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={formData.remember_me}
-                    onChange={handleChange}
-                    name="remember_me"
-                    disabled={isLoading}
-                    size="small"
-                  />
-                }
-                label={<Typography sx={{ fontSize: '0.8125rem' }}>Remember me</Typography>}
-              />
-              <Link
-                component="button"
-                type="button"
-                variant="body2"
-                onClick={() => navigate(ROUTES.FORGOT_PASSWORD)}
-                disabled={isLoading}
-                sx={{ fontSize: '0.8125rem' }}
               >
-                Forgot password?
-              </Link>
+                <Box
+                  component="img"
+                  src="/logo.jpeg"
+                  alt="Royal Reality Groups"
+                  sx={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 38%', display: 'block' }}
+                />
+              </Box>
+              <Typography sx={{ fontSize: '1rem', fontWeight: 700, color: '#10B981', fontFamily: '"Outfit", sans-serif' }}>
+                ROYAL REALITY GROUPS
+              </Typography>
             </Box>
 
-            <Button
-              type="submit"
-              fullWidth
-              variant="contained"
-              size="large"
-              disabled={isLoading}
-            >
-              {isLoading ? 'Signing in...' : 'Sign in'}
-            </Button>
-          </Box>
-        </Box>
+            <Typography variant="h4" sx={{ fontSize: '1.75rem', fontWeight: 700, letterSpacing: '-0.01em', color: '#0F172A' }}>
+              Sign in to CRM
+            </Typography>
+            <Typography sx={{ mt: 1, mb: 4, fontSize: '0.875rem', color: 'text.secondary' }}>
+              Authorized accounts only. Enter credentials.
+            </Typography>
+
+            {(formError || error) && !validationErrors.username && !validationErrors.password && (
+              <Alert severity="error" sx={{ mb: 3 }}>
+                {formError || error}
+              </Alert>
+            )}
+
+            <Box component="form" onSubmit={handleSubmit} noValidate>
+              <Box sx={{ mb: 2.5 }}>
+                <TextField
+                  name="username"
+                  label="Username"
+                  value={formData.username}
+                  onChange={handleChange}
+                  error={!!validationErrors.username}
+                  helperText={validationErrors.username}
+                  required
+                  fullWidth
+                  autoFocus
+                  disabled={isLoading}
+                  placeholder="Enter username"
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <PersonOutline fontSize="small" sx={{ color: 'text.secondary' }} />
+                      </InputAdornment>
+                    ),
+                  }}
+                  sx={{
+                    '& .MuiInputBase-root': {
+                      backgroundColor: '#FFFFFF',
+                    },
+                  }}
+                />
+              </Box>
+
+              <Box sx={{ mb: 2.5 }}>
+                <TextField
+                  name="password"
+                  label="Password"
+                  type={showPassword ? 'text' : 'password'}
+                  value={formData.password}
+                  onChange={handleChange}
+                  error={!!validationErrors.password}
+                  helperText={validationErrors.password}
+                  required
+                  fullWidth
+                  disabled={isLoading}
+                  placeholder="Enter password"
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <LockOutlined fontSize="small" sx={{ color: 'text.secondary' }} />
+                      </InputAdornment>
+                    ),
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          onClick={() => setShowPassword(!showPassword)}
+                          edge="end"
+                          disabled={isLoading}
+                          size="small"
+                        >
+                          {showPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  }}
+                  sx={{
+                    '& .MuiInputBase-root': {
+                      backgroundColor: '#FFFFFF',
+                    },
+                  }}
+                />
+              </Box>
+
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4.5 }}>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={formData.remember_me}
+                      onChange={handleChange}
+                      name="remember_me"
+                      disabled={isLoading}
+                      size="small"
+                    />
+                  }
+                  label={
+                    <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary' }}>
+                      Remember me
+                    </Typography>
+                  }
+                />
+                <Link
+                  component="button"
+                  type="button"
+                  variant="body2"
+                  onClick={() => navigate(ROUTES.FORGOT_PASSWORD)}
+                  disabled={isLoading}
+                  sx={{ fontSize: '0.8125rem', color: '#4F46E5', fontWeight: 600, '&:hover': { color: '#4338CA' } }}
+                >
+                  Forgot password?
+                </Link>
+              </Box>
+
+              <Button
+                type="submit"
+                fullWidth
+                variant="contained"
+                size="large"
+                disabled={isLoading}
+                sx={{
+                  py: 1.2,
+                  fontSize: '0.9375rem',
+                  backgroundColor: '#4F46E5',
+                  color: '#FFFFFF',
+                  fontWeight: 700,
+                  boxShadow: '0 4px 12px rgba(79, 70, 229, 0.2)',
+                  '&:hover': {
+                    backgroundColor: '#4338CA',
+                    boxShadow: '0 8px 24px rgba(79, 70, 229, 0.3)',
+                  },
+                }}
+              >
+                {isLoading ? 'Signing in...' : 'Sign in'}
+              </Button>
+            </Box>
+          </Paper>
+        </Fade>
       </Box>
     </Box>
   );
