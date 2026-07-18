@@ -4,6 +4,20 @@ import { API_BASE_URL, API_TIMEOUT } from '../utils/constants';
 import { storage } from '../utils/storage';
 import { retryRequest, handleRateLimitError, isOnline, offlineQueue } from '../utils/errorHandling';
 
+// Lightweight navigate helper — avoids window.location.href which causes a full page reload.
+// Set by the router once it mounts (see src/App.tsx or router setup).
+let _navigate: ((path: string) => void) | null = null;
+export const setNavigateRef = (fn: (path: string) => void) => { _navigate = fn; };
+const redirectToLogin = () => {
+  if (_navigate) {
+    _navigate('/login');
+  } else {
+    // Fallback: use history API directly — no full reload
+    window.history.pushState({}, '', '/login');
+    window.dispatchEvent(new PopStateEvent('popstate'));
+  }
+};
+
 // Create axios instance
 const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
@@ -92,9 +106,9 @@ apiClient.interceptors.response.use(
       const refreshToken = storage.getRefreshToken();
 
       if (!refreshToken) {
-        // No refresh token, redirect to login
+        // No refresh token — redirect without a full page reload
         storage.clearAuth();
-        window.location.href = '/login';
+        redirectToLogin();
         return Promise.reject(error);
       }
 
@@ -121,11 +135,11 @@ apiClient.interceptors.response.use(
         // Retry original request
         return apiClient(originalRequest);
       } catch (refreshError) {
-        // Refresh failed, clear auth and redirect to login
+        // Refresh failed — redirect without a full page reload
         processQueue(refreshError, null);
         isRefreshing = false;
         storage.clearAuth();
-        window.location.href = '/login';
+        redirectToLogin();
         return Promise.reject(refreshError);
       }
     }

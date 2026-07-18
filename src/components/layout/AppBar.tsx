@@ -49,16 +49,21 @@ const AppBar: React.FC<AppBarProps> = ({ onMenuClick }) => {
 
   const queryClient = useQueryClient();
 
+  // Sync latest user data once on mount (fire-and-forget, no polling)
   useEffect(() => {
-    authApi.getCurrentUser().then((userData) => {
-      dispatch(setUser({ ...user, ...userData }));
-    }).catch(() => {});
-  }, []);
+    authApi.getCurrentUser()
+      .then((userData) => { dispatch(setUser({ ...user, ...userData })); })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // intentionally run once — user object from Redux is the source of truth
 
   const { data: notifications = [] } = useQuery({
     queryKey: ['notifications'],
     queryFn: () => notificationApi.getNotifications(),
-    refetchInterval: 30000,
+    // No refetchInterval — polling every 30 s was triggering token-refresh
+    // failures which caused full-page reloads via window.location.href.
+    // Notifications are refreshed on demand (mark-all-read invalidates the query).
+    staleTime: 5 * 60 * 1000, // treat as fresh for 5 minutes
   });
 
   const unreadCount = useMemo(() => notifications.length, [notifications]);
