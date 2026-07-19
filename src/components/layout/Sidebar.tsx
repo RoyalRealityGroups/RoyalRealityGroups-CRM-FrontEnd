@@ -201,7 +201,8 @@ const Sidebar: React.FC<SidebarProps> = ({
       
       if (menuSubmenus && menuSubmenus.length > 0) {
         menuSubmenus.forEach((submenu) => {
-          if (!submenu.menuitems || submenu.menuitems.length === 0) return;
+          // ponytail: skip submenus with no children AND no direct click target
+          if ((!submenu.menuitems || submenu.menuitems.length === 0) && !submenu.click) return;
           if (submenu.name?.toLowerCase() === 'settings') return;
 
           if (isSuperuser(user)) {
