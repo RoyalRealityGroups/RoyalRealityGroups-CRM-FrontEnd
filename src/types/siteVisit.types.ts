@@ -26,7 +26,10 @@ export interface SiteVisit {
 
 export interface SiteVisitFormData {
   customer_name: string;
-  project_name: string;
+  // ponytail: backend rejects `project_name` — the FK UUID is required.
+  // Keeping `project_name` optional for backwards compat with stored drafts.
+  project: string;
+  project_name?: string;
   visit_date: string;
   assigned_employee: string;
   status: SiteVisitStatus;

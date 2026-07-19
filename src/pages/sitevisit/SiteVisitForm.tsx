@@ -353,11 +353,11 @@ const SiteVisitForm: React.FC = () => {
         </Typography>
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, alignItems: 'center' }}>
           {/* Saved photos (from server, edit/view mode) */}
-          {(formData.photos || []).map((url, idx) => (
-            <Box key={`saved-${idx}`} sx={{ position: 'relative', width: 100, height: 100 }}>
+          {(formData.photos || []).map((p, idx) => (
+            <Box key={`saved-${p.id ?? idx}`} sx={{ position: 'relative', width: 100, height: 100 }}>
               <img
-                src={url}
-                alt={`Photo ${idx + 1}`}
+                src={p.photo}
+                alt={p.caption || `Photo ${idx + 1}`}
                 style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 4 }}
               />
               {!disabled && (
