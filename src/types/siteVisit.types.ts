@@ -1,5 +1,12 @@
 export type SiteVisitStatus = 'SCHEDULED' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED';
 
+export interface SiteVisitPhoto {
+  id: string;
+  photo: string;
+  caption?: string;
+  uploaded_on: string;
+}
+
 export interface SiteVisit {
   id: string;
   customer_name: string;
@@ -11,7 +18,7 @@ export interface SiteVisit {
   status: SiteVisitStatus;
   customer_feedback?: string;
   remarks?: string;
-  photos?: string[];
+  photos?: SiteVisitPhoto[];
   created_on: string;
   modified_on: string;
   created_by?: { id: string; name: string };
@@ -19,13 +26,13 @@ export interface SiteVisit {
 
 export interface SiteVisitFormData {
   customer_name: string;
-  project: string; // FK UUID to Masters.Project
+  project_name: string;
   visit_date: string;
   assigned_employee: string;
   status: SiteVisitStatus;
   customer_feedback?: string;
   remarks?: string;
-  photos?: string[];
+  photos?: SiteVisitPhoto[];
 }
 
 export interface SiteVisitListParams {

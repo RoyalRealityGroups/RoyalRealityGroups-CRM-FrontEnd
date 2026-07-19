@@ -414,6 +414,10 @@ const SiteVisits: React.FC = () => {
 
             {form.status === 'COMPLETED' && (
               <>
+                <Grid size={{ xs: 12 }}>
+                  <Divider sx={{ my: 1 }} />
+                  <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1 }}>Completion Details</Typography>
+                </Grid>
                 <Grid size={{ xs: 12, md: 6 }}>
                   <TextField fullWidth multiline rows={2} label="Customer Feedback"
                     value={form.customer_feedback}
@@ -424,32 +428,31 @@ const SiteVisits: React.FC = () => {
                     value={form.remarks}
                     onChange={(e) => setForm({ ...form, remarks: e.target.value })} />
                 </Grid>
+                {/* Photo picker — inside Completion section */}
+                <Grid size={{ xs: 12 }}>
+                  <Typography variant="subtitle2" sx={{ mb: 1 }}>Photos</Typography>
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, alignItems: 'center' }}>
+                    {filePreviews.map((url, idx) => (
+                      <Box key={idx} sx={{ position: 'relative', width: 80, height: 80 }}>
+                        <img src={url} alt={`Photo ${idx + 1}`}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 4 }} />
+                        <IconButton size="small" onClick={() => handleRemoveFile(idx)}
+                          sx={{ position: 'absolute', top: -6, right: -6, bgcolor: 'error.main', color: 'white', '&:hover': { bgcolor: 'error.dark' }, width: 20, height: 20 }}>
+                          <DeletePhotoIcon sx={{ fontSize: 12 }} />
+                        </IconButton>
+                      </Box>
+                    ))}
+                    <Box component="label"
+                      sx={{ width: 80, height: 80, border: '2px dashed', borderColor: 'grey.400', borderRadius: 1,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                        '&:hover': { borderColor: 'primary.main', bgcolor: 'action.hover' } }}>
+                      <AddPhotoIcon sx={{ fontSize: 28, color: 'grey.500' }} />
+                      <input type="file" hidden multiple accept="image/*" onChange={handleFileSelect} />
+                    </Box>
+                  </Box>
+                </Grid>
               </>
             )}
-
-            {/* Photo picker */}
-            <Grid size={{ xs: 12 }}>
-              <Typography variant="subtitle2" sx={{ mb: 1 }}>Photos</Typography>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, alignItems: 'center' }}>
-                {filePreviews.map((url, idx) => (
-                  <Box key={idx} sx={{ position: 'relative', width: 80, height: 80 }}>
-                    <img src={url} alt={`Photo ${idx + 1}`}
-                      style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 4 }} />
-                    <IconButton size="small" onClick={() => handleRemoveFile(idx)}
-                      sx={{ position: 'absolute', top: -6, right: -6, bgcolor: 'error.main', color: 'white', '&:hover': { bgcolor: 'error.dark' }, width: 20, height: 20 }}>
-                      <DeletePhotoIcon sx={{ fontSize: 12 }} />
-                    </IconButton>
-                  </Box>
-                ))}
-                <Box component="label"
-                  sx={{ width: 80, height: 80, border: '2px dashed', borderColor: 'grey.400', borderRadius: 1,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-                    '&:hover': { borderColor: 'primary.main', bgcolor: 'action.hover' } }}>
-                  <AddPhotoIcon sx={{ fontSize: 28, color: 'grey.500' }} />
-                  <input type="file" hidden multiple accept="image/*" onChange={handleFileSelect} />
-                </Box>
-              </Box>
-            </Grid>
           </Grid>
 
           {saveMutation.isError && (
@@ -498,28 +501,36 @@ const SiteVisits: React.FC = () => {
                   />
                 </Box>
               </Grid>
-              {viewItem.customer_feedback && (
-                <Grid size={{ xs: 12 }}>
-                  <Typography variant="caption" color="text.secondary">Customer Feedback</Typography>
-                  <Typography variant="body2">{viewItem.customer_feedback}</Typography>
-                </Grid>
-              )}
-              {viewItem.remarks && (
-                <Grid size={{ xs: 12 }}>
-                  <Typography variant="caption" color="text.secondary">Remarks</Typography>
-                  <Typography variant="body2">{viewItem.remarks}</Typography>
-                </Grid>
-              )}
-              {viewItem.photos && viewItem.photos.length > 0 && (
-                <Grid size={{ xs: 12 }}>
-                  <Typography variant="caption" color="text.secondary">Photos</Typography>
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 0.5 }}>
-                    {viewItem.photos.map((url, idx) => (
-                      <img key={idx} src={getPhotoUrl(url)} alt={`Photo ${idx + 1}`}
-                        style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 4 }} />
-                    ))}
-                  </Box>
-                </Grid>
+              {viewItem.status === 'COMPLETED' && (
+                <>
+                  <Grid size={{ xs: 12 }}>
+                    <Divider sx={{ my: 1 }} />
+                    <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1 }}>Completion Details</Typography>
+                  </Grid>
+                  {viewItem.customer_feedback && (
+                    <Grid size={{ xs: 12 }}>
+                      <Typography variant="caption" color="text.secondary">Customer Feedback</Typography>
+                      <Typography variant="body2">{viewItem.customer_feedback}</Typography>
+                    </Grid>
+                  )}
+                  {viewItem.remarks && (
+                    <Grid size={{ xs: 12 }}>
+                      <Typography variant="caption" color="text.secondary">Remarks</Typography>
+                      <Typography variant="body2">{viewItem.remarks}</Typography>
+                    </Grid>
+                  )}
+                  {viewItem.photos && viewItem.photos.length > 0 && (
+                    <Grid size={{ xs: 12 }}>
+                      <Typography variant="caption" color="text.secondary">Photos</Typography>
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 0.5 }}>
+                        {viewItem.photos.map((photo) => (
+                          <img key={photo.id} src={getPhotoUrl(photo.photo)} alt={photo.caption || 'Photo'}
+                            style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 4 }} />
+                        ))}
+                      </Box>
+                    </Grid>
+                  )}
+                </>
               )}
             </Grid>
           </DialogContent>
