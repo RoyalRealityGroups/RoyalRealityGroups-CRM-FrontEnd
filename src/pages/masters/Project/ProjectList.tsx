@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Box, Paper, Button, IconButton, Tooltip, Chip,
+  Box, Paper, Button, IconButton, Tooltip, Chip, Typography,
   Dialog, DialogTitle, DialogContent, DialogActions,
   TextField, MenuItem, FormControl, InputLabel, Select, Grid,
   Alert,
@@ -56,6 +56,7 @@ const ProjectList: React.FC = () => {
   const [editing, setEditing] = useState<Project | null>(null);
   const [form, setForm] = useState<ProjectFormData>(emptyForm);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [viewItem, setViewItem] = useState<Project | null>(null);
 
   // List
   const { data, isLoading, refetch } = useQuery({
@@ -206,7 +207,7 @@ const ProjectList: React.FC = () => {
       renderCell: (p) => (
         <Box>
           <Tooltip title="View">
-            <IconButton size="small" onClick={() => navigate(`/projects/view/${p.row.id}`)}>
+            <IconButton size="small" onClick={() => setViewItem(p.row)}>
               <VisibilityIcon fontSize="small" />
             </IconButton>
           </Tooltip>
@@ -325,6 +326,57 @@ const ProjectList: React.FC = () => {
           <Button variant="contained" onClick={handleSubmit}
             disabled={saveMutation.isPending}>
             {saveMutation.isPending ? 'Saving…' : (editing ? 'Update' : 'Create')}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* View Dialog */}
+      <Dialog open={!!viewItem} onClose={() => setViewItem(null)} maxWidth="sm" fullWidth>
+        <DialogTitle>Project Details</DialogTitle>
+        {viewItem && (
+          <DialogContent>
+            <Grid container spacing={2} sx={{ mt: 0.5 }}>
+              <Grid size={{ xs: 6 }}>
+                <Typography variant="caption" color="text.secondary">Project Code</Typography>
+                <Typography variant="body1">{viewItem.code}</Typography>
+              </Grid>
+              <Grid size={{ xs: 6 }}>
+                <Typography variant="caption" color="text.secondary">Name</Typography>
+                <Typography variant="body1">{viewItem.name}</Typography>
+              </Grid>
+              <Grid size={{ xs: 6 }}>
+                <Typography variant="caption" color="text.secondary">Developer</Typography>
+                <Typography variant="body1">{viewItem.developer_name || '-'}</Typography>
+              </Grid>
+              <Grid size={{ xs: 6 }}>
+                <Typography variant="caption" color="text.secondary">Project Type</Typography>
+                <Typography variant="body1">{viewItem.project_type_display || viewItem.project_type || '-'}</Typography>
+              </Grid>
+              <Grid size={{ xs: 6 }}>
+                <Typography variant="caption" color="text.secondary">Location</Typography>
+                <Typography variant="body1">{viewItem.location || '-'}</Typography>
+              </Grid>
+              <Grid size={{ xs: 6 }}>
+                <Typography variant="caption" color="text.secondary">Status</Typography>
+                <Box sx={{ mt: 0.5 }}>
+                  <Chip
+                    label={viewItem.status_display || viewItem.status}
+                    color={viewItem.status === 'ACTIVE' ? 'success' : viewItem.status === 'UPCOMING' ? 'info' : viewItem.status === 'COMPLETED' ? 'default' : viewItem.status === 'SOLD_OUT' ? 'warning' : 'default'}
+                    size="small"
+                  />
+                </Box>
+              </Grid>
+              <Grid size={{ xs: 6 }}>
+                <Typography variant="caption" color="text.secondary">Active</Typography>
+                <Typography variant="body1">{viewItem.is_active ? 'Yes' : 'No'}</Typography>
+              </Grid>
+            </Grid>
+          </DialogContent>
+        )}
+        <DialogActions>
+          <Button onClick={() => setViewItem(null)}>Close</Button>
+          <Button variant="contained" onClick={() => { if (viewItem) { setViewItem(null); handleOpenEdit(viewItem); } }}>
+            Edit
           </Button>
         </DialogActions>
       </Dialog>

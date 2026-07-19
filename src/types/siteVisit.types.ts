@@ -3,7 +3,8 @@ export type SiteVisitStatus = 'SCHEDULED' | 'CONFIRMED' | 'COMPLETED' | 'CANCELL
 export interface SiteVisit {
   id: string;
   customer_name: string;
-  project_name: string;
+  project?: string | { id: string; name: string };
+  project_name?: string;
   visit_date: string;
   assigned_employee: string | { id: string; name: string; code?: string };
   assigned_employee_name?: string;
@@ -18,7 +19,7 @@ export interface SiteVisit {
 
 export interface SiteVisitFormData {
   customer_name: string;
-  project_name: string;
+  project: string; // FK UUID to Masters.Project
   visit_date: string;
   assigned_employee: string;
   status: SiteVisitStatus;

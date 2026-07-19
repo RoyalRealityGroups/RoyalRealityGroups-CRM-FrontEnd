@@ -38,17 +38,10 @@ export const siteVisitApi = {
     return response.data;
   },
 
-  uploadPhoto: async (id: string, file: File): Promise<{ url: string; photos: string[] }> => {
+  uploadPhotos: async (id: string, files: File[]): Promise<{ photos: unknown[]; count: number }> => {
     const formData = new FormData();
-    formData.append('photo', file);
-    const response = await apiClient.post(`${BASE}${id}/upload-photo/`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-    return response.data;
-  },
-
-  removePhoto: async (id: string, url: string): Promise<{ photos: string[] }> => {
-    const response = await apiClient.post(`${BASE}${id}/remove-photo/`, { url });
+    for (const f of files) formData.append('photos', f);
+    const response = await apiClient.post(`${BASE}${id}/upload_photos/`, formData);
     return response.data;
   },
 };

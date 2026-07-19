@@ -14,6 +14,7 @@ import {
   Divider,
   CircularProgress,
   IconButton,
+  Autocomplete,
 } from '@mui/material';
 import {
   ArrowBack as ArrowBackIcon,
@@ -24,6 +25,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { siteVisitApi } from '../../api/siteVisit.api';
 import { leadApi } from '../../api/lead.api';
+import { projectsApi } from '../../api/projects';
 import ScreenHeader from '../../components/common/ScreenHeader';
 import { useBreadcrumbs } from '../../contexts/BreadcrumbContext';
 import { useToast } from '../../contexts/ToastContext';
@@ -35,7 +37,7 @@ import { getPageContainerStyles, getContentSectionStyles } from '../../utils/spa
 
 const emptyForm: SiteVisitFormData = {
   customer_name: '',
-  project_name: '',
+  project: '',
   visit_date: new Date().toISOString().split('T')[0],
   assigned_employee: '',
   status: 'SCHEDULED',
@@ -101,6 +103,13 @@ const SiteVisitForm: React.FC = () => {
   });
   const users: { id: string; name: string }[] = usersData || [];
 
+  const { data: projectsData } = useQuery({
+    queryKey: ['site-visit-projects'],
+    queryFn: () => projectsApi.mini(),
+    staleTime: 5 * 60 * 1000,
+  });
+  const projects: { id: string; name: string }[] = projectsData || [];
+
   // --- Populate form on edit/view ---
   useEffect(() => {
     if (!existing) return;
@@ -108,9 +117,13 @@ const SiteVisitForm: React.FC = () => {
       typeof existing.assigned_employee === 'string'
         ? existing.assigned_employee
         : existing.assigned_employee?.id || '';
+    const projectId =
+      typeof existing.project === 'string'
+        ? existing.project
+        : existing.project?.id || '';
     setFormData({
       customer_name: existing.customer_name || '',
-      project_name: existing.project_name || '',
+      project: projectId,
       visit_date: existing.visit_date || '',
       assigned_employee: empId,
       status: existing.status || 'SCHEDULED',
@@ -123,7 +136,15 @@ const SiteVisitForm: React.FC = () => {
   // --- Mutations ---
   const createMutation = useMutation({
     mutationFn: (data: FormData) => siteVisitApi.createSiteVisit(data),
-    onSuccess: () => {
+    onSuccess: async (created: { id: string }) => {
+      // Backend create doesn't handle photos; upload them after the row exists.
+      if (selectedFiles.length > 0) {
+        try {
+          await siteVisitApi.uploadPhotos(created.id, selectedFiles);
+        } catch {
+          toastError('Visit saved, but photo upload failed');
+        }
+      }
       toastSuccess('Site visit scheduled successfully');
       queryClient.invalidateQueries({ queryKey: ['site-visits'] });
       navigate('/sitevisit/list');
@@ -133,7 +154,14 @@ const SiteVisitForm: React.FC = () => {
 
   const updateMutation = useMutation({
     mutationFn: (data: FormData) => siteVisitApi.updateSiteVisit(id!, data as any),
-    onSuccess: () => {
+    onSuccess: async () => {
+      if (selectedFiles.length > 0) {
+        try {
+          await siteVisitApi.uploadPhotos(id!, selectedFiles);
+        } catch {
+          toastError('Visit updated, but photo upload failed');
+        }
+      }
       toastSuccess('Site visit updated successfully');
       queryClient.invalidateQueries({ queryKey: ['site-visits'] });
       navigate('/sitevisit/list');
@@ -141,22 +169,21 @@ const SiteVisitForm: React.FC = () => {
     onError: (err: any) => toastError(err.response?.data?.message || 'Failed to update site visit'),
   });
 
-  // --- Single save handler: all data + photos in one request ---
+  // --- Save handler: send JSON for fields, photos go via upload_photos after create/update ---
   const handleSave = () => {
-    if (!formData.customer_name || !formData.project_name || !formData.visit_date || !formData.assigned_employee) {
+    if (!formData.customer_name || !formData.project || !formData.visit_date || !formData.assigned_employee) {
       toastError('Please fill all required fields');
       return;
     }
 
     const fd = new FormData();
     fd.append('customer_name', formData.customer_name);
-    fd.append('project_name', formData.project_name);
+    fd.append('project', formData.project); // FK UUID — backend rejects project_name
     fd.append('visit_date', formData.visit_date);
     fd.append('assigned_employee', formData.assigned_employee);
     fd.append('status', formData.status);
     if (formData.customer_feedback) fd.append('customer_feedback', formData.customer_feedback);
     if (formData.remarks) fd.append('remarks', formData.remarks);
-    for (const f of selectedFiles) fd.append('photos', f);
 
     if (isEditMode) {
       updateMutation.mutate(fd);
@@ -235,12 +262,17 @@ const SiteVisitForm: React.FC = () => {
             />
           </Grid>
           <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-            <TextField
-              fullWidth required size="small"
-              label="Project Name"
-              value={formData.project_name}
+            <Autocomplete
+              size="small"
+              options={projects}
+              getOptionLabel={(o) => o.name}
+              isOptionEqualToValue={(o, v) => o.id === v.id}
+              value={projects.find((p) => p.id === formData.project) || null}
+              onChange={(_, v) => setFormData({ ...formData, project: v?.id || '' })}
               disabled={disabled}
-              onChange={(e) => setFormData({ ...formData, project_name: e.target.value })}
+              renderInput={(params) => (
+                <TextField {...params} label="Project" required />
+              )}
             />
           </Grid>
           <Grid size={{ xs: 12, sm: 6, md: 4 }}>
