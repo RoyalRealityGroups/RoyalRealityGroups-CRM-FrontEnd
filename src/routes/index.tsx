@@ -18,6 +18,17 @@ import { setNavigateRef } from '../api/axios.config';
 const Dashboard = lazy(() => import('../pages/dashboard/DashboardPage'));
 const NotFound = lazy(() => import('../pages/NotFound'));
 
+// ponytail: Project is a top-level domain in this CRM, not a master
+const ProjectList = lazy(() => import('../pages/masters/Project/ProjectList'));
+const ProjectView = lazy(() => import('../pages/masters/Project/ProjectView'));
+const ProjectForm = lazy(() => import('../pages/masters/Project/ProjectForm'));
+
+const withSuspense = (Component: React.LazyExoticComponent<any>) => (
+  <Suspense fallback={<PageLoader />}>
+    <Component />
+  </Suspense>
+);
+
 // Wires React Router's navigate into the axios interceptor so auth failures
 // redirect using SPA navigation instead of a full page reload.
 const NavigateInjector = () => {
@@ -55,6 +66,10 @@ export const AppRoutes = () => (
         }
       />
       {mastersRoutes}
+      <Route path="projects/list" element={withSuspense(ProjectList)} />
+      <Route path="projects/view/:id" element={withSuspense(ProjectView)} />
+      <Route path="projects/add" element={withSuspense(ProjectForm)} />
+      <Route path="projects/edit/:id" element={withSuspense(ProjectForm)} />
       {leadRoutes}
       {settingsRoutes}
       {receiptsRoutes}

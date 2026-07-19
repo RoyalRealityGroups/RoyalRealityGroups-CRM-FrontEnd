@@ -19,10 +19,10 @@ export const preloadRoute = (routePath: string) => {
     '/sales/invoice': () => import('../pages/sales/Invoice/InvoiceList'),
     '/masters/items': () => import('../pages/masters/Item/ItemList'),
     '/masters/items/add': () => import('../pages/masters/Item/ItemForm'),
-    '/masters/projects': () => import('../pages/masters/Project/ProjectList'),
-    '/masters/projects/view/:id': () => import('../pages/masters/Project/ProjectView'),
-    '/masters/projects/add': () => import('../pages/masters/Project/ProjectForm'),
-    '/masters/projects/:id/edit': () => import('../pages/masters/Project/ProjectForm'),
+    '/projects/list': () => import('../pages/masters/Project/ProjectList'),
+    '/projects/view/:id': () => import('../pages/masters/Project/ProjectView'),
+    '/projects/add': () => import('../pages/masters/Project/ProjectForm'),
+    '/projects/edit/:id': () => import('../pages/masters/Project/ProjectForm'),
     // Add more routes as needed
   };
 

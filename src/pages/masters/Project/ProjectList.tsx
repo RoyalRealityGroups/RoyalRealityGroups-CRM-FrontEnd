@@ -43,8 +43,7 @@ const ProjectList: React.FC = () => {
   React.useEffect(() => {
     setBreadcrumbs([
       { label: 'Home', path: '/', icon: <HomeIcon fontSize="small" /> },
-      { label: 'Masters', path: '/masters' },
-      { label: 'Projects', path: '/masters/projects', icon: <BusinessIcon fontSize="small" /> },
+      { label: 'Projects', path: '/projects/list', icon: <BusinessIcon fontSize="small" /> },
     ]);
     return () => setBreadcrumbs([]);
   }, [setBreadcrumbs]);
@@ -207,7 +206,7 @@ const ProjectList: React.FC = () => {
       renderCell: (p) => (
         <Box>
           <Tooltip title="View">
-            <IconButton size="small" onClick={() => navigate(`/masters/projects/view/${p.row.id}`)}>
+            <IconButton size="small" onClick={() => navigate(`/projects/view/${p.row.id}`)}>
               <VisibilityIcon fontSize="small" />
             </IconButton>
           </Tooltip>

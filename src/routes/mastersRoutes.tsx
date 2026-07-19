@@ -21,7 +21,7 @@ const CompanyList = lazy(() => import('../pages/masters/Company/CompanyList'));
 const LocationList = lazy(() => import('../pages/masters/Location/LocationList'));
 const LocationForm = lazy(() => import('../pages/masters/Location/LocationForm'));
 const SuperstockistList = lazy(() => import('../pages/masters/SuperStockist/SuperstockistList'));
-const SuperstockistForm = lazy(() => import('../pages/masters/SuperStockist/SuperstockistForm'));
+const SuperstockistForm = lazy(() => import('../pages/masters/SuperStockist/SuperStockistForm'));
 const DistributorList = lazy(() => import('../pages/masters/Distributor/DistributorList'));
 const DistributorForm = lazy(() => import('../pages/masters/Distributor/DistributorForm'));
 const RetailerList = lazy(() => import('../pages/masters/Retailer/RetailerList'));
@@ -35,9 +35,6 @@ const ItemTaxCompositionList = lazy(() => import('../pages/masters/Item/ItemTaxC
 const OutletTypeList = lazy(() => import('../pages/masters/OutletType/OutletTypeList'));
 const AgentList = lazy(() => import('../pages/masters/Agent/AgentList'));
 const ItemView = lazy(() => import('../pages/masters/Item/ItemView'));
-const ProjectList = lazy(() => import('../pages/masters/Project/ProjectList'));
-const ProjectView = lazy(() => import('../pages/masters/Project/ProjectView'));
-const ProjectForm = lazy(() => import('../pages/masters/Project/ProjectForm'));
 
 const withSuspense = (Component: React.LazyExoticComponent<any>) => (
   <Suspense fallback={<PageLoader />}>
@@ -82,10 +79,5 @@ export const mastersRoutes = (
     <Route path="masters/items/add" element={<ItemForm />} />
     <Route path="masters/items/edit/:id" element={<ItemForm />} />
     <Route path="masters/items/view/:id" element={withSuspense(ItemView)} />
-
-    <Route path="masters/projects" element={withSuspense(ProjectList)} />
-    <Route path="masters/projects/view/:id" element={withSuspense(ProjectView)} />
-    <Route path="masters/projects/add" element={withSuspense(ProjectForm)} />
-    <Route path="masters/projects/:id/edit" element={withSuspense(ProjectForm)} />
   </>
 );

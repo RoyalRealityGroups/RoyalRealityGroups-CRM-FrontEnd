@@ -28,7 +28,7 @@ const ProjectFormPage: React.FC = () => {
     setBreadcrumbs([
       { label: 'Home', path: '/', icon: <HomeIcon fontSize="small" /> },
       { label: 'Masters', path: '/masters' },
-      { label: 'Projects', path: '/masters/projects', icon: <BusinessIcon fontSize="small" /> },
+      { label: 'Projects', path: '/projects/list', icon: <BusinessIcon fontSize="small" /> },
       { label: isEdit ? 'Edit' : 'New' },
     ]);
     return () => setBreadcrumbs([]);
@@ -78,7 +78,7 @@ const ProjectFormPage: React.FC = () => {
       success(isEdit ? 'Project updated' : 'Project created');
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       queryClient.invalidateQueries({ queryKey: ['project', saved.id] });
-      navigate(`/masters/projects/view/${saved.id}`);
+      navigate(`/projects/view/${saved.id}`);
     },
     onError: (err: any) => {
       toastError(err.response?.data?.message || 'Save failed');

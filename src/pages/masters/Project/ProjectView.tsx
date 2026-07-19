@@ -91,7 +91,7 @@ const ProjectView: React.FC = () => {
     setBreadcrumbs([
       { label: 'Home', path: '/', icon: <HomeIcon fontSize="small" /> },
       { label: 'Masters', path: '/masters' },
-      { label: 'Projects', path: '/masters/projects', icon: <BusinessIcon fontSize="small" /> },
+      { label: 'Projects', path: '/projects/list', icon: <BusinessIcon fontSize="small" /> },
       { label: 'Details' },
     ]);
     return () => setBreadcrumbs([]);
@@ -336,13 +336,13 @@ const ProjectView: React.FC = () => {
               {!project.is_active && <Chip label="Inactive" size="small" />}
             </Box>
             <Box>
-              <Button startIcon={<ArrowBackIcon />} sx={{ mr: 1 }} onClick={() => navigate('/masters/projects')}>
+              <Button startIcon={<ArrowBackIcon />} sx={{ mr: 1 }} onClick={() => navigate('/projects/list')}>
                 Back
               </Button>
               <Button
                 variant="contained"
                 startIcon={<EditIcon />}
-                onClick={() => navigate(`/masters/projects/${project.id}/edit`)}
+                onClick={() => navigate(`/projects/edit/${project.id}`)}
               >
                 Edit
               </Button>
