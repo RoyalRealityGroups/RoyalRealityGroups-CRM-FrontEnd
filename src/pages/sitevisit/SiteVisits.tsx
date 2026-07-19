@@ -106,7 +106,7 @@ const SiteVisits: React.FC = () => {
   useEffect(() => {
     setBreadcrumbs([
       { label: 'Home', path: '/', icon: <HomeIcon fontSize="small" /> },
-      { label: 'Site Visit Management', path: '/sitevisit', icon: <LocationOnIcon fontSize="small" /> },
+      { label: 'Site Visit Management', path: '/sitevisit/list', icon: <LocationOnIcon fontSize="small" /> },
     ]);
   }, [setBreadcrumbs]);
 

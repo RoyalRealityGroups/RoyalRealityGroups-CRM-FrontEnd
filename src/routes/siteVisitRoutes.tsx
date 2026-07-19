@@ -13,7 +13,7 @@ const withSuspense = (Component: React.LazyExoticComponent<any>) => (
 
 export const siteVisitRoutes = (
   <>
-    <Route path="sitevisit" element={withSuspense(SiteVisits)} />
+    <Route path="sitevisit/list" element={withSuspense(SiteVisits)} />
     <Route path="sitevisit/add" element={withSuspense(SiteVisitForm)} />
     <Route path="sitevisit/edit/:id" element={withSuspense(SiteVisitForm)} />
     <Route path="sitevisit/view/:id" element={withSuspense(SiteVisitForm)} />

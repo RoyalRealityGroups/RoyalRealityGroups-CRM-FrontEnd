@@ -74,7 +74,7 @@ const SiteVisitForm: React.FC = () => {
     const label = isViewMode ? 'View' : isEditMode ? 'Edit' : 'Schedule';
     setBreadcrumbs([
       { label: 'Home', path: '/', icon: <HomeIcon fontSize="small" /> },
-      { label: 'Site Visit Management', path: '/sitevisit', icon: <LocationOnIcon fontSize="small" /> },
+      { label: 'Site Visit Management', path: '/sitevisit/list/list', icon: <LocationOnIcon fontSize="small" /> },
       { label },
     ]);
     return () => setBreadcrumbs([]);
@@ -126,7 +126,7 @@ const SiteVisitForm: React.FC = () => {
     onSuccess: () => {
       toastSuccess('Site visit scheduled successfully');
       queryClient.invalidateQueries({ queryKey: ['site-visits'] });
-      navigate('/sitevisit');
+      navigate('/sitevisit/list');
     },
     onError: (err: any) => toastError(err.response?.data?.message || 'Failed to schedule site visit'),
   });
@@ -136,7 +136,7 @@ const SiteVisitForm: React.FC = () => {
     onSuccess: () => {
       toastSuccess('Site visit updated successfully');
       queryClient.invalidateQueries({ queryKey: ['site-visits'] });
-      navigate('/sitevisit');
+      navigate('/sitevisit/list');
     },
     onError: (err: any) => toastError(err.response?.data?.message || 'Failed to update site visit'),
   });
@@ -214,7 +214,7 @@ const SiteVisitForm: React.FC = () => {
         {/* Header */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
           <Typography variant="h6" sx={{ fontWeight: 600 }}>Visit Details</Typography>
-          <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/sitevisit')} variant="outlined" size="small">
+          <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/sitevisit/list')} variant="outlined" size="small">
             Back
           </Button>
         </Box>
@@ -380,7 +380,7 @@ const SiteVisitForm: React.FC = () => {
         {/* Single Save Button */}
         {!disabled && (
           <Box sx={{ mt: 4, display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
-            <Button onClick={() => navigate('/sitevisit')} color="inherit">Cancel</Button>
+            <Button onClick={() => navigate('/sitevisit/list')} color="inherit">Cancel</Button>
             <Button
               variant="contained"
               startIcon={<SaveIcon />}
