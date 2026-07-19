@@ -20,6 +20,7 @@ import {
   Grid,
   Typography,
   Alert,
+  FormHelperText,
 } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import type { GridColDef, GridPaginationModel } from '@mui/x-data-grid';
@@ -87,6 +88,8 @@ const LeadList: React.FC = () => {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [viewItem, setViewItem] = useState<Lead | null>(null);
   const [duplicates, setDuplicates] = useState<any[] | null>(null);
+  // ponytail: per-field errors from DRF validation response (data.errors)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     setBreadcrumbs([
@@ -134,10 +137,29 @@ const LeadList: React.FC = () => {
     },
     onError: (err: any) => {
       const resData = err.response?.data;
+      // ponytail: surface per-field errors from DRF validation response
+      const apiErrors = resData?.errors;
+      if (apiErrors && typeof apiErrors === 'object' && !Array.isArray(apiErrors) && !apiErrors.has_duplicates) {
+        const flat: Record<string, string> = {};
+        for (const [k, v] of Object.entries(apiErrors)) {
+          if (Array.isArray(v) && v.length > 0) flat[k] = String(v[0]);
+          else if (typeof v === 'string') flat[k] = v;
+        }
+        // ponytail: form field is `assigned_employee_id` but API keys it as `assigned_employee`
+        if (flat.assigned_employee && !flat.assigned_employee_id) {
+          flat.assigned_employee_id = flat.assigned_employee;
+        }
+        if (Object.keys(flat).length > 0) {
+          setFieldErrors(flat);
+          toastError(Object.values(flat)[0]);
+          return;
+        }
+      }
+      setFieldErrors({});
       if (resData?.has_duplicates && resData?.duplicates) {
         setDuplicates(resData.duplicates);
       } else {
-        toastError(resData?.message || resData?.non_field_errors?.[0] || 'Save failed');
+        toastError(resData?.detail || resData?.message || resData?.non_field_errors?.[0] || 'Save failed');
       }
     },
   });
@@ -181,6 +203,7 @@ const LeadList: React.FC = () => {
     setDialogOpen(false);
     setEditing(null);
     setForm(emptyForm);
+    setFieldErrors({});
   };
 
   const handleSubmit = () => {
@@ -358,84 +381,110 @@ const LeadList: React.FC = () => {
             <Grid size={{ xs: 12, md: 6 }}>
               <TextField fullWidth required label="Name"
                 value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })} />
+                onChange={(e) => { setForm({ ...form, name: e.target.value }); setFieldErrors((p) => { if (!p.name) return p; const n = { ...p }; delete n.name; return n; }); }}
+                error={!!fieldErrors.name}
+                helperText={fieldErrors.name} />
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
               <TextField fullWidth required label="Mobile"
                 value={form.mobile}
                 inputProps={{ maxLength: 10 }}
-                onChange={(e) => setForm({ ...form, mobile: e.target.value.replace(/\D/g, '').slice(0, 10) })} />
+                onChange={(e) => { setForm({ ...form, mobile: e.target.value.replace(/\D/g, '').slice(0, 10) }); setFieldErrors((p) => { if (!p.mobile) return p; const n = { ...p }; delete n.mobile; return n; }); }}
+                error={!!fieldErrors.mobile}
+                helperText={fieldErrors.mobile} />
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
               <TextField fullWidth label="Alternate Number"
                 value={form.alternate_number}
                 inputProps={{ maxLength: 10 }}
-                onChange={(e) => setForm({ ...form, alternate_number: e.target.value.replace(/\D/g, '').slice(0, 10) })} />
+                onChange={(e) => { setForm({ ...form, alternate_number: e.target.value.replace(/\D/g, '').slice(0, 10) }); setFieldErrors((p) => { if (!p.alternate_number) return p; const n = { ...p }; delete n.alternate_number; return n; }); }}
+                error={!!fieldErrors.alternate_number}
+                helperText={fieldErrors.alternate_number} />
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
               <TextField fullWidth label="Email"
                 value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })} />
+                onChange={(e) => { setForm({ ...form, email: e.target.value }); setFieldErrors((p) => { if (!p.email) return p; const n = { ...p }; delete n.email; return n; }); }}
+                error={!!fieldErrors.email}
+                helperText={fieldErrors.email} />
             </Grid>
             <Grid size={{ xs: 12, md: 4 }}>
               <TextField fullWidth label="Budget"
                 value={form.budget}
-                onChange={(e) => setForm({ ...form, budget: e.target.value })} />
+                onChange={(e) => { setForm({ ...form, budget: e.target.value }); setFieldErrors((p) => { if (!p.budget) return p; const n = { ...p }; delete n.budget; return n; }); }}
+                error={!!fieldErrors.budget}
+                helperText={fieldErrors.budget} />
             </Grid>
             <Grid size={{ xs: 12, md: 4 }}>
               <TextField fullWidth label="Preferred Area"
                 value={form.preferred_area}
-                onChange={(e) => setForm({ ...form, preferred_area: e.target.value })} />
+                onChange={(e) => { setForm({ ...form, preferred_area: e.target.value }); setFieldErrors((p) => { if (!p.preferred_area) return p; const n = { ...p }; delete n.preferred_area; return n; }); }}
+                error={!!fieldErrors.preferred_area}
+                helperText={fieldErrors.preferred_area} />
             </Grid>
             <Grid size={{ xs: 12, md: 4 }}>
               <TextField fullWidth label="Property Requirement"
                 value={form.property_requirement}
-                onChange={(e) => setForm({ ...form, property_requirement: e.target.value })} />
+                onChange={(e) => { setForm({ ...form, property_requirement: e.target.value }); setFieldErrors((p) => { if (!p.property_requirement) return p; const n = { ...p }; delete n.property_requirement; return n; }); }}
+                error={!!fieldErrors.property_requirement}
+                helperText={fieldErrors.property_requirement} />
             </Grid>
             <Grid size={{ xs: 12, md: 4 }}>
-              <FormControl fullWidth required>
+              <FormControl fullWidth required error={!!fieldErrors.lead_source}>
                 <InputLabel>Lead Source</InputLabel>
                 <Select label="Lead Source" value={form.lead_source}
-                  onChange={(e) => setForm({ ...form, lead_source: e.target.value })}>
+                  onChange={(e) => { setForm({ ...form, lead_source: e.target.value }); setFieldErrors((p) => { if (!p.lead_source) return p; const n = { ...p }; delete n.lead_source; return n; }); }}>
                   {(choices?.lead_sources || []).map((s) => (
                     <MenuItem key={s.value} value={s.value}>{s.label}</MenuItem>
                   ))}
                 </Select>
+                {fieldErrors.lead_source && <FormHelperText>{fieldErrors.lead_source}</FormHelperText>}
               </FormControl>
             </Grid>
             <Grid size={{ xs: 12, md: 4 }}>
-              <FormControl fullWidth>
+              <FormControl fullWidth error={!!fieldErrors.status}>
                 <InputLabel>Status</InputLabel>
                 <Select label="Status" value={form.status}
-                  onChange={(e) => setForm({ ...form, status: e.target.value })}>
+                  onChange={(e) => { setForm({ ...form, status: e.target.value }); setFieldErrors((p) => { if (!p.status) return p; const n = { ...p }; delete n.status; return n; }); }}>
                   {(choices?.lead_statuses || []).map((s) => (
                     <MenuItem key={s.value} value={s.value}>{s.label}</MenuItem>
                   ))}
                 </Select>
+                {fieldErrors.status && <FormHelperText>{fieldErrors.status}</FormHelperText>}
               </FormControl>
             </Grid>
             <Grid size={{ xs: 12, md: 4 }}>
-              <FormControl fullWidth>
+              <FormControl fullWidth error={!!fieldErrors.assigned_employee_id || !!fieldErrors.assigned_employee}>
                 <InputLabel>Assigned Employee</InputLabel>
                 <Select label="Assigned Employee" value={form.assigned_employee_id}
-                  onChange={(e) => setForm({ ...form, assigned_employee_id: e.target.value })}>
+                  onChange={(e) => { setForm({ ...form, assigned_employee_id: e.target.value }); setFieldErrors((p) => { if (!p.assigned_employee_id && !p.assigned_employee) return p; const n = { ...p }; delete n.assigned_employee_id; delete n.assigned_employee; return n; }); }}>
                   <MenuItem value="">— None —</MenuItem>
                   {users.map((u) => (
                     <MenuItem key={u.id} value={u.id}>{u.name}</MenuItem>
                   ))}
                 </Select>
+                {(fieldErrors.assigned_employee_id || fieldErrors.assigned_employee) && (
+                  <FormHelperText>{fieldErrors.assigned_employee_id || fieldErrors.assigned_employee}</FormHelperText>
+                )}
               </FormControl>
             </Grid>
             <Grid size={{ xs: 12 }}>
               <TextField fullWidth multiline rows={2} label="Remarks"
                 value={form.remarks}
-                onChange={(e) => setForm({ ...form, remarks: e.target.value })} />
+                onChange={(e) => { setForm({ ...form, remarks: e.target.value }); setFieldErrors((p) => { if (!p.remarks) return p; const n = { ...p }; delete n.remarks; return n; }); }}
+                error={!!fieldErrors.remarks}
+                helperText={fieldErrors.remarks} />
             </Grid>
           </Grid>
 
           {saveMutation.isError && (
             <Alert severity="error" sx={{ mt: 2 }}>
-              {(saveMutation.error as any)?.response?.data?.message || 'Save failed'}
+              {(() => {
+                const errs = Object.values(fieldErrors);
+                if (errs.length > 0) return errs.join(' • ');
+                const rd = (saveMutation.error as any)?.response?.data;
+                return rd?.detail || rd?.message || rd?.non_field_errors?.[0] || 'Save failed';
+              })()}
             </Alert>
           )}
         </DialogContent>

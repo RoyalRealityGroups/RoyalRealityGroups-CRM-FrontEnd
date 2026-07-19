@@ -19,6 +19,7 @@ import {
   Typography,
   Chip,
   Divider,
+  FormHelperText,
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { Add as AddIcon, Save as SaveIcon, ArrowBack as BackIcon } from '@mui/icons-material';
@@ -76,6 +77,8 @@ const LeadForm: React.FC = () => {
   const [crossCheckOpen, setCrossCheckOpen] = useState(false);
   const [crossCheckResult, setCrossCheckResult] = useState<CrossCheckResult | null>(null);
   const [overrideReason, setOverrideReason] = useState('');
+  // ponytail: per-field errors surfaced from DRF validation responses (data.errors)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     setBreadcrumbs([
@@ -147,6 +150,28 @@ const LeadForm: React.FC = () => {
     },
     onError: (error: any) => {
       const data = error.response?.data;
+
+      // ponytail: surface per-field errors from DRF validation response.
+      // Backend shape (Core/exceptions.py): { detail, errors: { field: [..] }, error: 'Validation Error' }
+      const apiErrors = data?.errors;
+      if (apiErrors && typeof apiErrors === 'object' && !Array.isArray(apiErrors) && !apiErrors.has_duplicates) {
+        const flat: Record<string, string> = {};
+        for (const [k, v] of Object.entries(apiErrors)) {
+          if (Array.isArray(v) && v.length > 0) flat[k] = String(v[0]);
+          else if (typeof v === 'string') flat[k] = v;
+        }
+        // ponytail: form field for employee is `assigned_employee_id` but API keys it as `assigned_employee`
+        if (flat.assigned_employee && !flat.assigned_employee_id) {
+          flat.assigned_employee_id = flat.assigned_employee;
+        }
+        if (Object.keys(flat).length > 0) {
+          setFieldErrors(flat);
+          toastError(Object.values(flat)[0]);
+          return;
+        }
+      }
+      setFieldErrors({});
+
       if (data?.has_duplicates && Array.isArray(data.duplicates)) {
         // Group duplicates by matched field so the message is field-aware
         // instead of a generic "Validation failed" toast.
@@ -201,6 +226,16 @@ const LeadForm: React.FC = () => {
       value = value.replace(/\D/g, '').slice(0, 10);
     }
     setFormData((prev) => ({ ...prev, [field]: value }));
+    // ponytail: clear this field's server-side error as soon as user edits it
+    setFieldErrors((prev) => {
+      if (!prev[field as string] && !(field === 'assigned_employee_id' && prev.assigned_employee)) {
+        return prev;
+      }
+      const next = { ...prev };
+      delete next[field as string];
+      if (field === 'assigned_employee_id') delete next.assigned_employee;
+      return next;
+    });
   };
 
   const handleMobileBlur = () => {
@@ -346,6 +381,8 @@ const LeadForm: React.FC = () => {
                 value={formData.name}
                 onChange={handleChange('name')}
                 required
+                error={!!fieldErrors.name}
+                helperText={fieldErrors.name}
               />
             </Grid>
 
@@ -357,6 +394,8 @@ const LeadForm: React.FC = () => {
                 onChange={handleChange('mobile')}
                 onBlur={handleMobileBlur}
                 required
+                error={!!fieldErrors.mobile}
+                helperText={fieldErrors.mobile}
                 InputProps={{
                   startAdornment: <InputAdornment position="start">+91</InputAdornment>,
                 }}
@@ -369,6 +408,8 @@ const LeadForm: React.FC = () => {
                 label="Alternate Number"
                 value={formData.alternate_number}
                 onChange={handleChange('alternate_number')}
+                error={!!fieldErrors.alternate_number}
+                helperText={fieldErrors.alternate_number}
                 InputProps={{
                   startAdornment: <InputAdornment position="start">+91</InputAdornment>,
                 }}
@@ -382,6 +423,8 @@ const LeadForm: React.FC = () => {
                 type="email"
                 value={formData.email}
                 onChange={handleChange('email')}
+                error={!!fieldErrors.email}
+                helperText={fieldErrors.email}
               />
             </Grid>
 
@@ -400,6 +443,8 @@ const LeadForm: React.FC = () => {
                 value={formData.budget}
                 onChange={handleChange('budget')}
                 placeholder="e.g., 50L - 80L"
+                error={!!fieldErrors.budget}
+                helperText={fieldErrors.budget}
               />
             </Grid>
 
@@ -409,6 +454,8 @@ const LeadForm: React.FC = () => {
                 label="Preferred Area"
                 value={formData.preferred_area}
                 onChange={handleChange('preferred_area')}
+                error={!!fieldErrors.preferred_area}
+                helperText={fieldErrors.preferred_area}
               />
             </Grid>
 
@@ -419,11 +466,13 @@ const LeadForm: React.FC = () => {
                 value={formData.property_requirement}
                 onChange={handleChange('property_requirement')}
                 placeholder="e.g., 2BHK, 3BHK, Plot, Villa"
+                error={!!fieldErrors.property_requirement}
+                helperText={fieldErrors.property_requirement}
               />
             </Grid>
 
             <Grid size={{ xs: 12, md: 6 }}>
-              <FormControl fullWidth>
+              <FormControl fullWidth error={!!fieldErrors.lead_source}>
                 <InputLabel>Lead Source</InputLabel>
                 <Select
                   value={formData.lead_source}
@@ -437,11 +486,14 @@ const LeadForm: React.FC = () => {
                     </MenuItem>
                   ))}
                 </Select>
+                {fieldErrors.lead_source && (
+                  <FormHelperText>{fieldErrors.lead_source}</FormHelperText>
+                )}
               </FormControl>
             </Grid>
 
             <Grid size={{ xs: 12, md: 6 }}>
-              <FormControl fullWidth>
+              <FormControl fullWidth error={!!fieldErrors.assigned_employee_id || !!fieldErrors.assigned_employee}>
                 <InputLabel>Assigned Employee</InputLabel>
                 <Select
                   value={formData.assigned_employee_id}
@@ -455,11 +507,16 @@ const LeadForm: React.FC = () => {
                     </MenuItem>
                   ))}
                 </Select>
+                {(fieldErrors.assigned_employee_id || fieldErrors.assigned_employee) && (
+                  <FormHelperText>
+                    {fieldErrors.assigned_employee_id || fieldErrors.assigned_employee}
+                  </FormHelperText>
+                )}
               </FormControl>
             </Grid>
 
             <Grid size={{ xs: 12, md: 6 }}>
-              <FormControl fullWidth>
+              <FormControl fullWidth error={!!fieldErrors.status}>
                 <InputLabel>Status</InputLabel>
                 <Select
                   value={formData.status}
@@ -472,6 +529,9 @@ const LeadForm: React.FC = () => {
                     </MenuItem>
                   ))}
                 </Select>
+                {fieldErrors.status && (
+                  <FormHelperText>{fieldErrors.status}</FormHelperText>
+                )}
               </FormControl>
             </Grid>
 
@@ -483,6 +543,8 @@ const LeadForm: React.FC = () => {
                 label="Remarks"
                 value={formData.remarks}
                 onChange={handleChange('remarks')}
+                error={!!fieldErrors.remarks}
+                helperText={fieldErrors.remarks}
               />
             </Grid>
 
