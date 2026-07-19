@@ -21,7 +21,7 @@ const CompanyList = lazy(() => import('../pages/masters/Company/CompanyList'));
 const LocationList = lazy(() => import('../pages/masters/Location/LocationList'));
 const LocationForm = lazy(() => import('../pages/masters/Location/LocationForm'));
 const SuperstockistList = lazy(() => import('../pages/masters/SuperStockist/SuperstockistList'));
-const SuperstockistForm = lazy(() => import('../pages/masters/SuperStockist/SuperStockistForm'));
+const SuperstockistForm = lazy(() => import('../pages/masters/SuperStockist/SuperstockistForm'));
 const DistributorList = lazy(() => import('../pages/masters/Distributor/DistributorList'));
 const DistributorForm = lazy(() => import('../pages/masters/Distributor/DistributorForm'));
 const RetailerList = lazy(() => import('../pages/masters/Retailer/RetailerList'));
