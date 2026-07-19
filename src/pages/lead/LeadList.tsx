@@ -612,18 +612,7 @@ const LeadList: React.FC = () => {
           ))}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDuplicates(null)}>Cancel</Button>
-          <Button
-            variant="contained"
-            color="warning"
-            onClick={() => {
-              setDuplicates(null);
-              setForm({ ...form, cross_lead_override: true });
-              toastSuccess('Override enabled — click Create again to save');
-            }}
-          >
-            Override & Create Anyway
-          </Button>
+          <Button onClick={() => setDuplicates(null)} variant="contained">Close</Button>
         </DialogActions>
       </Dialog>
 

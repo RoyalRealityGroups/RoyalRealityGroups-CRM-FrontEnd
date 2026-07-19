@@ -433,7 +433,7 @@ const FollowUps: React.FC = () => {
               </Grid>
               <Grid size={{ xs: 6 }}>
                 <Typography variant="caption" color="text.secondary">Follow-up Time</Typography>
-                <Typography variant="body1">{viewItem.follow_up_time || '-'}</Typography>
+                <Typography variant="body1">{viewItem.follow_up_time ? new Date(`1970-01-01T${viewItem.follow_up_time}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : '-'}</Typography>
               </Grid>
               <Grid size={{ xs: 6 }}>
                 <Typography variant="caption" color="text.secondary">Type</Typography>
@@ -443,7 +443,7 @@ const FollowUps: React.FC = () => {
               </Grid>
               <Grid size={{ xs: 6 }}>
                 <Typography variant="caption" color="text.secondary">Next Follow-up</Typography>
-                <Typography variant="body1">{viewItem.next_follow_up_date ? new Date(viewItem.next_follow_up_date).toLocaleDateString() : '-'}</Typography>
+                <Typography variant="body1">{viewItem.next_follow_up_date ? new Date(viewItem.next_follow_up_date).toLocaleDateString('en-GB') : '-'}</Typography>
               </Grid>
               {viewItem.discussion_notes && (
                 <Grid size={{ xs: 12 }}>
