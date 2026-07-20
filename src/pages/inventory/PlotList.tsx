@@ -79,11 +79,12 @@ const PlotList: React.FC = () => {
   });
 
   const columns: GridColDef<Plot>[] = [
-    { field: 'plot_number', headerName: 'Plot #', width: 120 },
+    { field: 'plot_number', headerName: 'Plot #', width: 110 },
     {
       field: 'project_name',
       headerName: 'Project',
-      width: 180,
+      flex: 1,
+      minWidth: 160,
       valueGetter: (_v, row) => row.project_name || row.project,
     },
     {
@@ -98,7 +99,7 @@ const PlotList: React.FC = () => {
       width: 140,
       valueFormatter: (v: any) => v != null ? `₹${Number(v).toLocaleString()}` : '-',
     },
-    { field: 'facing', headerName: 'Facing', width: 100 },
+    { field: 'facing', headerName: 'Facing', width: 90 },
     {
       field: 'status',
       headerName: 'Status',
@@ -114,7 +115,7 @@ const PlotList: React.FC = () => {
     {
       field: 'actions',
       headerName: 'Actions',
-      width: 140,
+      width: 130,
       sortable: false,
       renderCell: (params) => (
         <Box>
@@ -176,7 +177,7 @@ const PlotList: React.FC = () => {
           </FormControl>
         </Box>
       </Box>
-      <Paper sx={{ height: 620 }}>
+      <Paper sx={{ width: '100%', overflow: 'hidden' }}>
         <DataGrid
           rows={data?.results || []}
           columns={columns}
@@ -185,8 +186,9 @@ const PlotList: React.FC = () => {
           paginationMode="server"
           paginationModel={paginationModel}
           onPaginationModelChange={setPaginationModel}
-          pageSizeOptions={[10, 25, 50]}
+          pageSizeOptions={[10, 20, 30]}
           disableRowSelectionOnClick
+          autoHeight
         />
       </Paper>
     </Box>

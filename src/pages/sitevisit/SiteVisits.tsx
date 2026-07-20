@@ -382,7 +382,7 @@ const SiteVisits: React.FC = () => {
       </Paper>
 
       {/* Data Grid */}
-      <Paper sx={{ height: 620 }}>
+      <Paper sx={{ width: '100%', overflow: 'hidden' }}>
         <DataGrid
           rows={visitsData?.results || []}
           columns={columns}
@@ -391,8 +391,9 @@ const SiteVisits: React.FC = () => {
           paginationMode="server"
           paginationModel={paginationModel}
           onPaginationModelChange={setPaginationModel}
-          pageSizeOptions={[10, 20, 50, 100]}
+          pageSizeOptions={[10, 20, 30]}
           disableRowSelectionOnClick
+          autoHeight
         />
       </Paper>
 

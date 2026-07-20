@@ -359,7 +359,7 @@ const LeadList: React.FC = () => {
         </Box>
       </Paper>
 
-      <Paper sx={{ height: 620 }}>
+      <Paper sx={{ width: '100%', overflow: 'hidden' }}>
         <DataGrid
           rows={leadsData?.results || []}
           columns={columns}
@@ -368,8 +368,9 @@ const LeadList: React.FC = () => {
           paginationMode="server"
           paginationModel={paginationModel}
           onPaginationModelChange={setPaginationModel}
-          pageSizeOptions={[10, 20, 50, 100]}
+          pageSizeOptions={[10, 20, 30]}
           disableRowSelectionOnClick
+          autoHeight
         />
       </Paper>
 

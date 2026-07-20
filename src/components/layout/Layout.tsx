@@ -65,12 +65,13 @@ const Layout: React.FC = () => {
             flexGrow: 1,
             marginTop: { xs: '60px', sm: '68px' },
             backgroundColor: '#F4F6F8',
-            height: { xs: 'calc(100vh - 60px)', sm: 'calc(100vh - 68px)' },
+            minHeight: { xs: 'calc(100vh - 60px)', sm: 'calc(100vh - 68px)' },
             width: '100%',
             position: 'relative',
             display: 'flex',
             flexDirection: 'column',
-            overflow: 'hidden',
+            overflowY: 'auto',
+            overflowX: 'hidden',
           }}
         >
           <BreadcrumbBar />
@@ -78,7 +79,6 @@ const Layout: React.FC = () => {
             position: 'relative', 
             zIndex: 1,
             flexGrow: 1,
-            overflow: 'hidden',
             display: 'flex',
             flexDirection: 'column',
             p: { xs: 0.5, sm: 0.75, md: 1 },

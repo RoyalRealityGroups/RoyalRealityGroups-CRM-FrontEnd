@@ -246,7 +246,7 @@ const ProjectList: React.FC = () => {
         />
       </Paper>
 
-      <Paper sx={{ height: 620 }}>
+      <Paper sx={{ width: '100%', overflow: 'hidden' }}>
         <DataGrid
           rows={rows}
           columns={columns}
@@ -258,8 +258,9 @@ const ProjectList: React.FC = () => {
             setPage(model.page);
             setPageSize(model.pageSize);
           }}
-          pageSizeOptions={[10, 20, 50, 100]}
+          pageSizeOptions={[10, 20, 30]}
           disableRowSelectionOnClick
+          autoHeight
           processRowUpdate={async (newRow, oldRow) => {
             const changes: Partial<ProjectFormData> = {};
             if (Object.keys(changes).length > 0) {

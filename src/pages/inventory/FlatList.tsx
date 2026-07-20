@@ -84,23 +84,24 @@ const FlatList: React.FC = () => {
     {
       field: 'project_name',
       headerName: 'Project',
-      width: 160,
+      flex: 1,
+      minWidth: 150,
       valueGetter: (_v, row) => row.project_name || row.project,
     },
     { field: 'tower', headerName: 'Tower', width: 90 },
-    { field: 'floor', headerName: 'Floor', width: 80 },
-    { field: 'unit_number', headerName: 'Unit #', width: 100 },
+    { field: 'floor', headerName: 'Floor', width: 70 },
+    { field: 'unit_number', headerName: 'Unit #', width: 90 },
     {
       field: 'area_sqft',
       headerName: 'Area (sq.ft)',
       width: 100,
       valueFormatter: (v: any) => v ? `${v}` : '-',
     },
-    { field: 'facing', headerName: 'Facing', width: 90 },
+    { field: 'facing', headerName: 'Facing', width: 80 },
     {
       field: 'price',
       headerName: 'Price',
-      width: 130,
+      width: 140,
       valueFormatter: (v: any) => v != null ? `₹${Number(v).toLocaleString()}` : '-',
     },
     {
@@ -118,7 +119,7 @@ const FlatList: React.FC = () => {
     {
       field: 'actions',
       headerName: 'Actions',
-      width: 140,
+      width: 130,
       sortable: false,
       renderCell: (params) => (
         <Box>
@@ -187,7 +188,7 @@ const FlatList: React.FC = () => {
           />
         </Box>
       </Box>
-      <Paper sx={{ height: 620 }}>
+      <Paper sx={{ width: '100%', overflow: 'hidden' }}>
         <DataGrid
           rows={data?.results || []}
           columns={columns}
@@ -196,8 +197,9 @@ const FlatList: React.FC = () => {
           paginationMode="server"
           paginationModel={paginationModel}
           onPaginationModelChange={setPaginationModel}
-          pageSizeOptions={[10, 25, 50]}
+          pageSizeOptions={[10, 20, 30]}
           disableRowSelectionOnClick
+          autoHeight
         />
       </Paper>
     </Box>

@@ -416,7 +416,7 @@ const Bookings: React.FC = () => {
         </Grid>
       </Paper>
 
-      <Paper sx={{ height: 620 }}>
+      <Paper sx={{ width: '100%', overflow: 'hidden' }}>
           <DataGrid
             rows={bookingsData?.results || []}
             columns={columns}
@@ -425,8 +425,9 @@ const Bookings: React.FC = () => {
             paginationModel={paginationModel}
             onPaginationModelChange={setPaginationModel}
             rowCount={bookingsData?.count || 0}
-            pageSizeOptions={[10, 20, 50]}
+            pageSizeOptions={[10, 20, 30]}
             disableRowSelectionOnClick
+            autoHeight
           />
         </Paper>
 
