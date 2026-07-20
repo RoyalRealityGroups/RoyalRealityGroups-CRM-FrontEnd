@@ -99,14 +99,14 @@ const SiteVisitForm: React.FC = () => {
   const { data: usersData } = useQuery({
     queryKey: ['site-visit-users'],
     queryFn: () => leadApi.getUsers(),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
   });
   const users: { id: string; name: string }[] = usersData || [];
 
   const { data: projectsData } = useQuery({
     queryKey: ['site-visit-projects'],
     queryFn: () => projectsApi.mini(),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
   });
   const projects: { id: string; name: string }[] = projectsData || [];
 
