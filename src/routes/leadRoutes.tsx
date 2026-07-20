@@ -6,7 +6,7 @@ const LeadList = lazy(() => import('../pages/lead/LeadList'));
 const LeadForm = lazy(() => import('../pages/lead/LeadForm'));
 const FollowUps = lazy(() => import('../pages/lead/FollowUps'));
 const FollowUpView = lazy(() => import('../pages/lead/FollowUpView'));
-const SiteVisits = lazy(() => import('../pages/lead/SiteVisits'));
+const SiteVisits = lazy(() => import('../pages/sitevisit/SiteVisits'));
 const DocumentVault = lazy(() => import('../pages/documents/DocumentVault'));
 
 const withSuspense = (Component: React.LazyExoticComponent<any>) => (

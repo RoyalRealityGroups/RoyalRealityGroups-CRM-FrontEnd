@@ -35,6 +35,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { siteVisitApi } from '../../api/siteVisit.api';
 import { leadApi } from '../../api/lead.api';
+import { projectsApi } from '../../api/projects';
 import ScreenHeader from '../../components/common/ScreenHeader';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { useBreadcrumbs } from '../../contexts/BreadcrumbContext';
@@ -43,7 +44,6 @@ import { usePageTitle } from '../../hooks';
 import HomeIcon from '@mui/icons-material/Home';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import type { SiteVisit, SiteVisitStatus } from '../../types/siteVisit.types';
-
 import { API_BASE_URL } from '../../utils/constants';
 
 const statusColors: Record<SiteVisitStatus, 'default' | 'primary' | 'success' | 'warning' | 'error' | 'info'> = {
@@ -62,7 +62,7 @@ const DEFAULT_STATUSES: { value: SiteVisitStatus; label: string }[] = [
 
 interface FormState {
   customer_name: string;
-  project_name: string;
+  project: string;
   visit_date: string;
   assigned_employee: string;
   status: SiteVisitStatus;
@@ -72,7 +72,7 @@ interface FormState {
 
 const emptyForm: FormState = {
   customer_name: '',
-  project_name: '',
+  project: '',
   visit_date: new Date().toISOString().split('T')[0],
   assigned_employee: '',
   status: 'SCHEDULED',
@@ -136,18 +136,33 @@ const SiteVisits: React.FC = () => {
   });
   const users: { id: string; name: string }[] = usersData || [];
 
+  const { data: projectsData } = useQuery({
+    queryKey: ['site-visit-projects'],
+    queryFn: () => projectsApi.mini(),
+    staleTime: 5 * 60 * 1000,
+  });
+  const projects: { id: string; name: string }[] = projectsData || [];
+
   // --- Mutations ---
   const saveMutation = useMutation({
     mutationFn: (data: FormData) =>
       editing
         ? siteVisitApi.updateSiteVisit(editing.id, data as any)
         : siteVisitApi.createSiteVisit(data),
-    onSuccess: () => {
+    onSuccess: async (result: any) => {
+      const visitId = editing?.id || result?.id;
+      if (selectedFiles.length > 0 && visitId) {
+        try {
+          await siteVisitApi.uploadPhotos(visitId, selectedFiles);
+        } catch {
+          toastError('Visit saved, but photo upload failed');
+        }
+      }
       toastSuccess(editing ? 'Site visit updated' : 'Site visit scheduled');
       handleCloseDialog();
       refetch();
     },
-    onError: (err: any) => toastError(err.response?.data?.message || 'Save failed'),
+    onError: (err: any) => toastError(err.response?.data?.message || err.response?.data?.status?.[0] || 'Save failed'),
   });
 
   const deleteMutation = useMutation({
@@ -174,9 +189,14 @@ const SiteVisits: React.FC = () => {
     const empId = typeof item.assigned_employee === 'string'
       ? item.assigned_employee
       : item.assigned_employee?.id || '';
+    const projectId = typeof item.project === 'string'
+      ? item.project
+      : typeof item.project === 'object' && item.project
+        ? item.project.id
+        : '';
     setForm({
       customer_name: item.customer_name || '',
-      project_name: item.project_name || '',
+      project: projectId,
       visit_date: item.visit_date || '',
       assigned_employee: empId,
       status: item.status || 'SCHEDULED',
@@ -198,19 +218,18 @@ const SiteVisits: React.FC = () => {
   };
 
   const handleSubmit = () => {
-    if (!form.customer_name || !form.project_name || !form.visit_date || !form.assigned_employee) {
-      toastError('Please fill all required fields');
+    if (!form.customer_name || !form.project || !form.visit_date || !form.assigned_employee) {
+      toastError('Please fill all required fields: Customer Name, Project, Visit Date, Assigned Employee');
       return;
     }
     const fd = new FormData();
     fd.append('customer_name', form.customer_name);
-    fd.append('project_name', form.project_name);
+    fd.append('project', form.project);
     fd.append('visit_date', form.visit_date);
     fd.append('assigned_employee', form.assigned_employee);
     fd.append('status', form.status);
     if (form.customer_feedback) fd.append('customer_feedback', form.customer_feedback);
     if (form.remarks) fd.append('remarks', form.remarks);
-    for (const f of selectedFiles) fd.append('photos', f);
     saveMutation.mutate(fd);
   };
 
@@ -236,6 +255,16 @@ const SiteVisits: React.FC = () => {
     return v.name;
   };
 
+  const getProjectName = (item: SiteVisit) => {
+    if (item.project_name) return item.project_name;
+    if (typeof item.project === 'object' && item.project) return item.project.name;
+    if (typeof item.project === 'string') {
+      const p = projects.find((pr) => pr.id === item.project);
+      return p?.name || item.project;
+    }
+    return '-';
+  };
+
   const getPhotoUrl = (url: string) => {
     if (url.startsWith('http')) return url;
     return `${API_BASE_URL}${url}`;
@@ -245,14 +274,17 @@ const SiteVisits: React.FC = () => {
 
   // --- Columns ---
   const columns: GridColDef<SiteVisit>[] = [
-    { field: 'customer_name', headerName: 'Customer', flex: 1, minWidth: 150 },
-    { field: 'project_name', headerName: 'Project', flex: 1, minWidth: 150 },
+    { field: 'customer_name', headerName: 'Customer Name', flex: 1, minWidth: 150 },
+    {
+      field: 'project_name', headerName: 'Project Name', flex: 1, minWidth: 150,
+      valueGetter: (_value: any, row: SiteVisit) => getProjectName(row),
+    },
     {
       field: 'visit_date', headerName: 'Visit Date', width: 120,
       valueFormatter: (value: any) => (value ? new Date(value).toLocaleDateString() : '-'),
     },
     {
-      field: 'assigned_employee', headerName: 'Assigned To', width: 150,
+      field: 'assigned_employee', headerName: 'Assigned Employee', width: 160,
       valueGetter: (_value: any, row: SiteVisit) => getEmployeeName(row.assigned_employee),
     },
     {
@@ -270,19 +302,13 @@ const SiteVisits: React.FC = () => {
             '&:hover .MuiOutlinedInput-notchedOutline': { border: 'none' },
           }}
           onChange={async (e) => {
-            const newStatus = e.target.value;
+            const newStatus = e.target.value as string;
             try {
-              const fd = new FormData();
-              fd.append('customer_name', params.row.customer_name);
-              fd.append('project_name', params.row.project_name);
-              fd.append('visit_date', params.row.visit_date);
-              fd.append('assigned_employee', typeof params.row.assigned_employee === 'string' ? params.row.assigned_employee : params.row.assigned_employee?.id || '');
-              fd.append('status', newStatus);
-              await siteVisitApi.updateSiteVisit(params.row.id, fd as any);
+              await siteVisitApi.updateStatus(params.row.id, newStatus);
               toastSuccess('Status updated');
               refetch();
-            } catch {
-              toastError('Failed to update status');
+            } catch (err: any) {
+              toastError(err.response?.data?.error || 'Failed to update status');
             }
           }}
           renderValue={(value) => (
@@ -332,6 +358,7 @@ const SiteVisits: React.FC = () => {
         onAdd={handleOpenCreate}
       />
 
+      {/* Filters */}
       <Paper sx={{ p: 2, mb: 2 }}>
         <Box sx={{ display: 'flex', gap: 2 }}>
           <TextField
@@ -354,6 +381,7 @@ const SiteVisits: React.FC = () => {
         </Box>
       </Paper>
 
+      {/* Data Grid */}
       <Paper sx={{ height: 620 }}>
         <DataGrid
           rows={visitsData?.results || []}
@@ -373,15 +401,25 @@ const SiteVisits: React.FC = () => {
         <DialogTitle>{editing ? 'Edit Site Visit' : 'Schedule Site Visit'}</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
+            {/* Schedule fields */}
             <Grid size={{ xs: 12, md: 6 }}>
               <TextField fullWidth required label="Customer Name"
                 value={form.customer_name}
                 onChange={(e) => setForm({ ...form, customer_name: e.target.value })} />
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
-              <TextField fullWidth required label="Project Name"
-                value={form.project_name}
-                onChange={(e) => setForm({ ...form, project_name: e.target.value })} />
+              <FormControl fullWidth required>
+                <InputLabel>Project Name</InputLabel>
+                <Select
+                  label="Project Name"
+                  value={form.project}
+                  onChange={(e) => setForm({ ...form, project: e.target.value })}
+                >
+                  {projects.map((p) => (
+                    <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
             </Grid>
             <Grid size={{ xs: 12, md: 4 }}>
               <TextField fullWidth required label="Visit Date" type="date"
@@ -412,6 +450,7 @@ const SiteVisits: React.FC = () => {
               </FormControl>
             </Grid>
 
+            {/* Completion Details - shown when COMPLETED */}
             {form.status === 'COMPLETED' && (
               <>
                 <Grid size={{ xs: 12 }}>
@@ -428,7 +467,7 @@ const SiteVisits: React.FC = () => {
                     value={form.remarks}
                     onChange={(e) => setForm({ ...form, remarks: e.target.value })} />
                 </Grid>
-                {/* Photo picker — inside Completion section */}
+                {/* Photos */}
                 <Grid size={{ xs: 12 }}>
                   <Typography variant="subtitle2" sx={{ mb: 1 }}>Photos</Typography>
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, alignItems: 'center' }}>
@@ -457,7 +496,7 @@ const SiteVisits: React.FC = () => {
 
           {saveMutation.isError && (
             <Alert severity="error" sx={{ mt: 2 }}>
-              {(saveMutation.error as any)?.response?.data?.message || 'Save failed'}
+              {(saveMutation.error as any)?.response?.data?.message || (saveMutation.error as any)?.response?.data?.status?.[0] || 'Save failed'}
             </Alert>
           )}
         </DialogContent>
@@ -481,7 +520,7 @@ const SiteVisits: React.FC = () => {
               </Grid>
               <Grid size={{ xs: 6 }}>
                 <Typography variant="caption" color="text.secondary">Project Name</Typography>
-                <Typography variant="body1">{viewItem.project_name}</Typography>
+                <Typography variant="body1">{getProjectName(viewItem)}</Typography>
               </Grid>
               <Grid size={{ xs: 6 }}>
                 <Typography variant="caption" color="text.secondary">Visit Date</Typography>

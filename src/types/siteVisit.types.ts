@@ -9,30 +9,35 @@ export interface SiteVisitPhoto {
 
 export interface SiteVisit {
   id: string;
+  code?: string;
+  lead?: string | null;
+  lead_name?: string | null;
   customer_name: string;
-  project?: string | { id: string; name: string };
+  project?: string | { id: string; name: string } | null;
   project_name?: string;
   visit_date: string;
   assigned_employee: string | { id: string; name: string; code?: string };
   assigned_employee_name?: string;
   status: SiteVisitStatus;
+  status_display?: string;
+  // Completion details
   customer_feedback?: string;
   remarks?: string;
   photos?: SiteVisitPhoto[];
+  // Audit
   created_on: string;
   modified_on: string;
-  created_by?: { id: string; name: string };
 }
 
 export interface SiteVisitFormData {
   customer_name: string;
-  // ponytail: backend rejects `project_name` — the FK UUID is required.
-  // Keeping `project_name` optional for backwards compat with stored drafts.
   project: string;
   project_name?: string;
   visit_date: string;
   assigned_employee: string;
   status: SiteVisitStatus;
+  lead?: string | null;
+  // Completion details
   customer_feedback?: string;
   remarks?: string;
   photos?: SiteVisitPhoto[];
@@ -44,6 +49,7 @@ export interface SiteVisitListParams {
   search?: string;
   status?: SiteVisitStatus | '';
   assigned_employee?: string;
+  lead?: string;
 }
 
 export interface SiteVisitListResponse {
