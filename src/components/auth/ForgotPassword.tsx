@@ -16,7 +16,7 @@ import { ArrowBack as BackIcon } from '@mui/icons-material';
 import apiClient from '../../api/axios.config';
 import { ROUTES } from '../../utils/constants';
 
-const steps = ['Enter Username', 'Verify OTP', 'Set New Password'];
+const steps = ['Enter Email', 'Verify OTP', 'Set New Password'];
 
 const ForgotPassword: React.FC = () => {
   const navigate = useNavigate();
@@ -120,11 +120,12 @@ const ForgotPassword: React.FC = () => {
             {activeStep === 0 && (
               <>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                  Enter your username or email. We'll send an OTP to your registered email.
+                  Enter your registered email address. We'll send an OTP to reset your password.
                 </Typography>
                 <TextField
                   fullWidth
-                  label="Username or Email"
+                  label="Email Address"
+                  type="email"
                   value={username}
                   onChange={(e) => { setUsername(e.target.value); setError(''); }}
                   disabled={loading}
