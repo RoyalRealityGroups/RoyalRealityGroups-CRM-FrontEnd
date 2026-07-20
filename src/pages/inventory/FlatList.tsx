@@ -8,7 +8,7 @@ import { DataGrid } from '@mui/x-data-grid';
 import type { GridColDef, GridPaginationModel } from '@mui/x-data-grid';
 import {
   Visibility as ViewIcon, Edit as EditIcon, Delete as DeleteIcon,
-  Add as AddIcon, Search as SearchIcon, Apartment as FlatIcon,
+  Search as SearchIcon, Apartment as FlatIcon,
 } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { inventoryApi } from '../../api/inventory.api';
@@ -22,7 +22,6 @@ import type { Flat, InventoryStatus } from '../../types/inventory.types';
 import { STATUS_COLORS, STATUS_LABELS } from '../../types/inventory.types';
 import {
   getPageContainerStyles, getHeaderSectionStyles,
-  getContentSectionStyles, getDataGridStyles,
 } from '../../utils/spacing';
 
 const FlatList: React.FC = () => {
@@ -188,7 +187,7 @@ const FlatList: React.FC = () => {
           />
         </Box>
       </Box>
-      <Paper sx={getContentSectionStyles()}>
+      <Paper sx={{ height: 620 }}>
         <DataGrid
           rows={data?.results || []}
           columns={columns}
@@ -199,7 +198,6 @@ const FlatList: React.FC = () => {
           onPaginationModelChange={setPaginationModel}
           pageSizeOptions={[10, 25, 50]}
           disableRowSelectionOnClick
-          sx={getDataGridStyles()}
         />
       </Paper>
     </Box>

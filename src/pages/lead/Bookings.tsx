@@ -45,8 +45,6 @@ import ScreenHeader from '../../components/common/ScreenHeader';
 import {
   getPageContainerStyles,
   getHeaderSectionStyles,
-  getContentSectionStyles,
-  getDataGridStyles,
 } from '../../utils/spacing';
 import type { Booking, BookingFormData, BookingStatusHistory } from '../../types/realestate.types';
 
@@ -364,8 +362,8 @@ const Bookings: React.FC = () => {
         </Box>
       </Box>
 
-      <Box sx={getContentSectionStyles()}>
-        <Grid container spacing={2} sx={{ mb: 3 }}>
+      <Paper sx={{ p: 2, mb: 2 }}>
+        <Grid container spacing={2}>
           <Grid size={{ xs: 12, sm: 4 }}>
             <TextField
               fullWidth
@@ -416,8 +414,9 @@ const Bookings: React.FC = () => {
             </FormControl>
           </Grid>
         </Grid>
+      </Paper>
 
-        <Paper sx={{ height: 500, width: '100%' }}>
+      <Paper sx={{ height: 620 }}>
           <DataGrid
             rows={bookingsData?.results || []}
             columns={columns}
@@ -427,10 +426,9 @@ const Bookings: React.FC = () => {
             onPaginationModelChange={setPaginationModel}
             rowCount={bookingsData?.count || 0}
             pageSizeOptions={[10, 20, 50]}
-            sx={getDataGridStyles()}
+            disableRowSelectionOnClick
           />
         </Paper>
-      </Box>
 
       {/* New Booking Dialog */}
       <Dialog open={openAddDialog} onClose={() => setOpenAddDialog(false)} maxWidth="md" fullWidth>
