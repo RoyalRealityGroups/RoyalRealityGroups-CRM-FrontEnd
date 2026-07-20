@@ -10,7 +10,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import AddIcon from '@mui/icons-material/Add';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { projectsApi } from '../../../api/projects';
-import { inventoryApi } from '../../../api/inventory';
+import { inventoryApi } from '../../../api/inventory.api';
 import { usePageTitle } from '../../../hooks';
 import { useBreadcrumbs } from '../../../contexts/BreadcrumbContext';
 import { useToast } from '../../../contexts/ToastContext';

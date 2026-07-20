@@ -88,14 +88,14 @@ const PlotList: React.FC = () => {
       valueGetter: (_v, row) => row.project_name || row.project,
     },
     {
-      field: 'area',
+      field: 'area_sqft',
       headerName: 'Area (sq.ft)',
       width: 110,
-      valueFormatter: (v: any) => v ? `${v} sq.ft` : '-',
+      valueFormatter: (v: any) => v ? `${v}` : '-',
     },
     {
-      field: 'price',
-      headerName: 'Price',
+      field: 'total_price',
+      headerName: 'Total Price',
       width: 140,
       valueFormatter: (v: any) => v != null ? `₹${Number(v).toLocaleString()}` : '-',
     },

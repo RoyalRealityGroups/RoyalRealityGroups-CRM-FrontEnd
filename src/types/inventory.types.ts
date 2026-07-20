@@ -14,42 +14,64 @@ export const STATUS_LABELS: Record<InventoryStatus, string> = {
   REGISTERED: 'Registered',
 };
 
+// ============================================================================
+// PLOT INVENTORY
+// ============================================================================
+
 export interface Plot {
   id: string;
-  plot_number: string;
+  code?: string;
   project: string;
   project_name?: string;
-  area: number;
-  price: number;
-  status: InventoryStatus;
+  plot_number: string;
+  area_sqyd?: number | null;
+  area_sqft?: number | null;
   facing?: string;
-  notes?: string;
+  facing_display?: string;
+  road_width?: string;
+  price_per_sqyd?: number | null;
+  total_price?: number | null;
+  status: InventoryStatus;
+  status_display?: string;
+  remarks?: string;
   created_on: string;
   modified_on: string;
 }
 
 export interface PlotFormData {
-  plot_number: string;
   project: string;
-  area: number | string;
-  price: number | string;
-  status: InventoryStatus;
+  plot_number: string;
+  area_sqyd?: number | string;
+  area_sqft?: number | string;
   facing?: string;
-  notes?: string;
+  road_width?: string;
+  price_per_sqyd?: number | string;
+  total_price?: number | string;
+  status: InventoryStatus;
+  remarks?: string;
 }
+
+// ============================================================================
+// FLAT INVENTORY
+// ============================================================================
 
 export interface Flat {
   id: string;
+  code?: string;
   project: string;
   project_name?: string;
   tower: string;
   floor: number;
   unit_number: string;
-  area: number;
+  flat_type?: string;
+  area_sqft?: number | null;
+  carpet_area_sqft?: number | null;
   facing?: string;
-  price: number;
+  facing_display?: string;
+  price?: number | null;
   status: InventoryStatus;
-  notes?: string;
+  status_display?: string;
+  remarks?: string;
   created_on: string;
   modified_on: string;
 }
@@ -59,12 +81,18 @@ export interface FlatFormData {
   tower: string;
   floor: number | string;
   unit_number: string;
-  area: number | string;
+  flat_type?: string;
+  area_sqft?: number | string;
+  carpet_area_sqft?: number | string;
   facing?: string;
-  price: number | string;
+  price?: number | string;
   status: InventoryStatus;
-  notes?: string;
+  remarks?: string;
 }
+
+// ============================================================================
+// SHARED
+// ============================================================================
 
 export interface InventoryListParams {
   page?: number;
@@ -73,7 +101,7 @@ export interface InventoryListParams {
   status?: InventoryStatus | '';
   project?: string;
   tower?: string;
-  floor?: number;
+  facing?: string;
 }
 
 export interface InventoryListResponse<T> {
@@ -85,4 +113,5 @@ export interface InventoryListResponse<T> {
 
 export interface InventoryChoices {
   statuses: { value: InventoryStatus; label: string }[];
+  facings: { value: string; label: string }[];
 }

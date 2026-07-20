@@ -92,10 +92,10 @@ const FlatList: React.FC = () => {
     { field: 'floor', headerName: 'Floor', width: 80 },
     { field: 'unit_number', headerName: 'Unit #', width: 100 },
     {
-      field: 'area',
-      headerName: 'Area',
+      field: 'area_sqft',
+      headerName: 'Area (sq.ft)',
       width: 100,
-      valueFormatter: (v: any) => v ? `${v} sq.ft` : '-',
+      valueFormatter: (v: any) => v ? `${v}` : '-',
     },
     { field: 'facing', headerName: 'Facing', width: 90 },
     {

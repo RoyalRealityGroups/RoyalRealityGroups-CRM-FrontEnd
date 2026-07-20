@@ -35,7 +35,7 @@ import {
 } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { bookingApi } from '../../api/booking';
-import { inventoryApi } from '../../api/inventory';
+import { inventoryApi } from '../../api/inventory.api';
 import { projectsApi } from '../../api/projects';
 import { leadApi } from '../../api/lead.api';
 import { useBreadcrumbs } from '../../contexts/BreadcrumbContext';
