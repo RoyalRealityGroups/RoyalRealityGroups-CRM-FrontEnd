@@ -8,10 +8,10 @@ const STORAGE_KEYS = {
   SAVED_PASSWORD: 'saved_password',
 } as const;
 
-// Helper to get the appropriate storage based on remember_me setting
+// Helper to get the appropriate storage
+// Always use localStorage to persist auth across tabs
 const getStorage = (): Storage => {
-  const rememberMe = localStorage.getItem(STORAGE_KEYS.REMEMBER_ME) === 'true';
-  return rememberMe ? localStorage : sessionStorage;
+  return localStorage;
 };
 
 export const storage = {
