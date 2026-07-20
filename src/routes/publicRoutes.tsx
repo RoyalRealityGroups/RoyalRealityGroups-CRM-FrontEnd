@@ -6,11 +6,17 @@ import ForgotPassword from '../components/auth/ForgotPassword';
 import { PageLoader } from '../components/common/PageLoader';
 
 const Unauthorized = lazy(() => import('../pages/Unauthorized'));
+const ResetPassword = lazy(() => import('../components/auth/ResetPassword'));
 
 export const publicRoutes = (
   <>
     <Route path={ROUTES.LOGIN} element={<Login />} />
     <Route path={ROUTES.FORGOT_PASSWORD} element={<ForgotPassword />} />
+    <Route path="/reset-password" element={
+      <Suspense fallback={<PageLoader />}>
+        <ResetPassword />
+      </Suspense>
+    } />
     <Route path="/unauthorized" element={
       <Suspense fallback={<PageLoader />}>
         <Unauthorized />

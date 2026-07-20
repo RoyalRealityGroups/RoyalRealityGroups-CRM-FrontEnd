@@ -1,17 +1,22 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
+  Paper,
+  TextField,
+  Button,
   Typography,
   Alert,
-  Paper,
+  CircularProgress,
   Stepper,
   Step,
   StepLabel,
 } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
-import { Button, TextField } from '../common';
-import { authApi } from '../../api/auth.api';
+import { ArrowBack as BackIcon } from '@mui/icons-material';
+import apiClient from '../../api/axios.config';
 import { ROUTES } from '../../utils/constants';
+
+const steps = ['Enter Username', 'Verify OTP', 'Set New Password'];
 
 const ForgotPassword: React.FC = () => {
   const navigate = useNavigate();
@@ -20,104 +25,66 @@ const ForgotPassword: React.FC = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  const [formData, setFormData] = useState({
-    username: '',
-    password: '',
-    confirm_password: '',
-  });
+  const [username, setUsername] = useState('');
+  const [userId, setUserId] = useState('');
+  const [otp, setOtp] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
-  const [validationErrors, setValidationErrors] = useState({
-    username: '',
-    password: '',
-    confirm_password: '',
-  });
-
-  const steps = ['Enter Username', 'Set New Password'];
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-    setValidationErrors((prev) => ({ ...prev, [name]: '' }));
+  // Step 1: Request OTP
+  const handleRequestOTP = async () => {
+    if (!username.trim()) {
+      setError('Please enter your username or email');
+      return;
+    }
+    setLoading(true);
     setError('');
-  };
-
-  const validateUsername = () => {
-    if (!formData.username.trim()) {
-      setValidationErrors((prev) => ({ ...prev, username: 'Username is required' }));
-      return false;
-    }
-    return true;
-  };
-
-  const validatePasswords = () => {
-    const errors = {
-      username: '',
-      password: '',
-      confirm_password: '',
-    };
-
-    if (!formData.password) {
-      errors.password = 'Password is required';
-    } else if (formData.password.length < 4) {
-      errors.password = 'Password must be at least 4 characters';
-    }
-
-    if (!formData.confirm_password) {
-      errors.confirm_password = 'Confirm password is required';
-    } else if (formData.password !== formData.confirm_password) {
-      errors.confirm_password = 'Passwords do not match';
-    }
-
-    setValidationErrors(errors);
-    return !errors.password && !errors.confirm_password;
-  };
-
-  const handleNext = async () => {
-    if (activeStep === 0) {
-      if (!validateUsername()) return;
-
-      setLoading(true);
-      setError('');
-      
-      try {
-        // Validate username with backend
-        await authApi.validateUsername(formData.username);
-        setActiveStep(1);
-      } catch (err: any) {
-        const errorMessage = err.response?.data?.username?.[0] || 
-                            err.response?.data?.error || 
-                            'Username not found';
-        setError(errorMessage);
-      } finally {
-        setLoading(false);
-      }
-    } else if (activeStep === 1) {
-      if (!validatePasswords()) return;
-
-      setLoading(true);
-      setError('');
-
-      try {
-        await authApi.forgotPassword(formData);
-        setSuccess('Password updated successfully! Redirecting to login...');
-        setTimeout(() => {
-          navigate(ROUTES.LOGIN);
-        }, 2000);
-      } catch (err: any) {
-        const errorMessage = err.response?.data?.username?.[0] || 
-                            err.response?.data?.error || 
-                            err.response?.data?.message ||
-                            'Failed to reset password';
-        setError(errorMessage);
-      } finally {
-        setLoading(false);
-      }
+    try {
+      const response = await apiClient.post('/api/users/forgot-password/', { username: username.trim() });
+      setUserId(response.data.user_id);
+      setActiveStep(1);
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'User not found');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleBack = () => {
-    setActiveStep((prev) => prev - 1);
+  // Step 2: Verify OTP and set password
+  const handleVerifyOTP = () => {
+    if (!otp.trim() || otp.length !== 5) {
+      setError('Please enter the 5-digit OTP');
+      return;
+    }
     setError('');
+    setActiveStep(2);
+  };
+
+  // Step 3: Reset password
+  const handleResetPassword = async () => {
+    if (!password || password.length < 4) {
+      setError('Password must be at least 4 characters');
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+    setLoading(true);
+    setError('');
+    try {
+      const response = await apiClient.post('/api/users/reset-password-confirm/', {
+        user_id: userId,
+        otp: otp.trim(),
+        password,
+      });
+      setSuccess(response.data.message || 'Password reset successfully!');
+      setTimeout(() => navigate(ROUTES.LOGIN), 2000);
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Failed to reset password');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -127,23 +94,13 @@ const ForgotPassword: React.FC = () => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#f5f5f5',
-        padding: 2,
+        bgcolor: '#f5f5f5',
+        p: 2,
       }}
     >
-      <Paper
-        elevation={3}
-        sx={{
-          maxWidth: 500,
-          width: '100%',
-          padding: 4,
-        }}
-      >
-        <Typography variant="h5" fontWeight={600} gutterBottom align="center">
+      <Paper sx={{ p: 4, maxWidth: 450, width: '100%' }}>
+        <Typography variant="h5" sx={{ fontWeight: 600, mb: 1 }}>
           Reset Password
-        </Typography>
-        <Typography variant="body2" color="textSecondary" align="center" sx={{ mb: 3 }}>
-          Enter your details to reset your password
         </Typography>
 
         <Stepper activeStep={activeStep} sx={{ mb: 3 }}>
@@ -154,92 +111,122 @@ const ForgotPassword: React.FC = () => {
           ))}
         </Stepper>
 
-        {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {error}
-          </Alert>
-        )}
+        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+        {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
 
-        {success && (
-          <Alert severity="success" sx={{ mb: 2 }}>
-            {success}
-          </Alert>
-        )}
-
-        <Box component="form">
-          {activeStep === 0 && (
-            <TextField
-              label="Username"
-              name="username"
-              value={formData.username}
-              onChange={handleChange}
-              error={!!validationErrors.username}
-              helperText={validationErrors.username}
-              required
-              autoFocus
-              sx={{ mb: 3 }}
-            />
-          )}
-
-          {activeStep === 1 && (
-            <>
-              <TextField
-                label="New Password"
-                name="password"
-                type="password"
-                value={formData.password}
-                onChange={handleChange}
-                error={!!validationErrors.password}
-                helperText={validationErrors.password}
-                required
-                autoFocus
-                sx={{ mb: 2 }}
-              />
-              <TextField
-                label="Confirm Password"
-                name="confirm_password"
-                type="password"
-                value={formData.confirm_password}
-                onChange={handleChange}
-                error={!!validationErrors.confirm_password}
-                helperText={validationErrors.confirm_password}
-                required
-                sx={{ mb: 3 }}
-              />
-            </>
-          )}
-
-          <Box sx={{ display: 'flex', gap: 2 }}>
-            {activeStep > 0 && (
-              <Button
-                variant="outlined"
-                onClick={handleBack}
-                disabled={loading}
-                fullWidth
-              >
-                Back
-              </Button>
+        {!success && (
+          <>
+            {/* Step 1: Username */}
+            {activeStep === 0 && (
+              <>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  Enter your username or email. We'll send an OTP to your registered email.
+                </Typography>
+                <TextField
+                  fullWidth
+                  label="Username or Email"
+                  value={username}
+                  onChange={(e) => { setUsername(e.target.value); setError(''); }}
+                  disabled={loading}
+                  autoFocus
+                  sx={{ mb: 3 }}
+                  onKeyDown={(e) => e.key === 'Enter' && handleRequestOTP()}
+                />
+                <Button
+                  fullWidth
+                  variant="contained"
+                  onClick={handleRequestOTP}
+                  disabled={loading}
+                  sx={{ mb: 2 }}
+                >
+                  {loading ? <CircularProgress size={20} /> : 'Send OTP'}
+                </Button>
+              </>
             )}
-            <Button
-              variant="contained"
-              onClick={handleNext}
-              loading={loading}
-              fullWidth
-            >
-              {activeStep === steps.length - 1 ? 'Reset Password' : 'Next'}
-            </Button>
-          </Box>
 
-          <Box sx={{ mt: 2, textAlign: 'center' }}>
+            {/* Step 2: Enter OTP */}
+            {activeStep === 1 && (
+              <>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  We've sent a 5-digit OTP to your registered email. Enter it below.
+                </Typography>
+                <TextField
+                  fullWidth
+                  label="Enter OTP"
+                  value={otp}
+                  onChange={(e) => { setOtp(e.target.value.replace(/\D/g, '').slice(0, 5)); setError(''); }}
+                  disabled={loading}
+                  autoFocus
+                  inputProps={{ maxLength: 5, style: { letterSpacing: 8, fontSize: 20, textAlign: 'center' } }}
+                  sx={{ mb: 3 }}
+                  onKeyDown={(e) => e.key === 'Enter' && handleVerifyOTP()}
+                />
+                <Button
+                  fullWidth
+                  variant="contained"
+                  onClick={handleVerifyOTP}
+                  disabled={loading || otp.length !== 5}
+                  sx={{ mb: 2 }}
+                >
+                  Verify OTP
+                </Button>
+              </>
+            )}
+
+            {/* Step 3: New Password */}
+            {activeStep === 2 && (
+              <>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  Enter your new password.
+                </Typography>
+                <TextField
+                  fullWidth
+                  type="password"
+                  label="New Password"
+                  value={password}
+                  onChange={(e) => { setPassword(e.target.value); setError(''); }}
+                  disabled={loading}
+                  autoFocus
+                  sx={{ mb: 2 }}
+                />
+                <TextField
+                  fullWidth
+                  type="password"
+                  label="Confirm Password"
+                  value={confirmPassword}
+                  onChange={(e) => { setConfirmPassword(e.target.value); setError(''); }}
+                  disabled={loading}
+                  sx={{ mb: 3 }}
+                  onKeyDown={(e) => e.key === 'Enter' && handleResetPassword()}
+                />
+                <Button
+                  fullWidth
+                  variant="contained"
+                  onClick={handleResetPassword}
+                  disabled={loading}
+                  sx={{ mb: 2 }}
+                >
+                  {loading ? <CircularProgress size={20} /> : 'Reset Password'}
+                </Button>
+              </>
+            )}
+
             <Button
+              fullWidth
               variant="text"
+              startIcon={<BackIcon />}
               onClick={() => navigate(ROUTES.LOGIN)}
-              disabled={loading}
             >
               Back to Login
             </Button>
-          </Box>
-        </Box>
+          </>
+        )}
+
+        {success && (
+          <Button fullWidth variant="contained" onClick={() => navigate(ROUTES.LOGIN)}>
+            Go to Login
+          </Button>
+        )}
       </Paper>
     </Box>
   );

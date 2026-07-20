@@ -61,8 +61,8 @@ export const authApi = {
   },
 
   // Forgot Password
-  forgotPassword: async (data: ForgotPasswordData): Promise<{ message: string }> => {
-    const response = await apiClient.post<{ message: string }>(
+  forgotPassword: async (data: ForgotPasswordData): Promise<{ message: string; debug_url?: string }> => {
+    const response = await apiClient.post<{ message: string; debug_url?: string }>(
       API_ENDPOINTS.FORGOT_PASSWORD,
       data
     );

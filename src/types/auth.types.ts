@@ -13,8 +13,6 @@ export interface LoginCredentials {
 
 export interface ForgotPasswordData {
   username: string;
-  password: string;
-  confirm_password: string;
 }
 
 export interface ChangePasswordData {
