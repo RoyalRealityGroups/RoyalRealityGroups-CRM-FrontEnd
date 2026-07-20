@@ -16,7 +16,7 @@ import { useBreadcrumbs } from '../../../contexts/BreadcrumbContext';
 import { useToast } from '../../../contexts/ToastContext';
 import ScreenHeader from '../../../components/common/ScreenHeader';
 import type { Project } from '../../../types/project.types';
-import type { FlatInventory } from '../../../types/realestate.types';
+import type { Flat } from '../../../types/inventory.types';
 import HomeIcon from '@mui/icons-material/Home';
 import BusinessIcon from '@mui/icons-material/Business';
 import { DataGrid } from '@mui/x-data-grid';
@@ -137,7 +137,7 @@ const ProjectView: React.FC = () => {
   if (isFlat || isMixed) tabLabels.push('Flat Inventory');
 
   // Columns configurations
-  const flatColumns: GridColDef<FlatInventory>[] = [
+  const flatColumns: GridColDef<Flat>[] = [
     { field: 'tower', headerName: 'Tower / Block', width: 130 },
     { field: 'floor', headerName: 'Floor', type: 'number', width: 90 },
     { field: 'unit_number', headerName: 'Unit Number', width: 130 },
