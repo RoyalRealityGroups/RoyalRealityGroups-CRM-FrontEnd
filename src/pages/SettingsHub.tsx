@@ -41,13 +41,6 @@ const SettingsHub: React.FC = () => {
 
   usePageTitle('Settings');
 
-  // Non-superusers go directly to General Settings
-  useEffect(() => {
-    if (!isLoading && user && !isSuperuser(user)) {
-      navigate('/settings/general-settings', { replace: true });
-    }
-  }, [user, isLoading, navigate]);
-
   // Set breadcrumbs on mount
   useEffect(() => {
     setBreadcrumbs([

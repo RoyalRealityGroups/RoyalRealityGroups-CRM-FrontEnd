@@ -1,5 +1,7 @@
-import { Route } from 'react-router-dom';
+import { Route, Navigate } from 'react-router-dom';
 import { Suspense, lazy } from 'react';
+import { useSelector } from 'react-redux';
+import type { RootState } from '../store/store';
 import { PageLoader } from '../components/common/PageLoader';
 
 const SettingsHub = lazy(() => import('../pages/SettingsHub'));
@@ -16,14 +18,22 @@ const withSuspense = (Component: React.LazyExoticComponent<any>) => (
   </Suspense>
 );
 
+const SuperuserGuard = ({ children }: { children: React.ReactNode }) => {
+  const user = useSelector((state: RootState) => state.auth.user);
+  if (!user?.is_superuser) {
+    return <Navigate to="/dashboard" replace />;
+  }
+  return <>{children}</>;
+};
+
 export const settingsRoutes = (
   <>
-    <Route path="settings" element={withSuspense(SettingsHub)} />
-    <Route path="settings/groups" element={withSuspense(GroupList)} />
-    <Route path="settings/groups/:id" element={withSuspense(GroupForm)} />
-    <Route path="settings/users" element={withSuspense(UserList)} />
-    <Route path="settings/users/view/:id" element={withSuspense(UserView)} />
-    <Route path="settings/users/:id" element={withSuspense(UserForm)} />
-    <Route path="settings/general-settings" element={withSuspense(GeneralSettings)} />
+    <Route path="settings" element={<SuperuserGuard>{withSuspense(SettingsHub)}</SuperuserGuard>} />
+    <Route path="settings/groups" element={<SuperuserGuard>{withSuspense(GroupList)}</SuperuserGuard>} />
+    <Route path="settings/groups/:id" element={<SuperuserGuard>{withSuspense(GroupForm)}</SuperuserGuard>} />
+    <Route path="settings/users" element={<SuperuserGuard>{withSuspense(UserList)}</SuperuserGuard>} />
+    <Route path="settings/users/view/:id" element={<SuperuserGuard>{withSuspense(UserView)}</SuperuserGuard>} />
+    <Route path="settings/users/:id" element={<SuperuserGuard>{withSuspense(UserForm)}</SuperuserGuard>} />
+    <Route path="settings/general-settings" element={<SuperuserGuard>{withSuspense(GeneralSettings)}</SuperuserGuard>} />
   </>
 );

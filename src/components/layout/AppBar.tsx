@@ -249,17 +249,19 @@ const AppBar: React.FC<AppBarProps> = ({ onMenuClick }) => {
             </ListItemIcon>
             Change Password
           </MenuItem>
-          <MenuItem
-            onClick={() => {
-              handleClose();
-              navigate('/settings');
-            }}
-          >
-            <ListItemIcon>
-              <SettingsIcon fontSize="small" />
-            </ListItemIcon>
-            Settings
-          </MenuItem>
+          {user?.is_superuser && (
+            <MenuItem
+              onClick={() => {
+                handleClose();
+                navigate('/settings');
+              }}
+            >
+              <ListItemIcon>
+                <SettingsIcon fontSize="small" />
+              </ListItemIcon>
+              Settings
+            </MenuItem>
+          )}
           <Divider sx={{ my: 0.5 }} />
           <MenuItem onClick={handleLogout}>
             <ListItemIcon>

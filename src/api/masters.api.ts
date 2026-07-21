@@ -24,23 +24,15 @@ export const channelConfigApi = {
 };
 
 export const generalSettingsApi = {
-  getGeneralSettings: async (): Promise<{
-    id: number;
-    company_scoped_item_enforcement: boolean;
-    allow_multiple_schemes: boolean;
-  }> => {
+  getGeneralSettings: async (): Promise<any> => {
     const response = await apiClient.get('/api/general/general-settings/');
     return response.data;
   },
-  updateGeneralSettings: async (data: Partial<{
-    company_scoped_item_enforcement: boolean;
-    allow_multiple_schemes: boolean;
-  }>): Promise<{
-    id: number;
-    company_scoped_item_enforcement: boolean;
-    allow_multiple_schemes: boolean;
-  }> => {
-    const response = await apiClient.patch('/api/general/general-settings/', data);
+  updateGeneralSettings: async (data: any): Promise<any> => {
+    const isFormData = data instanceof FormData;
+    const response = await apiClient.patch('/api/general/general-settings/', data, {
+      headers: isFormData ? { 'Content-Type': 'multipart/form-data' } : undefined,
+    });
     return response.data;
   },
 };
