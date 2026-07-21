@@ -120,9 +120,24 @@ const FollowUpView: React.FC = () => {
 
   const updateMutation = useMutation({
     mutationFn: (data: LeadFollowUpFormData) => leadApi.updateFollowUp(id!, data),
-    onSuccess: () => {
+    onSuccess: (saved) => {
       queryClient.invalidateQueries({ queryKey: ['follow-up', id] });
       queryClient.invalidateQueries({ queryKey: ['follow-ups'] });
+
+      // Un-dismiss this follow-up from the notification panel so it reappears
+      const savedId = String(saved.id);
+      try {
+        const stored = sessionStorage.getItem('reminder_dismissed');
+        if (stored) {
+          const ids: string[] = JSON.parse(stored);
+          const updated = ids.filter((i) => i !== savedId);
+          sessionStorage.setItem('reminder_dismissed', JSON.stringify(updated));
+        }
+      } catch { /* ignore */ }
+
+      // Refresh the notification bell immediately
+      queryClient.invalidateQueries({ queryKey: ['followup-reminders'] });
+
       setIsEditing(false);
       success('Follow-up updated successfully', 5000);
     },

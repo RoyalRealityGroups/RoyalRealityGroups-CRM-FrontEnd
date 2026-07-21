@@ -100,6 +100,12 @@ export const leadApi = {
     return response.data;
   },
 
+  // Notification bell reminders — today + overdue follow-ups for the logged-in user
+  getFollowUpReminders: async (): Promise<{ server_now: string; count: number; results: LeadFollowUp[] }> => {
+    const response = await apiClient.get('/api/lead/followups/reminders/');
+    return response.data;
+  },
+
   // Get users for assignment dropdown
   getUsers: async () => {
     const response = await apiClient.get('/api/usermanagement/mini/users/User/', {

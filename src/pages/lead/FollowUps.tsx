@@ -138,8 +138,24 @@ const FollowUps: React.FC = () => {
   const saveMutation = useMutation({
     mutationFn: (data: LeadFollowUpFormData) =>
       editing ? leadApi.updateFollowUp(editing.id, data) : leadApi.createFollowUp(data),
-    onSuccess: () => {
+    onSuccess: (saved) => {
       toastSuccess(editing ? 'Follow-up updated' : 'Follow-up created');
+
+      // If the saved follow-up has next_follow_up_date set, un-dismiss it from
+      // the notification panel so it reappears in the bell with fresh data.
+      const savedId = String(saved.id);
+      try {
+        const stored = sessionStorage.getItem('reminder_dismissed');
+        if (stored) {
+          const ids: string[] = JSON.parse(stored);
+          const updated = ids.filter((id) => id !== savedId);
+          sessionStorage.setItem('reminder_dismissed', JSON.stringify(updated));
+        }
+      } catch { /* ignore */ }
+
+      // Refresh the notification bell reminders immediately
+      queryClient.invalidateQueries({ queryKey: ['followup-reminders'] });
+
       handleCloseDialog();
       refetch();
     },
@@ -265,7 +281,7 @@ const FollowUps: React.FC = () => {
           onChange={async (e) => {
             const newType = e.target.value;
             try {
-              await leadApi.updateFollowUp(params.row.id, {
+              const saved = await leadApi.updateFollowUp(params.row.id, {
                 lead_id: params.row.lead?.id || '',
                 follow_up_date: params.row.follow_up_date,
                 follow_up_type: newType,
@@ -273,6 +289,15 @@ const FollowUps: React.FC = () => {
                 discussion_notes: params.row.discussion_notes || undefined,
                 next_follow_up_date: params.row.next_follow_up_date || undefined,
               });
+              // Un-dismiss and refresh reminders bell
+              try {
+                const stored = sessionStorage.getItem('reminder_dismissed');
+                if (stored) {
+                  const ids: string[] = JSON.parse(stored);
+                  sessionStorage.setItem('reminder_dismissed', JSON.stringify(ids.filter((i) => i !== String(saved.id))));
+                }
+              } catch { /* ignore */ }
+              queryClient.invalidateQueries({ queryKey: ['followup-reminders'] });
               toastSuccess('Type updated');
               refetch();
             } catch {
