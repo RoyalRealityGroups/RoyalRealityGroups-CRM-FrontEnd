@@ -34,6 +34,9 @@ import {
   PictureAsPdf as PdfIcon,
 } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useSelector } from 'react-redux';
+import type { RootState } from '../../store/store';
+import { hasPermission } from '../../utils/permissions';
 import { leadApi } from '../../api/lead.api';
 import apiClient from '../../api/axios.config';
 import ScreenHeader from '../../components/common/ScreenHeader';
@@ -75,6 +78,8 @@ const emptyForm: LeadFormData = {
 const LeadList: React.FC = () => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const user = useSelector((state: RootState) => state.auth.user);
+  const canExport = hasPermission(user, 'export_lead');
   const { setBreadcrumbs } = useBreadcrumbs();
   const { success: toastSuccess, error: toastError } = useToast();
   usePageTitle('Leads');
@@ -413,14 +418,16 @@ const LeadList: React.FC = () => {
               Clear Dates
             </Button>
           )}
-          <Box sx={{ ml: 'auto', display: 'flex', gap: 1 }}>
-            <Button size="small" variant="outlined" startIcon={<ExcelIcon />} onClick={() => handleExport('excel')}>
-              Excel
-            </Button>
-            <Button size="small" variant="outlined" startIcon={<PdfIcon />} onClick={() => handleExport('pdf')}>
-              PDF
-            </Button>
-          </Box>
+          {canExport && (
+            <Box sx={{ ml: 'auto', display: 'flex', gap: 1 }}>
+              <Button size="small" variant="outlined" startIcon={<ExcelIcon />} onClick={() => handleExport('excel')}>
+                Excel
+              </Button>
+              <Button size="small" variant="outlined" startIcon={<PdfIcon />} onClick={() => handleExport('pdf')}>
+                PDF
+              </Button>
+            </Box>
+          )}
         </Box>
       </Paper>
 

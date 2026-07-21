@@ -165,6 +165,7 @@ const AppBar: React.FC<AppBarProps> = ({ onMenuClick }) => {
           <Tooltip title="Account menu">
             <IconButton onClick={handleMenu} sx={{ p: 0.5 }} aria-label="account menu">
               <Avatar
+                src={user?.profilepicture || undefined}
                 sx={{
                   width: 32,
                   height: 32,
@@ -235,7 +236,7 @@ const AppBar: React.FC<AppBarProps> = ({ onMenuClick }) => {
           <MenuItem
             onClick={() => {
               handleClose();
-              navigate(`/settings/users/view/${user?.id}?profile=true`);
+              navigate('/profile');
             }}
           >
             <ListItemIcon>
@@ -249,17 +250,19 @@ const AppBar: React.FC<AppBarProps> = ({ onMenuClick }) => {
             </ListItemIcon>
             Change Password
           </MenuItem>
-          <MenuItem
-            onClick={() => {
-              handleClose();
-              navigate('/settings');
-            }}
-          >
-            <ListItemIcon>
-              <SettingsIcon fontSize="small" />
-            </ListItemIcon>
-            Settings
-          </MenuItem>
+          {user?.is_superuser && (
+            <MenuItem
+              onClick={() => {
+                handleClose();
+                navigate('/settings');
+              }}
+            >
+              <ListItemIcon>
+                <SettingsIcon fontSize="small" />
+              </ListItemIcon>
+              Settings
+            </MenuItem>
+          )}
           <Divider sx={{ my: 0.5 }} />
           <MenuItem onClick={handleLogout}>
             <ListItemIcon>

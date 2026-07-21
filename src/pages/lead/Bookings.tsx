@@ -41,6 +41,9 @@ import { inventoryApi } from '../../api/inventory.api';
 import { projectsApi } from '../../api/projects';
 import { leadApi } from '../../api/lead.api';
 import apiClient from '../../api/axios.config';
+import { useSelector } from 'react-redux';
+import type { RootState } from '../../store/store';
+import { hasPermission } from '../../utils/permissions';
 import { useBreadcrumbs } from '../../contexts/BreadcrumbContext';
 import { useToast } from '../../contexts/ToastContext';
 import { usePageTitle } from '../../hooks';
@@ -61,6 +64,8 @@ const statusColors: Record<string, 'default' | 'primary' | 'secondary' | 'error'
 const Bookings: React.FC = () => {
   const { setBreadcrumbs } = useBreadcrumbs();
   const { success: toastSuccess, error: toastError } = useToast();
+  const user = useSelector((state: RootState) => state.auth.user);
+  const canExport = hasPermission(user, 'export_booking');
   const queryClient = useQueryClient();
   usePageTitle('Booking Management');
 
@@ -456,14 +461,16 @@ const Bookings: React.FC = () => {
               Clear
             </Button>
           )}
-          <Box sx={{ ml: 'auto', display: 'flex', gap: 1 }}>
-            <Button size="small" variant="outlined" startIcon={<ExcelIcon />} onClick={() => handleExport('excel')}>
-              Excel
-            </Button>
-            <Button size="small" variant="outlined" startIcon={<PdfIcon />} onClick={() => handleExport('pdf')}>
-              PDF
-            </Button>
-          </Box>
+          {canExport && (
+            <Box sx={{ ml: 'auto', display: 'flex', gap: 1 }}>
+              <Button size="small" variant="outlined" startIcon={<ExcelIcon />} onClick={() => handleExport('excel')}>
+                Excel
+              </Button>
+              <Button size="small" variant="outlined" startIcon={<PdfIcon />} onClick={() => handleExport('pdf')}>
+                PDF
+              </Button>
+            </Box>
+          )}
         </Box>
       </Paper>
 
@@ -643,7 +650,7 @@ const Bookings: React.FC = () => {
                   >
                     {employees?.map((emp: any) => (
                       <MenuItem key={emp.id} value={emp.id}>
-                        {emp.first_name ? `${emp.first_name} ${emp.last_name || ''}` : emp.username}
+                        {emp.name || emp.username || 'Unknown'}
                       </MenuItem>
                     ))}
                   </Select>

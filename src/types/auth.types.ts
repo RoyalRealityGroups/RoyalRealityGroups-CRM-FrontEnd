@@ -44,6 +44,7 @@ export interface User {
   first_name: string;
   last_name: string;
   phone: string;
+  profilepicture?: string | null;
   group_name?: string;
   is_superuser?: boolean;
   is_staff?: boolean;
