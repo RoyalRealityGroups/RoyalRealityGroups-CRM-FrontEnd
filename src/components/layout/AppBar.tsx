@@ -165,6 +165,7 @@ const AppBar: React.FC<AppBarProps> = ({ onMenuClick }) => {
           <Tooltip title="Account menu">
             <IconButton onClick={handleMenu} sx={{ p: 0.5 }} aria-label="account menu">
               <Avatar
+                src={user?.profilepicture || undefined}
                 sx={{
                   width: 32,
                   height: 32,

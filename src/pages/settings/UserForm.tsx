@@ -38,6 +38,9 @@ import { useForm, Controller } from 'react-hook-form';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../../store/store';
+import { useAppDispatch } from '../../store/hooks';
+import { setUser } from '../../store/slices/authSlice';
+import { authApi } from '../../api/auth.api';
 import { usersApi, type UserFormData } from '../../api/users.api';
 import { groupsApi } from '../../api/groups.api';
 import { useBreadcrumbs } from '../../contexts/BreadcrumbContext';
@@ -78,6 +81,7 @@ const UserForm: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const currentUser = useSelector((state: RootState) => state.auth.user);
+  const dispatch = useAppDispatch();
   const isProfileMode = !paramId || searchParams.get('profile') === 'true';
   const id = paramId || currentUser?.id || 'new';
   const queryClient = useQueryClient();
@@ -183,6 +187,12 @@ const UserForm: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
       queryClient.invalidateQueries({ queryKey: ['user', id] });
       toastSuccess('User updated successfully');
+      // Refresh auth user data to update AppBar avatar
+      if (isProfileMode) {
+        authApi.getCurrentUser().then((userData) => {
+          dispatch(setUser({ ...currentUser, ...userData }));
+        }).catch(() => {});
+      }
       setTimeout(() => navigate(backPath), 1000);
     },
     onError: (error: any) => {
@@ -203,16 +213,29 @@ const UserForm: React.FC = () => {
     const safeData = { ...data } as UserFormData & { is_staff?: boolean };
     delete safeData.is_staff;
 
-    const submitData = {
-      ...safeData,
-      group_ids: selectedGroups.map((g) => g.id),
-      // Convert empty string gender to undefined
-      gender: data.gender === '' ? undefined : data.gender,
-      // Don't send password if empty in edit mode
-      ...(isEditMode && !data.password && { password: undefined }),
-      // Include profile picture if selected
-      ...(profilePictureFile && { profilepicture: profilePictureFile }),
-    };
+    let submitData: any;
+
+    if (isProfileMode) {
+      // Profile mode: only send basic info fields
+      submitData = {
+        first_name: data.first_name,
+        last_name: data.last_name,
+        email: data.email,
+        phone: data.phone,
+        gender: data.gender === '' ? undefined : data.gender,
+        ...(profilePictureFile && { profilepicture: profilePictureFile }),
+        ...(!profilePictureFile && !profilePicturePreview && isEditMode && { remove_profilepicture: true }),
+      };
+    } else {
+      submitData = {
+        ...safeData,
+        group_ids: selectedGroups.map((g) => g.id),
+        gender: data.gender === '' ? undefined : data.gender,
+        ...(isEditMode && !data.password && { password: undefined }),
+        ...(profilePictureFile && { profilepicture: profilePictureFile }),
+        ...(!profilePictureFile && !profilePicturePreview && isEditMode && { remove_profilepicture: true }),
+      };
+    }
 
 
     if (isEditMode) {
@@ -419,7 +442,6 @@ const UserForm: React.FC = () => {
                       fullWidth
                       size="small"
                       error={!!errors.username}
-                      helperText={errors.username?.message || 'Leave blank to auto-generate'}
                       disabled={isSubmitting}
                     />
                   )}
@@ -537,6 +559,7 @@ const UserForm: React.FC = () => {
 
             <Divider sx={{ my: 3 }} />
 
+            {!isProfileMode && (<>
             {/* Employee Information Section */}
             <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: 'primary.main' }}>
               Employee Information
@@ -798,6 +821,7 @@ const UserForm: React.FC = () => {
                   />
                 </Grid>
             </Grid>
+          </>)}
           </form>
         </Paper>
       </Box>

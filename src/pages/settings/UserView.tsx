@@ -85,7 +85,7 @@ const UserView: React.FC = () => {
     );
   }
 
-  const canEdit = hasPermission(currentUser, 'change_user');
+  const canEdit = isProfileMode || hasPermission(currentUser, 'change_user');
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', bgcolor: '#f5f5f5' }}>
