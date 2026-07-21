@@ -30,9 +30,12 @@ import {
   Search as SearchIcon,
   Visibility as ViewIcon,
   EventNote as FollowUpIcon,
+  FileDownload as ExcelIcon,
+  PictureAsPdf as PdfIcon,
 } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { leadApi } from '../../api/lead.api';
+import apiClient from '../../api/axios.config';
 import ScreenHeader from '../../components/common/ScreenHeader';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { useBreadcrumbs } from '../../contexts/BreadcrumbContext';
@@ -80,6 +83,8 @@ const LeadList: React.FC = () => {
   const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({ page: 0, pageSize: 20 });
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
 
   // Dialog state
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -102,13 +107,15 @@ const LeadList: React.FC = () => {
 
   // --- Queries ---
   const { data: leadsData, isLoading, refetch } = useQuery({
-    queryKey: ['leads', paginationModel, searchQuery, statusFilter],
+    queryKey: ['leads', paginationModel, searchQuery, statusFilter, fromDate, toDate],
     queryFn: () =>
       leadApi.getLeads({
         page: paginationModel.page + 1,
         page_size: paginationModel.pageSize,
         search: searchQuery || undefined,
         status: statusFilter || undefined,
+        from_date: fromDate || undefined,
+        to_date: toDate || undefined,
       }),
     staleTime: 0,
   });
@@ -175,6 +182,33 @@ const LeadList: React.FC = () => {
   });
 
   // --- Dialog handlers ---
+  const handleExport = async (format: 'excel' | 'pdf') => {
+    try {
+      const params: any = {
+        export_type: format,
+        search: searchQuery || undefined,
+        status: statusFilter || undefined,
+        from_date: fromDate || undefined,
+        to_date: toDate || undefined,
+      };
+      const response = await apiClient.get('/api/lead/leads/export/', {
+        params,
+        responseType: 'blob',
+      });
+      const blob = new Blob([response.data]);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Lead_Report.${format === 'excel' ? 'xlsx' : 'pdf'}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch {
+      toastError(`Failed to export as ${format.toUpperCase()}`);
+    }
+  };
+
   const handleOpenCreate = () => {
     setEditing(null);
     setForm(emptyForm);
@@ -332,7 +366,7 @@ const LeadList: React.FC = () => {
       />
 
       <Paper sx={{ p: 2, mb: 2 }}>
-        <Box sx={{ display: 'flex', gap: 2 }}>
+        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
           <TextField
             size="small"
             placeholder="Search leads..."
@@ -356,6 +390,37 @@ const LeadList: React.FC = () => {
               ))}
             </Select>
           </FormControl>
+          <TextField
+            size="small"
+            type="date"
+            label="From Date"
+            value={fromDate}
+            onChange={(e) => { setFromDate(e.target.value); setPaginationModel((p) => ({ ...p, page: 0 })); }}
+            InputLabelProps={{ shrink: true }}
+            sx={{ width: 160 }}
+          />
+          <TextField
+            size="small"
+            type="date"
+            label="To Date"
+            value={toDate}
+            onChange={(e) => { setToDate(e.target.value); setPaginationModel((p) => ({ ...p, page: 0 })); }}
+            InputLabelProps={{ shrink: true }}
+            sx={{ width: 160 }}
+          />
+          {(fromDate || toDate) && (
+            <Button size="small" variant="text" onClick={() => { setFromDate(''); setToDate(''); setPaginationModel((p) => ({ ...p, page: 0 })); }}>
+              Clear Dates
+            </Button>
+          )}
+          <Box sx={{ ml: 'auto', display: 'flex', gap: 1 }}>
+            <Button size="small" variant="outlined" startIcon={<ExcelIcon />} onClick={() => handleExport('excel')}>
+              Excel
+            </Button>
+            <Button size="small" variant="outlined" startIcon={<PdfIcon />} onClick={() => handleExport('pdf')}>
+              PDF
+            </Button>
+          </Box>
         </Box>
       </Paper>
 

@@ -32,12 +32,15 @@ import {
   Verified as RegIcon,
   Home as HomeIcon,
   Receipt as ReceiptIcon,
+  FileDownload as ExcelIcon,
+  PictureAsPdf as PdfIcon,
 } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { bookingApi } from '../../api/booking';
 import { inventoryApi } from '../../api/inventory.api';
 import { projectsApi } from '../../api/projects';
 import { leadApi } from '../../api/lead.api';
+import apiClient from '../../api/axios.config';
 import { useBreadcrumbs } from '../../contexts/BreadcrumbContext';
 import { useToast } from '../../contexts/ToastContext';
 import { usePageTitle } from '../../hooks';
@@ -78,6 +81,8 @@ const Bookings: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [projectFilter, setProjectFilter] = useState('');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
 
   // Dialog States
   const [openAddDialog, setOpenAddDialog] = useState(false);
@@ -107,7 +112,7 @@ const Bookings: React.FC = () => {
 
   // Queries
   const { data: bookingsData, isLoading } = useQuery({
-    queryKey: ['bookings', paginationModel, searchQuery, statusFilter, projectFilter],
+    queryKey: ['bookings', paginationModel, searchQuery, statusFilter, projectFilter, fromDate, toDate],
     queryFn: () =>
       bookingApi.getBookings({
         page: paginationModel.page + 1,
@@ -115,6 +120,8 @@ const Bookings: React.FC = () => {
         search: searchQuery,
         status: statusFilter || undefined,
         project: projectFilter || undefined,
+        from_date: fromDate || undefined,
+        to_date: toDate || undefined,
       }),
   });
 
@@ -195,6 +202,34 @@ const Bookings: React.FC = () => {
     });
   };
 
+  const handleExport = async (format: 'excel' | 'pdf') => {
+    try {
+      const params: any = {
+        export_type: format,
+        search: searchQuery || undefined,
+        status: statusFilter || undefined,
+        project: projectFilter || undefined,
+        from_date: fromDate || undefined,
+        to_date: toDate || undefined,
+      };
+      const response = await apiClient.get('/api/booking/bookings/export/', {
+        params,
+        responseType: 'blob',
+      });
+      const blob = new Blob([response.data]);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Booking_Report.${format === 'excel' ? 'xlsx' : 'pdf'}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch {
+      toastError(`Failed to export as ${format.toUpperCase()}`);
+    }
+  };
+
   const handleLeadChange = (leadId: string) => {
     const selectedLead = leads?.results?.find((l: any) => l.id === leadId);
     if (selectedLead) {
@@ -241,12 +276,11 @@ const Bookings: React.FC = () => {
   };
 
   const columns: GridColDef<Booking>[] = [
-    { field: 'code', headerName: 'Booking ID', width: 120 },
-    { field: 'customer_name', headerName: 'Customer Name', width: 160 },
+    { field: 'customer_name', headerName: 'Customer Name', flex: 1, minWidth: 150 },
     {
       field: 'project_name',
       headerName: 'Project',
-      width: 150,
+      width: 180,
       valueGetter: (_, row) => {
         if (typeof row.project === 'object' && row.project !== null) {
           return (row.project as any).name;
@@ -254,25 +288,20 @@ const Bookings: React.FC = () => {
         return row.project_name || row.project || '-';
       }
     },
-    { field: 'unit_type', headerName: 'Unit Type', width: 100 },
-    { field: 'unit_number', headerName: 'Unit No.', width: 110 },
+    { field: 'unit_number', headerName: 'Unit No.', width: 120 },
+    { field: 'booking_date', headerName: 'Booking Date', width: 130 },
     {
       field: 'agreed_price',
       headerName: 'Agreed Price',
-      width: 130,
+      width: 140,
       valueFormatter: (value) => value ? `₹${Number(value).toLocaleString()}` : '—',
     },
-    {
-      field: 'booking_amount',
-      headerName: 'Booking Amt',
-      width: 130,
-      valueFormatter: (value) => value ? `₹${Number(value).toLocaleString()}` : '—',
-    },
-    { field: 'booking_date', headerName: 'Booking Date', width: 120 },
     {
       field: 'status',
       headerName: 'Status',
-      width: 130,
+      width: 140,
+      headerAlign: 'center',
+      align: 'center',
       renderCell: (params) => (
         <Chip
           label={params.value}
@@ -344,76 +373,98 @@ const Bookings: React.FC = () => {
   ];
 
   return (
-    <Box sx={getPageContainerStyles()}>
-      <Box sx={getHeaderSectionStyles()}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <ScreenHeader title="Booking Management" subtitle="Manage property sales, payments, agreements, and cancellations" />
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<AddIcon />}
-            onClick={() => {
-              resetForm();
-              setOpenAddDialog(true);
-            }}
-          >
-            New Booking
-          </Button>
-        </Box>
-      </Box>
+    <Box sx={{ p: 2 }}>
+      <ScreenHeader
+        title="Booking Management"
+        showAddButton
+        addButtonText="New Booking"
+        onAdd={() => {
+          resetForm();
+          setOpenAddDialog(true);
+        }}
+      />
 
       <Paper sx={{ p: 2, mb: 2 }}>
-        <Grid container spacing={2}>
-          <Grid size={{ xs: 12, sm: 4 }}>
-            <TextField
-              fullWidth
-              size="small"
-              placeholder="Search Customer, Unit or Code..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon />
-                  </InputAdornment>
-                ),
-              }}
-            />
-          </Grid>
-          <Grid size={{ xs: 12, sm: 4 }}>
-            <FormControl fullWidth size="small">
-              <InputLabel>Status</InputLabel>
-              <Select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                label="Status"
-              >
-                <MenuItem value="">All Statuses</MenuItem>
-                <MenuItem value="BOOKED">Booked</MenuItem>
-                <MenuItem value="AGREEMENT">Agreement</MenuItem>
-                <MenuItem value="REGISTERED">Registered</MenuItem>
-                <MenuItem value="CANCELLED">Cancelled</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid size={{ xs: 12, sm: 4 }}>
-            <FormControl fullWidth size="small">
-              <InputLabel>Project</InputLabel>
-              <Select
-                value={projectFilter}
-                onChange={(e) => setProjectFilter(e.target.value)}
-                label="Project"
-              >
-                <MenuItem value="">All Projects</MenuItem>
-                {projects?.map((proj) => (
-                  <MenuItem key={proj.id} value={proj.id}>
-                    {proj.name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-        </Grid>
+        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+          <TextField
+            size="small"
+            placeholder="Search Customer, Unit or Code..."
+            value={searchQuery}
+            onChange={(e) => { setSearchQuery(e.target.value); setPaginationModel((p) => ({ ...p, page: 0 })); }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon />
+                </InputAdornment>
+              ),
+            }}
+            sx={{ width: 280 }}
+          />
+          <FormControl size="small" sx={{ minWidth: 140 }}>
+            <InputLabel shrink>Status</InputLabel>
+            <Select
+              value={statusFilter}
+              onChange={(e) => { setStatusFilter(e.target.value); setPaginationModel((p) => ({ ...p, page: 0 })); }}
+              label="Status"
+              displayEmpty
+              notched
+            >
+              <MenuItem value="">All</MenuItem>
+              <MenuItem value="BOOKED">Booked</MenuItem>
+              <MenuItem value="AGREEMENT">Agreement</MenuItem>
+              <MenuItem value="REGISTERED">Registered</MenuItem>
+              <MenuItem value="CANCELLED">Cancelled</MenuItem>
+            </Select>
+          </FormControl>
+          <FormControl size="small" sx={{ minWidth: 160 }}>
+            <InputLabel shrink>Project</InputLabel>
+            <Select
+              value={projectFilter}
+              onChange={(e) => { setProjectFilter(e.target.value); setPaginationModel((p) => ({ ...p, page: 0 })); }}
+              label="Project"
+              displayEmpty
+              notched
+            >
+              <MenuItem value="">All</MenuItem>
+              {projects?.map((proj) => (
+                <MenuItem key={proj.id} value={proj.id}>
+                  {proj.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          <TextField
+            size="small"
+            type="date"
+            label="From Date"
+            value={fromDate}
+            onChange={(e) => { setFromDate(e.target.value); setPaginationModel((p) => ({ ...p, page: 0 })); }}
+            InputLabelProps={{ shrink: true }}
+            sx={{ width: 155 }}
+          />
+          <TextField
+            size="small"
+            type="date"
+            label="To Date"
+            value={toDate}
+            onChange={(e) => { setToDate(e.target.value); setPaginationModel((p) => ({ ...p, page: 0 })); }}
+            InputLabelProps={{ shrink: true }}
+            sx={{ width: 155 }}
+          />
+          {(statusFilter || projectFilter || fromDate || toDate) && (
+            <Button size="small" variant="text" onClick={() => { setStatusFilter(''); setProjectFilter(''); setFromDate(''); setToDate(''); setPaginationModel((p) => ({ ...p, page: 0 })); }}>
+              Clear
+            </Button>
+          )}
+          <Box sx={{ ml: 'auto', display: 'flex', gap: 1 }}>
+            <Button size="small" variant="outlined" startIcon={<ExcelIcon />} onClick={() => handleExport('excel')}>
+              Excel
+            </Button>
+            <Button size="small" variant="outlined" startIcon={<PdfIcon />} onClick={() => handleExport('pdf')}>
+              PDF
+            </Button>
+          </Box>
+        </Box>
       </Paper>
 
       <Paper sx={{ height: 620 }}>

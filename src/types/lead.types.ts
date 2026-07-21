@@ -124,6 +124,8 @@ export interface LeadListParams {
   lead_source?: string;
   assigned_employee_id?: string;
   ordering?: string;
+  from_date?: string;
+  to_date?: string;
 }
 
 export interface PaginatedResponse<T> {

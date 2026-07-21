@@ -33,7 +33,7 @@ import {
 import { reReportsApi } from '../../api/reReports';
 import { usePageTitle } from '../../hooks';
 import { useBreadcrumbs } from '../../contexts/BreadcrumbContext';
-import { DonutChartCard, BarChartCard, LineChartCard } from '../../components/ui/Charts';
+import { PieChartCard, AnimatedBarChartCard, AnimatedLineChartCard } from '../../components/ui/ChartJS';
 
 // ---------- Stat Card ----------
 interface StatCardProps {
@@ -123,6 +123,11 @@ const DashboardPage = () => {
     { name: 'Scheduled', value: data?.site_visits?.scheduled || 0, color: '#2196f3' },
   ];
 
+  const leadPipelineData = (data?.lead_pipeline || []).map((item: any, index: number) => ({
+    name: item.status?.replace(/_/g, ' ') || 'Unknown',
+    value: item.count || 0,
+  }));
+
   const projectChartData = (data?.project_performance || []).map((p: any) => ({
     name: p.project_name,
     Bookings: p.bookings,
@@ -180,13 +185,13 @@ const DashboardPage = () => {
       <Grid container spacing={3} sx={{ mb: 3 }}>
         <Grid size={{ xs: 12 }}>
           {(data?.monthly_trend || []).length > 0 ? (
-            <LineChartCard
+            <AnimatedLineChartCard
               data={data.monthly_trend}
               dataKeys={['leads', 'site_visits', 'bookings']}
               xAxisKey="month"
-              title="Monthly Trend (Last 6 Months)"
+              title="Monthly Trend (Last 12 Months)"
               colors={['#1976d2', '#7b1fa2', '#388e3c']}
-              formatter={(value) => `${value}`}
+              fill={true}
             />
           ) : (
             <Paper sx={{ p: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 200 }}>
@@ -198,26 +203,40 @@ const DashboardPage = () => {
 
       {/* Charts Row */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
-        {/* Site Visit Status - Donut/Pie */}
+        {/* Lead Pipeline - Pie Chart */}
         <Grid size={{ xs: 12, md: 4 }}>
-          <DonutChartCard
-            data={siteVisitChartData}
+          {leadPipelineData.length > 0 ? (
+            <PieChartCard
+              data={leadPipelineData}
+              title="Lead Pipeline"
+            />
+          ) : (
+            <Paper sx={{ p: 3, height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Typography color="text.secondary">No lead data yet</Typography>
+            </Paper>
+          )}
+        </Grid>
+
+        {/* Site Visit Status - Bar Chart */}
+        <Grid size={{ xs: 12, md: 4 }}>
+          <AnimatedBarChartCard
+            data={siteVisitChartData.map((d) => ({ name: d.name, Visits: d.value }))}
+            dataKeys={['Visits']}
+            xAxisKey="name"
             title="Site Visit Status"
-            formatter={(value) => `${value} visits`}
-            showLegendValues={true}
+            colors={['#4caf50', '#2196f3']}
           />
         </Grid>
 
         {/* Project Performance - Bar Chart */}
-        <Grid size={{ xs: 12, md: 8 }}>
+        <Grid size={{ xs: 12, md: 4 }}>
           {projectChartData.length > 0 ? (
-            <BarChartCard
+            <AnimatedBarChartCard
               data={projectChartData}
               dataKeys={['Bookings', 'Registrations']}
               xAxisKey="name"
               title="Project Performance"
               colors={['#1976d2', '#00838f']}
-              formatter={(value) => `${value}`}
             />
           ) : (
             <Paper sx={{ p: 3, height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -232,13 +251,12 @@ const DashboardPage = () => {
         {/* Employee Bar Chart */}
         <Grid size={{ xs: 12, md: 6 }}>
           {employeeChartData.length > 0 ? (
-            <BarChartCard
+            <AnimatedBarChartCard
               data={employeeChartData}
               dataKeys={['Leads', 'Site Visits', 'Bookings']}
               xAxisKey="name"
               title="Top Performers"
               colors={['#1976d2', '#7b1fa2', '#388e3c']}
-              formatter={(value) => `${value}`}
             />
           ) : (
             <Paper sx={{ p: 3, height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

@@ -7,7 +7,6 @@ import { mastersRoutes } from './mastersRoutes';
 import { leadRoutes } from './leadRoutes';
 import { settingsRoutes } from './settingsRoutes';
 import { receiptsRoutes, receiptsPrintRoutes } from './receiptsRoutes';
-import { reportsRoutes } from './reportsRoutes';
 import { siteVisitRoutes } from './siteVisitRoutes';
 import { inventoryRoutes } from './inventoryRoutes';
 import { bookingRoutes } from './bookingRoutes';
@@ -73,7 +72,6 @@ export const AppRoutes = () => (
       {leadRoutes}
       {settingsRoutes}
       {receiptsRoutes}
-      {reportsRoutes}
       {siteVisitRoutes}
       {inventoryRoutes}
       {bookingRoutes}

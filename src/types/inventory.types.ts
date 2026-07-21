@@ -102,6 +102,8 @@ export interface InventoryListParams {
   project?: string;
   tower?: string;
   facing?: string;
+  from_date?: string;
+  to_date?: string;
 }
 
 export interface InventoryListResponse<T> {

@@ -15,11 +15,14 @@ import {
   Visibility,
   VisibilityOff,
   Lock as LockIcon,
+  CheckCircle as CheckCircleIcon,
+  Cancel as CancelRuleIcon,
 } from '@mui/icons-material';
 import { Button, TextField } from '../common';
 import { authApi } from '../../api/auth.api';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../contexts/ToastContext';
+import { PASSWORD_RULES, isPasswordValid } from '../../utils/passwordValidation';
 
 interface ChangePasswordDialogProps {
   open: boolean;
@@ -119,8 +122,8 @@ const ChangePasswordDialog: React.FC<ChangePasswordDialogProps> = ({ open, onClo
 
     if (!formData.password) {
       newErrors.password = 'New password is required';
-    } else if (formData.password.length < 4) {
-      newErrors.password = 'Password must be at least 4 characters';
+    } else if (!isPasswordValid(formData.password)) {
+      newErrors.password = 'Password does not meet all requirements';
     }
 
     if (!formData.confirm_password) {
@@ -284,7 +287,7 @@ const ChangePasswordDialog: React.FC<ChangePasswordDialogProps> = ({ open, onClo
                   value={formData.password}
                   onChange={handleChange}
                   error={!!errors.password}
-                  helperText={errors.password || 'Minimum 4 characters'}
+                  helperText={errors.password}
                   disabled={isLoading || !isCurrentPasswordValid}
                   fullWidth
                   placeholder="Enter new password"
@@ -303,6 +306,37 @@ const ChangePasswordDialog: React.FC<ChangePasswordDialogProps> = ({ open, onClo
                     ),
                   }}
                 />
+                {/* Password requirements checklist */}
+                {formData.password && (
+                  <Box sx={{ mt: 1 }}>
+                    {PASSWORD_RULES.map((rule, index) => {
+                      const passed = rule.test(formData.password);
+                      return (
+                        <Box
+                          key={index}
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 0.5,
+                            mb: 0.25,
+                          }}
+                        >
+                          {passed ? (
+                            <CheckCircleIcon sx={{ fontSize: 16, color: 'success.main' }} />
+                          ) : (
+                            <CancelRuleIcon sx={{ fontSize: 16, color: 'error.main' }} />
+                          )}
+                          <Typography
+                            variant="caption"
+                            sx={{ color: passed ? 'success.main' : 'error.main' }}
+                          >
+                            {rule.label}
+                          </Typography>
+                        </Box>
+                      );
+                    })}
+                  </Box>
+                )}
               </Box>
 
               <Box>
@@ -334,6 +368,26 @@ const ChangePasswordDialog: React.FC<ChangePasswordDialogProps> = ({ open, onClo
                     ),
                   }}
                 />
+                {/* Match indicator */}
+                {formData.confirm_password && (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
+                    {formData.password === formData.confirm_password ? (
+                      <>
+                        <CheckCircleIcon sx={{ fontSize: 16, color: 'success.main' }} />
+                        <Typography variant="caption" sx={{ color: 'success.main' }}>
+                          Passwords matched
+                        </Typography>
+                      </>
+                    ) : (
+                      <>
+                        <CancelRuleIcon sx={{ fontSize: 16, color: 'error.main' }} />
+                        <Typography variant="caption" sx={{ color: 'error.main' }}>
+                          Passwords not matched
+                        </Typography>
+                      </>
+                    )}
+                  </Box>
+                )}
               </Box>
             </Box>
           </Box>

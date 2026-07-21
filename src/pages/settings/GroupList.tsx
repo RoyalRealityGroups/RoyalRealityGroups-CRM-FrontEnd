@@ -294,8 +294,7 @@ const GroupList: React.FC = () => {
               paginationMode="server"
               onPaginationModelChange={setPaginationModel}
               disableRowSelectionOnClick
-                disableColumnMenu
-              sx={getDataGridStyles()}
+              disableColumnMenu
             />
           </Box>
         </Paper>

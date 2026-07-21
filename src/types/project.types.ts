@@ -55,6 +55,8 @@ export interface ProjectListParams {
   approval_type?: string;
   is_active?: boolean;
   ordering?: string;
+  from_date?: string;
+  to_date?: string;
 }
 
 export interface ProjectChoices {

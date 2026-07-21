@@ -12,8 +12,13 @@ import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import VisibilityIcon from '@mui/icons-material/Visibility';
+import {
+  FileDownload as ExcelIcon,
+  PictureAsPdf as PdfIcon,
+} from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { projectsApi } from '../../../api/projects';
+import apiClient from '../../../api/axios.config';
 import type { Project, ProjectFormData, ProjectChoices } from '../../../types/project.types';
 import { useToast } from '../../../contexts/ToastContext';
 import { usePageTitle } from '../../../hooks';
@@ -51,6 +56,9 @@ const ProjectList: React.FC = () => {
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(20);
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Project | null>(null);
@@ -60,11 +68,14 @@ const ProjectList: React.FC = () => {
 
   // List
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ['projects', page, pageSize, search],
+    queryKey: ['projects', page, pageSize, search, statusFilter, fromDate, toDate],
     queryFn: () => projectsApi.list({
       page: page + 1,
       page_size: pageSize,
       search: search || undefined,
+      status: statusFilter || undefined,
+      from_date: fromDate || undefined,
+      to_date: toDate || undefined,
     }),
     staleTime: 0,
   });
@@ -116,6 +127,33 @@ const ProjectList: React.FC = () => {
       toastError(err.response?.data?.message || 'Update failed');
     },
   });
+
+  const handleExport = async (format: 'excel' | 'pdf') => {
+    try {
+      const params: any = {
+        export_type: format,
+        search: search || undefined,
+        status: statusFilter || undefined,
+        from_date: fromDate || undefined,
+        to_date: toDate || undefined,
+      };
+      const response = await apiClient.get('/api/masters/projects/export/', {
+        params,
+        responseType: 'blob',
+      });
+      const blob = new Blob([response.data]);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Project_Report.${format === 'excel' ? 'xlsx' : 'pdf'}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch {
+      toastError(`Failed to export as ${format.toUpperCase()}`);
+    }
+  };
 
   const handleOpenCreate = () => {
     setEditing(null);
@@ -236,14 +274,62 @@ const ProjectList: React.FC = () => {
       />
 
       <Paper sx={{ p: 2, mb: 2 }}>
-        <TextField
-          size="small"
-          label="Search"
-          placeholder="Name / code / developer / RERA"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          sx={{ width: 320 }}
-        />
+        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+          <TextField
+            size="small"
+            label="Search"
+            placeholder="Name / code / developer"
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setPage(0); }}
+            sx={{ width: 280 }}
+          />
+          <FormControl size="small" sx={{ minWidth: 140 }}>
+            <InputLabel shrink>Status</InputLabel>
+            <Select
+              value={statusFilter}
+              label="Status"
+              displayEmpty
+              notched
+              onChange={(e) => { setStatusFilter(e.target.value); setPage(0); }}
+            >
+              <MenuItem value="">All</MenuItem>
+              {(choices?.project_statuses || []).map((s) => (
+                <MenuItem key={s.value} value={s.value}>{s.label}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          <TextField
+            size="small"
+            type="date"
+            label="From Date"
+            value={fromDate}
+            onChange={(e) => { setFromDate(e.target.value); setPage(0); }}
+            InputLabelProps={{ shrink: true }}
+            sx={{ width: 160 }}
+          />
+          <TextField
+            size="small"
+            type="date"
+            label="To Date"
+            value={toDate}
+            onChange={(e) => { setToDate(e.target.value); setPage(0); }}
+            InputLabelProps={{ shrink: true }}
+            sx={{ width: 160 }}
+          />
+          {(statusFilter || fromDate || toDate) && (
+            <Button size="small" variant="text" onClick={() => { setStatusFilter(''); setFromDate(''); setToDate(''); setPage(0); }}>
+              Clear Filters
+            </Button>
+          )}
+          <Box sx={{ ml: 'auto', display: 'flex', gap: 1 }}>
+            <Button size="small" variant="outlined" startIcon={<ExcelIcon />} onClick={() => handleExport('excel')}>
+              Excel
+            </Button>
+            <Button size="small" variant="outlined" startIcon={<PdfIcon />} onClick={() => handleExport('pdf')}>
+              PDF
+            </Button>
+          </Box>
+        </Box>
       </Paper>
 
       <Paper sx={{ height: 620 }}>

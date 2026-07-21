@@ -50,6 +50,8 @@ export interface SiteVisitListParams {
   status?: SiteVisitStatus | '';
   assigned_employee?: string;
   lead?: string;
+  from_date?: string;
+  to_date?: string;
 }
 
 export interface SiteVisitListResponse {

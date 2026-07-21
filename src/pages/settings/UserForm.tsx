@@ -30,6 +30,8 @@ import {
   People as PeopleIcon,
   Visibility,
   VisibilityOff,
+  CheckCircle as CheckCircleIcon,
+  Cancel as CancelRuleIcon,
 } from '@mui/icons-material';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
@@ -54,6 +56,7 @@ import {
   PHONE_FIELD_HELPER_TEXT,
   sanitizePhoneInput,
 } from '../../utils/validation';
+import { PASSWORD_RULES, isPasswordValid } from '../../utils/passwordValidation';
 
 const GENDER_CHOICES = [
   { value: 1, label: 'Male' },
@@ -621,31 +624,80 @@ const UserForm: React.FC = () => {
                 <Controller
                   name="password"
                   control={control}
-                  rules={!isEditMode ? { required: 'Password is required' } : undefined}
+                  rules={
+                    !isEditMode
+                      ? {
+                          required: 'Password is required',
+                          validate: (value: string) => {
+                            if (!value) return 'Password is required';
+                            if (!isPasswordValid(value)) return 'Password does not meet all requirements';
+                            return true;
+                          },
+                        }
+                      : {
+                          validate: (value: string) => {
+                            if (value && !isPasswordValid(value)) return 'Password does not meet all requirements';
+                            return true;
+                          },
+                        }
+                  }
                   render={({ field }) => (
-                    <TextField
-                      {...field}
-                      placeholder={isEditMode ? "Leave blank to keep current" : "Enter password"}
-                      type={showPassword ? 'text' : 'password'}
-                      fullWidth
-                      size="small"
-                      error={!!errors.password}
-                      helperText={errors.password?.message || (isEditMode ? 'Leave blank to keep current password' : '')}
-                      disabled={isSubmitting}
-                      InputProps={{
-                        endAdornment: (
-                          <InputAdornment position="end">
-                            <IconButton
-                              onClick={() => setShowPassword(!showPassword)}
-                              edge="end"
-                              size="small"
-                            >
-                              {showPassword ? <VisibilityOff /> : <Visibility />}
-                            </IconButton>
-                          </InputAdornment>
-                        ),
-                      }}
-                    />
+                    <>
+                      <TextField
+                        {...field}
+                        placeholder={isEditMode ? "Leave blank to keep current" : "Enter password"}
+                        type={showPassword ? 'text' : 'password'}
+                        fullWidth
+                        size="small"
+                        error={!!errors.password}
+                        helperText={errors.password?.message || (isEditMode ? 'Leave blank to keep current password' : '')}
+                        disabled={isSubmitting}
+                        InputProps={{
+                          endAdornment: (
+                            <InputAdornment position="end">
+                              <IconButton
+                                onClick={() => setShowPassword(!showPassword)}
+                                edge="end"
+                                size="small"
+                              >
+                                {showPassword ? <VisibilityOff /> : <Visibility />}
+                              </IconButton>
+                            </InputAdornment>
+                          ),
+                        }}
+                      />
+                      {/* Password requirements checklist */}
+                      {field.value && (
+                        <Box sx={{ mt: 1 }}>
+                          {PASSWORD_RULES.map((rule, index) => {
+                            const passed = rule.test(field.value || '');
+                            return (
+                              <Box
+                                key={index}
+                                sx={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 0.5,
+                                  mb: 0.25,
+                                }}
+                              >
+                                {passed ? (
+                                  <CheckCircleIcon sx={{ fontSize: 16, color: 'success.main' }} />
+                                ) : (
+                                  <CancelRuleIcon sx={{ fontSize: 16, color: 'error.main' }} />
+                                )}
+                                <Typography
+                                  variant="caption"
+                                  sx={{ color: passed ? 'success.main' : 'error.main' }}
+                                >
+                                  {rule.label}
+                                </Typography>
+                              </Box>
+                            );
+                          })}
+                        </Box>
+                      )}
+                    </>
                   )}
                 />
               </Grid>
