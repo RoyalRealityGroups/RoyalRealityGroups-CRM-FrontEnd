@@ -189,7 +189,7 @@ const DashboardPage = () => {
               data={data.monthly_trend}
               dataKeys={['leads', 'site_visits', 'bookings']}
               xAxisKey="month"
-              title="Monthly Trend (Last 6 Months)"
+              title="Monthly Trend (Last 12 Months)"
               colors={['#1976d2', '#7b1fa2', '#388e3c']}
               fill={true}
             />
