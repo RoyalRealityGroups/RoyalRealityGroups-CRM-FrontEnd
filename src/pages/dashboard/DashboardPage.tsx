@@ -217,12 +217,14 @@ const DashboardPage = () => {
           )}
         </Grid>
 
-        {/* Site Visit Status - Donut Chart */}
+        {/* Site Visit Status - Bar Chart */}
         <Grid size={{ xs: 12, md: 4 }}>
-          <PieChartCard
-            data={siteVisitChartData}
+          <AnimatedBarChartCard
+            data={siteVisitChartData.map((d) => ({ name: d.name, Visits: d.value }))}
+            dataKeys={['Visits']}
+            xAxisKey="name"
             title="Site Visit Status"
-            donut={true}
+            colors={['#4caf50', '#2196f3']}
           />
         </Grid>
 
