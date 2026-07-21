@@ -34,6 +34,9 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { leadApi } from '../../api/lead.api';
 import apiClient from '../../api/axios.config';
+import { useSelector } from 'react-redux';
+import type { RootState } from '../../store/store';
+import { hasPermission } from '../../utils/permissions';
 import ScreenHeader from '../../components/common/ScreenHeader';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { useBreadcrumbs } from '../../contexts/BreadcrumbContext';
@@ -65,6 +68,8 @@ const emptyForm: FollowUpForm = {
 const FollowUps: React.FC = () => {
   const queryClient = useQueryClient();
   const location = useLocation();
+  const user = useSelector((state: RootState) => state.auth.user);
+  const canExport = hasPermission(user, 'export_leadfollowup');
   const navigate = useNavigate();
   const { setBreadcrumbs } = useBreadcrumbs();
   const { success: toastSuccess, error: toastError } = useToast();
@@ -369,14 +374,16 @@ const FollowUps: React.FC = () => {
               Clear Dates
             </Button>
           )}
-          <Box sx={{ ml: 'auto', display: 'flex', gap: 1 }}>
-            <Button size="small" variant="outlined" startIcon={<ExcelIcon />} onClick={() => handleExport('excel')}>
-              Excel
-            </Button>
-            <Button size="small" variant="outlined" startIcon={<PdfIcon />} onClick={() => handleExport('pdf')}>
-              PDF
-            </Button>
-          </Box>
+          {canExport && (
+            <Box sx={{ ml: 'auto', display: 'flex', gap: 1 }}>
+              <Button size="small" variant="outlined" startIcon={<ExcelIcon />} onClick={() => handleExport('excel')}>
+                Excel
+              </Button>
+              <Button size="small" variant="outlined" startIcon={<PdfIcon />} onClick={() => handleExport('pdf')}>
+                PDF
+              </Button>
+            </Box>
+          )}
         </Box>
       </Paper>
 
