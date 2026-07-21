@@ -12,6 +12,9 @@ import {
   FileDownload as ExcelIcon, PictureAsPdf as PdfIcon,
 } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useSelector } from 'react-redux';
+import type { RootState } from '../../store/store';
+import { hasPermission } from '../../utils/permissions';
 import { inventoryApi } from '../../api/inventory.api';
 import apiClient from '../../api/axios.config';
 import ScreenHeader from '../../components/common/ScreenHeader';
@@ -40,6 +43,8 @@ const emptyForm: PlotFormData = {
 const PlotList: React.FC = () => {
   const queryClient = useQueryClient();
   const { setBreadcrumbs } = useBreadcrumbs();
+  const user = useSelector((state: RootState) => state.auth.user);
+  const canExport = hasPermission(user, 'export_plotinventory');
   const { success, error: toastError } = useToast();
   usePageTitle('Plot Inventory');
 
@@ -209,10 +214,12 @@ const PlotList: React.FC = () => {
           {(statusFilter || projectFilter || fromDate || toDate) && (
             <Button size="small" variant="text" onClick={() => { setStatusFilter(''); setProjectFilter(''); setFromDate(''); setToDate(''); setPaginationModel((p) => ({ ...p, page: 0 })); }}>Clear</Button>
           )}
-          <Box sx={{ ml: 'auto', display: 'flex', gap: 1 }}>
-            <Button size="small" variant="outlined" startIcon={<ExcelIcon />} onClick={() => handleExport('excel')}>Excel</Button>
-            <Button size="small" variant="outlined" startIcon={<PdfIcon />} onClick={() => handleExport('pdf')}>PDF</Button>
-          </Box>
+          {canExport && (
+            <Box sx={{ ml: 'auto', display: 'flex', gap: 1 }}>
+              <Button size="small" variant="outlined" startIcon={<ExcelIcon />} onClick={() => handleExport('excel')}>Excel</Button>
+              <Button size="small" variant="outlined" startIcon={<PdfIcon />} onClick={() => handleExport('pdf')}>PDF</Button>
+            </Box>
+          )}
         </Box>
       </Paper>
 

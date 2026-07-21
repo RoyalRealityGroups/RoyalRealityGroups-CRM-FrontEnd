@@ -17,6 +17,9 @@ import {
   PictureAsPdf as PdfIcon,
 } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useSelector } from 'react-redux';
+import type { RootState } from '../../../store/store';
+import { hasPermission } from '../../../utils/permissions';
 import { projectsApi } from '../../../api/projects';
 import apiClient from '../../../api/axios.config';
 import type { Project, ProjectFormData, ProjectChoices } from '../../../types/project.types';
@@ -41,6 +44,8 @@ const emptyForm: ProjectFormData = {
 const ProjectList: React.FC = () => {
   usePageTitle('Projects');
   const { setBreadcrumbs } = useBreadcrumbs();
+  const user = useSelector((state: RootState) => state.auth.user);
+  const canExport = hasPermission(user, 'export_project');
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { success, error: toastError } = useToast();
@@ -321,14 +326,16 @@ const ProjectList: React.FC = () => {
               Clear Filters
             </Button>
           )}
-          <Box sx={{ ml: 'auto', display: 'flex', gap: 1 }}>
-            <Button size="small" variant="outlined" startIcon={<ExcelIcon />} onClick={() => handleExport('excel')}>
-              Excel
-            </Button>
-            <Button size="small" variant="outlined" startIcon={<PdfIcon />} onClick={() => handleExport('pdf')}>
-              PDF
-            </Button>
-          </Box>
+          {canExport && (
+            <Box sx={{ ml: 'auto', display: 'flex', gap: 1 }}>
+              <Button size="small" variant="outlined" startIcon={<ExcelIcon />} onClick={() => handleExport('excel')}>
+                Excel
+              </Button>
+              <Button size="small" variant="outlined" startIcon={<PdfIcon />} onClick={() => handleExport('pdf')}>
+                PDF
+              </Button>
+            </Box>
+          )}
         </Box>
       </Paper>
 
