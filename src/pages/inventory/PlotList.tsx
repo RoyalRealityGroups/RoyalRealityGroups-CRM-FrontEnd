@@ -9,9 +9,11 @@ import type { GridColDef, GridPaginationModel } from '@mui/x-data-grid';
 import {
   Visibility as ViewIcon, Edit as EditIcon, Delete as DeleteIcon,
   Search as SearchIcon, Landscape as PlotIcon,
+  FileDownload as ExcelIcon, PictureAsPdf as PdfIcon,
 } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { inventoryApi } from '../../api/inventory.api';
+import apiClient from '../../api/axios.config';
 import ScreenHeader from '../../components/common/ScreenHeader';
 import { useBreadcrumbs } from '../../contexts/BreadcrumbContext';
 import { useToast } from '../../contexts/ToastContext';
@@ -81,6 +83,34 @@ const PlotList: React.FC = () => {
     },
     onError: () => error('Failed to delete plot'),
   });
+
+  const handleExport = async (format: 'excel' | 'pdf') => {
+    try {
+      const params: any = {
+        export_type: format,
+        search: searchQuery || undefined,
+        status: statusFilter || undefined,
+        project: projectFilter || undefined,
+        from_date: fromDate || undefined,
+        to_date: toDate || undefined,
+      };
+      const response = await apiClient.get('/api/inventory/plots/export/', {
+        params,
+        responseType: 'blob',
+      });
+      const blob = new Blob([response.data]);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Plot_Report.${format === 'excel' ? 'xlsx' : 'pdf'}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch {
+      error(`Failed to export as ${format.toUpperCase()}`);
+    }
+  };
 
   const columns: GridColDef<Plot>[] = [
     { field: 'plot_number', headerName: 'Plot #', width: 120 },
@@ -201,6 +231,14 @@ const PlotList: React.FC = () => {
               Clear
             </Button>
           )}
+          <Box sx={{ ml: 'auto', display: 'flex', gap: 1 }}>
+            <Button size="small" variant="outlined" startIcon={<ExcelIcon />} onClick={() => handleExport('excel')}>
+              Excel
+            </Button>
+            <Button size="small" variant="outlined" startIcon={<PdfIcon />} onClick={() => handleExport('pdf')}>
+              PDF
+            </Button>
+          </Box>
         </Box>
       </Box>
       <Paper sx={{ height: 620 }}>

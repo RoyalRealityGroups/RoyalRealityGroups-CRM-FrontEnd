@@ -32,12 +32,15 @@ import {
   Verified as RegIcon,
   Home as HomeIcon,
   Receipt as ReceiptIcon,
+  FileDownload as ExcelIcon,
+  PictureAsPdf as PdfIcon,
 } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { bookingApi } from '../../api/booking';
 import { inventoryApi } from '../../api/inventory.api';
 import { projectsApi } from '../../api/projects';
 import { leadApi } from '../../api/lead.api';
+import apiClient from '../../api/axios.config';
 import { useBreadcrumbs } from '../../contexts/BreadcrumbContext';
 import { useToast } from '../../contexts/ToastContext';
 import { usePageTitle } from '../../hooks';
@@ -197,6 +200,34 @@ const Bookings: React.FC = () => {
       sales_executive: '',
       remarks: '',
     });
+  };
+
+  const handleExport = async (format: 'excel' | 'pdf') => {
+    try {
+      const params: any = {
+        export_type: format,
+        search: searchQuery || undefined,
+        status: statusFilter || undefined,
+        project: projectFilter || undefined,
+        from_date: fromDate || undefined,
+        to_date: toDate || undefined,
+      };
+      const response = await apiClient.get('/api/booking/bookings/export/', {
+        params,
+        responseType: 'blob',
+      });
+      const blob = new Blob([response.data]);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Booking_Report.${format === 'excel' ? 'xlsx' : 'pdf'}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch {
+      toastError(`Failed to export as ${format.toUpperCase()}`);
+    }
   };
 
   const handleLeadChange = (leadId: string) => {
@@ -425,6 +456,14 @@ const Bookings: React.FC = () => {
               Clear
             </Button>
           )}
+          <Box sx={{ ml: 'auto', display: 'flex', gap: 1 }}>
+            <Button size="small" variant="outlined" startIcon={<ExcelIcon />} onClick={() => handleExport('excel')}>
+              Excel
+            </Button>
+            <Button size="small" variant="outlined" startIcon={<PdfIcon />} onClick={() => handleExport('pdf')}>
+              PDF
+            </Button>
+          </Box>
         </Box>
       </Paper>
 

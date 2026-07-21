@@ -31,11 +31,14 @@ import {
   Search as SearchIcon,
   AddPhotoAlternate as AddPhotoIcon,
   Delete as DeletePhotoIcon,
+  FileDownload as ExcelIcon,
+  PictureAsPdf as PdfIcon,
 } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { siteVisitApi } from '../../api/siteVisit.api';
 import { leadApi } from '../../api/lead.api';
 import { projectsApi } from '../../api/projects';
+import apiClient from '../../api/axios.config';
 import ScreenHeader from '../../components/common/ScreenHeader';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { useBreadcrumbs } from '../../contexts/BreadcrumbContext';
@@ -178,6 +181,33 @@ const SiteVisits: React.FC = () => {
     },
     onError: () => toastError('Failed to delete site visit'),
   });
+
+  const handleExport = async (format: 'excel' | 'pdf') => {
+    try {
+      const params: any = {
+        export_type: format,
+        search: searchQuery || undefined,
+        status: statusFilter || undefined,
+        from_date: fromDate || undefined,
+        to_date: toDate || undefined,
+      };
+      const response = await apiClient.get('/api/sitevisit/site-visits/export/', {
+        params,
+        responseType: 'blob',
+      });
+      const blob = new Blob([response.data]);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `SiteVisit_Report.${format === 'excel' ? 'xlsx' : 'pdf'}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch {
+      toastError(`Failed to export as ${format.toUpperCase()}`);
+    }
+  };
 
   // --- Dialog handlers ---
   const handleOpenCreate = () => {
@@ -405,6 +435,14 @@ const SiteVisits: React.FC = () => {
               Clear Filters
             </Button>
           )}
+          <Box sx={{ ml: 'auto', display: 'flex', gap: 1 }}>
+            <Button size="small" variant="outlined" startIcon={<ExcelIcon />} onClick={() => handleExport('excel')}>
+              Excel
+            </Button>
+            <Button size="small" variant="outlined" startIcon={<PdfIcon />} onClick={() => handleExport('pdf')}>
+              PDF
+            </Button>
+          </Box>
         </Box>
       </Paper>
 
