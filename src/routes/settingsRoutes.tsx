@@ -35,5 +35,7 @@ export const settingsRoutes = (
     <Route path="settings/users/view/:id" element={<SuperuserGuard>{withSuspense(UserView)}</SuperuserGuard>} />
     <Route path="settings/users/:id" element={<SuperuserGuard>{withSuspense(UserForm)}</SuperuserGuard>} />
     <Route path="settings/general-settings" element={<SuperuserGuard>{withSuspense(GeneralSettings)}</SuperuserGuard>} />
+    <Route path="profile" element={withSuspense(UserView)} />
+    <Route path="profile/edit" element={withSuspense(UserForm)} />
   </>
 );

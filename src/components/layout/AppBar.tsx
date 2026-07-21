@@ -235,7 +235,7 @@ const AppBar: React.FC<AppBarProps> = ({ onMenuClick }) => {
           <MenuItem
             onClick={() => {
               handleClose();
-              navigate(`/settings/users/view/${user?.id}?profile=true`);
+              navigate('/profile');
             }}
           >
             <ListItemIcon>

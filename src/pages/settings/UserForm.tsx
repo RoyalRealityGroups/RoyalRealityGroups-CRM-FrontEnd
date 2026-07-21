@@ -36,6 +36,8 @@ import {
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useSelector } from 'react-redux';
+import type { RootState } from '../../store/store';
 import { usersApi, type UserFormData } from '../../api/users.api';
 import { groupsApi } from '../../api/groups.api';
 import { useBreadcrumbs } from '../../contexts/BreadcrumbContext';
@@ -72,10 +74,12 @@ const DEVICE_ACCESS_CHOICES = [
 ];
 
 const UserForm: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
+  const { id: paramId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const isProfileMode = searchParams.get('profile') === 'true';
+  const currentUser = useSelector((state: RootState) => state.auth.user);
+  const isProfileMode = !paramId || searchParams.get('profile') === 'true';
+  const id = paramId || currentUser?.id || 'new';
   const queryClient = useQueryClient();
   const { setBreadcrumbs } = useBreadcrumbs();
   const { success: toastSuccess, error: toastError } = useToast();
@@ -218,7 +222,7 @@ const UserForm: React.FC = () => {
     }
   };
 
-  const backPath = isProfileMode ? `/settings/users/view/${id}?profile=true` : '/settings/users';
+  const backPath = isProfileMode ? '/profile' : '/settings/users';
 
   const handleCancel = () => {
     navigate(backPath);

@@ -41,10 +41,11 @@ const valueCellSx = { width: '30%', border: '1px solid #e0e0e0' };
 
 const UserView: React.FC = () => {
   const navigate = useNavigate();
-  const { id } = useParams<{ id: string }>();
+  const { id: paramId } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
-  const isProfileMode = searchParams.get('profile') === 'true';
   const currentUser = useSelector((state: RootState) => state.auth.user);
+  const isProfileMode = !paramId || searchParams.get('profile') === 'true';
+  const id = paramId || currentUser?.id;
   const { setBreadcrumbs } = useBreadcrumbs();
 
   usePageTitle('User View');
@@ -97,7 +98,7 @@ const UserView: React.FC = () => {
         >
           <Box sx={{ display: 'flex', gap: 1.5 }}>
             {canEdit && (
-              <Button variant="outlined" startIcon={<EditIcon />} onClick={() => navigate(`/settings/users/${id}${isProfileMode ? '?profile=true' : ''}`)}>
+              <Button variant="outlined" startIcon={<EditIcon />} onClick={() => navigate(isProfileMode ? '/profile/edit' : `/settings/users/${id}`)}>
                 Edit
               </Button>
             )}
