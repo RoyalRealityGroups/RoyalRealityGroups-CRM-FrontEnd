@@ -41,6 +41,13 @@ const SettingsHub: React.FC = () => {
 
   usePageTitle('Settings');
 
+  // Non-superusers go directly to General Settings
+  useEffect(() => {
+    if (!isLoading && user && !isSuperuser(user)) {
+      navigate('/settings/general-settings', { replace: true });
+    }
+  }, [user, isLoading, navigate]);
+
   // Set breadcrumbs on mount
   useEffect(() => {
     setBreadcrumbs([
@@ -102,7 +109,14 @@ const SettingsHub: React.FC = () => {
           if (submenu.name.toLowerCase() === 'settings' && submenu.menuitems) {
             submenu.menuitems.forEach((menuitem) => {
               if (hasAccessToMenuItem(menuitem)) {
-                items.push(menuitem);
+                // Non-superusers only see General Settings
+                if (!isSuperuser(user)) {
+                  if (menuitem.name?.toLowerCase() === 'general settings') {
+                    items.push(menuitem);
+                  }
+                } else {
+                  items.push(menuitem);
+                }
               }
             });
           }
