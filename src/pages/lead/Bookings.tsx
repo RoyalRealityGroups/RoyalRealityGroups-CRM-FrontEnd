@@ -245,12 +245,11 @@ const Bookings: React.FC = () => {
   };
 
   const columns: GridColDef<Booking>[] = [
-    { field: 'code', headerName: 'Booking ID', width: 120 },
-    { field: 'customer_name', headerName: 'Customer Name', width: 160 },
+    { field: 'customer_name', headerName: 'Customer Name', flex: 1, minWidth: 150 },
     {
       field: 'project_name',
       headerName: 'Project',
-      width: 150,
+      width: 180,
       valueGetter: (_, row) => {
         if (typeof row.project === 'object' && row.project !== null) {
           return (row.project as any).name;
@@ -258,25 +257,20 @@ const Bookings: React.FC = () => {
         return row.project_name || row.project || '-';
       }
     },
-    { field: 'unit_type', headerName: 'Unit Type', width: 100 },
-    { field: 'unit_number', headerName: 'Unit No.', width: 110 },
+    { field: 'unit_number', headerName: 'Unit No.', width: 120 },
+    { field: 'booking_date', headerName: 'Booking Date', width: 130 },
     {
       field: 'agreed_price',
       headerName: 'Agreed Price',
-      width: 130,
+      width: 140,
       valueFormatter: (value) => value ? `₹${Number(value).toLocaleString()}` : '—',
     },
-    {
-      field: 'booking_amount',
-      headerName: 'Booking Amt',
-      width: 130,
-      valueFormatter: (value) => value ? `₹${Number(value).toLocaleString()}` : '—',
-    },
-    { field: 'booking_date', headerName: 'Booking Date', width: 120 },
     {
       field: 'status',
       headerName: 'Status',
-      width: 130,
+      width: 140,
+      headerAlign: 'center',
+      align: 'center',
       renderCell: (params) => (
         <Chip
           label={params.value}
@@ -348,23 +342,16 @@ const Bookings: React.FC = () => {
   ];
 
   return (
-    <Box sx={getPageContainerStyles()}>
-      <Box sx={getHeaderSectionStyles()}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <ScreenHeader title="Booking Management" subtitle="Manage property sales, payments, agreements, and cancellations" />
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<AddIcon />}
-            onClick={() => {
-              resetForm();
-              setOpenAddDialog(true);
-            }}
-          >
-            New Booking
-          </Button>
-        </Box>
-      </Box>
+    <Box sx={{ p: 2 }}>
+      <ScreenHeader
+        title="Booking Management"
+        showAddButton
+        addButtonText="New Booking"
+        onAdd={() => {
+          resetForm();
+          setOpenAddDialog(true);
+        }}
+      />
 
       <Paper sx={{ p: 2, mb: 2 }}>
         <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
