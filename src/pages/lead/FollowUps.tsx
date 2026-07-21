@@ -70,6 +70,8 @@ const FollowUps: React.FC = () => {
   // List state
   const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({ page: 0, pageSize: 20 });
   const [searchQuery, setSearchQuery] = useState('');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
 
   // Dialog state
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -106,11 +108,14 @@ const FollowUps: React.FC = () => {
 
   // --- Queries ---
   const { data: followUpsData, isLoading, refetch } = useQuery({
-    queryKey: ['follow-ups', paginationModel, searchQuery],
+    queryKey: ['follow-ups', paginationModel, searchQuery, fromDate, toDate],
     queryFn: () =>
       leadApi.getFollowUps({
         page: paginationModel.page + 1,
         page_size: paginationModel.pageSize,
+        search: searchQuery || undefined,
+        from_date: fromDate || undefined,
+        to_date: toDate || undefined,
       }),
     staleTime: 0,
   });
@@ -303,14 +308,39 @@ const FollowUps: React.FC = () => {
       />
 
       <Paper sx={{ p: 2, mb: 2 }}>
-        <TextField
-          size="small"
-          placeholder="Search follow-ups..."
-          value={searchQuery}
-          onChange={(e) => { setSearchQuery(e.target.value); setPaginationModel((p) => ({ ...p, page: 0 })); }}
-          InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon /></InputAdornment> }}
-          sx={{ width: 300 }}
-        />
+        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+          <TextField
+            size="small"
+            placeholder="Search follow-ups..."
+            value={searchQuery}
+            onChange={(e) => { setSearchQuery(e.target.value); setPaginationModel((p) => ({ ...p, page: 0 })); }}
+            InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon /></InputAdornment> }}
+            sx={{ width: 300 }}
+          />
+          <TextField
+            size="small"
+            type="date"
+            label="From Date"
+            value={fromDate}
+            onChange={(e) => { setFromDate(e.target.value); setPaginationModel((p) => ({ ...p, page: 0 })); }}
+            InputLabelProps={{ shrink: true }}
+            sx={{ width: 160 }}
+          />
+          <TextField
+            size="small"
+            type="date"
+            label="To Date"
+            value={toDate}
+            onChange={(e) => { setToDate(e.target.value); setPaginationModel((p) => ({ ...p, page: 0 })); }}
+            InputLabelProps={{ shrink: true }}
+            sx={{ width: 160 }}
+          />
+          {(fromDate || toDate) && (
+            <Button size="small" variant="text" onClick={() => { setFromDate(''); setToDate(''); setPaginationModel((p) => ({ ...p, page: 0 })); }}>
+              Clear Dates
+            </Button>
+          )}
+        </Box>
       </Paper>
 
       <Paper sx={{ height: 620 }}>

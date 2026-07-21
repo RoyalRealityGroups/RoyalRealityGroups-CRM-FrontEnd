@@ -65,7 +65,7 @@ export const leadApi = {
   },
 
   // Follow-ups
-  getFollowUps: async (params?: { page?: number; page_size?: number; lead_id?: string }): Promise<LeadFollowUpListResponse> => {
+  getFollowUps: async (params?: { page?: number; page_size?: number; lead_id?: string; search?: string; from_date?: string; to_date?: string }): Promise<LeadFollowUpListResponse> => {
     const response = await apiClient.get('/api/lead/followups/', { params });
     return response.data;
   },

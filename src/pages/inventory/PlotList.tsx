@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box, Paper, IconButton, Tooltip, TextField, InputAdornment,
-  FormControl, InputLabel, Select, MenuItem, Chip,
+  FormControl, InputLabel, Select, MenuItem, Chip, Button,
 } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import type { GridColDef, GridPaginationModel } from '@mui/x-data-grid';
@@ -35,6 +35,8 @@ const PlotList: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<InventoryStatus | ''>('');
   const [projectFilter, setProjectFilter] = useState('');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
 
   useEffect(() => {
     setBreadcrumbs([
@@ -45,13 +47,15 @@ const PlotList: React.FC = () => {
   }, [setBreadcrumbs]);
 
   const { data, isLoading } = useQuery({
-    queryKey: ['plots', paginationModel, searchQuery, statusFilter, projectFilter],
+    queryKey: ['plots', paginationModel, searchQuery, statusFilter, projectFilter, fromDate, toDate],
     queryFn: () => inventoryApi.getPlots({
       page: paginationModel.page + 1,
       page_size: paginationModel.pageSize,
       search: searchQuery,
       status: statusFilter || undefined,
       project: projectFilter || undefined,
+      from_date: fromDate || undefined,
+      to_date: toDate || undefined,
     }),
   });
 
@@ -147,18 +151,18 @@ const PlotList: React.FC = () => {
           addButtonText="Add Plot"
           onAdd={() => navigate('/inventory/plots/add')}
         />
-        <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
+        <Box sx={{ display: 'flex', gap: 2, mt: 2, flexWrap: 'wrap', alignItems: 'center' }}>
           <TextField
             placeholder="Search by plot number..."
             size="small"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => { setSearchQuery(e.target.value); setPaginationModel((p) => ({ ...p, page: 0 })); }}
             InputProps={{ startAdornment: (<InputAdornment position="start"><SearchIcon /></InputAdornment>) }}
             sx={{ width: 280 }}
           />
-          <FormControl size="small" sx={{ minWidth: 160 }}>
-            <InputLabel>Status</InputLabel>
-            <Select value={statusFilter} label="Status" onChange={(e) => setStatusFilter(e.target.value as any)}>
+          <FormControl size="small" sx={{ minWidth: 140 }}>
+            <InputLabel shrink>Status</InputLabel>
+            <Select value={statusFilter} label="Status" displayEmpty notched onChange={(e) => { setStatusFilter(e.target.value as any); setPaginationModel((p) => ({ ...p, page: 0 })); }}>
               <MenuItem value="">All</MenuItem>
               {(choices?.statuses || []).map((s) => (
                 <MenuItem key={s.value} value={s.value}>{s.label}</MenuItem>
@@ -166,14 +170,37 @@ const PlotList: React.FC = () => {
             </Select>
           </FormControl>
           <FormControl size="small" sx={{ minWidth: 180 }}>
-            <InputLabel>Project</InputLabel>
-            <Select value={projectFilter} label="Project" onChange={(e) => setProjectFilter(e.target.value)}>
+            <InputLabel shrink>Project</InputLabel>
+            <Select value={projectFilter} label="Project" displayEmpty notched onChange={(e) => { setProjectFilter(e.target.value); setPaginationModel((p) => ({ ...p, page: 0 })); }}>
               <MenuItem value="">All</MenuItem>
               {(projects || []).map((p: any) => (
                 <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>
               ))}
             </Select>
           </FormControl>
+          <TextField
+            size="small"
+            type="date"
+            label="From Date"
+            value={fromDate}
+            onChange={(e) => { setFromDate(e.target.value); setPaginationModel((p) => ({ ...p, page: 0 })); }}
+            InputLabelProps={{ shrink: true }}
+            sx={{ width: 155 }}
+          />
+          <TextField
+            size="small"
+            type="date"
+            label="To Date"
+            value={toDate}
+            onChange={(e) => { setToDate(e.target.value); setPaginationModel((p) => ({ ...p, page: 0 })); }}
+            InputLabelProps={{ shrink: true }}
+            sx={{ width: 155 }}
+          />
+          {(statusFilter || projectFilter || fromDate || toDate) && (
+            <Button size="small" variant="text" onClick={() => { setStatusFilter(''); setProjectFilter(''); setFromDate(''); setToDate(''); setPaginationModel((p) => ({ ...p, page: 0 })); }}>
+              Clear
+            </Button>
+          )}
         </Box>
       </Box>
       <Paper sx={{ height: 620 }}>

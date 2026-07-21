@@ -78,6 +78,8 @@ const Bookings: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [projectFilter, setProjectFilter] = useState('');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
 
   // Dialog States
   const [openAddDialog, setOpenAddDialog] = useState(false);
@@ -107,7 +109,7 @@ const Bookings: React.FC = () => {
 
   // Queries
   const { data: bookingsData, isLoading } = useQuery({
-    queryKey: ['bookings', paginationModel, searchQuery, statusFilter, projectFilter],
+    queryKey: ['bookings', paginationModel, searchQuery, statusFilter, projectFilter, fromDate, toDate],
     queryFn: () =>
       bookingApi.getBookings({
         page: paginationModel.page + 1,
@@ -115,6 +117,8 @@ const Bookings: React.FC = () => {
         search: searchQuery,
         status: statusFilter || undefined,
         project: projectFilter || undefined,
+        from_date: fromDate || undefined,
+        to_date: toDate || undefined,
       }),
   });
 
@@ -363,57 +367,78 @@ const Bookings: React.FC = () => {
       </Box>
 
       <Paper sx={{ p: 2, mb: 2 }}>
-        <Grid container spacing={2}>
-          <Grid size={{ xs: 12, sm: 4 }}>
-            <TextField
-              fullWidth
-              size="small"
-              placeholder="Search Customer, Unit or Code..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon />
-                  </InputAdornment>
-                ),
-              }}
-            />
-          </Grid>
-          <Grid size={{ xs: 12, sm: 4 }}>
-            <FormControl fullWidth size="small">
-              <InputLabel>Status</InputLabel>
-              <Select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                label="Status"
-              >
-                <MenuItem value="">All Statuses</MenuItem>
-                <MenuItem value="BOOKED">Booked</MenuItem>
-                <MenuItem value="AGREEMENT">Agreement</MenuItem>
-                <MenuItem value="REGISTERED">Registered</MenuItem>
-                <MenuItem value="CANCELLED">Cancelled</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid size={{ xs: 12, sm: 4 }}>
-            <FormControl fullWidth size="small">
-              <InputLabel>Project</InputLabel>
-              <Select
-                value={projectFilter}
-                onChange={(e) => setProjectFilter(e.target.value)}
-                label="Project"
-              >
-                <MenuItem value="">All Projects</MenuItem>
-                {projects?.map((proj) => (
-                  <MenuItem key={proj.id} value={proj.id}>
-                    {proj.name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-        </Grid>
+        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+          <TextField
+            size="small"
+            placeholder="Search Customer, Unit or Code..."
+            value={searchQuery}
+            onChange={(e) => { setSearchQuery(e.target.value); setPaginationModel((p) => ({ ...p, page: 0 })); }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon />
+                </InputAdornment>
+              ),
+            }}
+            sx={{ width: 280 }}
+          />
+          <FormControl size="small" sx={{ minWidth: 140 }}>
+            <InputLabel shrink>Status</InputLabel>
+            <Select
+              value={statusFilter}
+              onChange={(e) => { setStatusFilter(e.target.value); setPaginationModel((p) => ({ ...p, page: 0 })); }}
+              label="Status"
+              displayEmpty
+              notched
+            >
+              <MenuItem value="">All</MenuItem>
+              <MenuItem value="BOOKED">Booked</MenuItem>
+              <MenuItem value="AGREEMENT">Agreement</MenuItem>
+              <MenuItem value="REGISTERED">Registered</MenuItem>
+              <MenuItem value="CANCELLED">Cancelled</MenuItem>
+            </Select>
+          </FormControl>
+          <FormControl size="small" sx={{ minWidth: 160 }}>
+            <InputLabel shrink>Project</InputLabel>
+            <Select
+              value={projectFilter}
+              onChange={(e) => { setProjectFilter(e.target.value); setPaginationModel((p) => ({ ...p, page: 0 })); }}
+              label="Project"
+              displayEmpty
+              notched
+            >
+              <MenuItem value="">All</MenuItem>
+              {projects?.map((proj) => (
+                <MenuItem key={proj.id} value={proj.id}>
+                  {proj.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          <TextField
+            size="small"
+            type="date"
+            label="From Date"
+            value={fromDate}
+            onChange={(e) => { setFromDate(e.target.value); setPaginationModel((p) => ({ ...p, page: 0 })); }}
+            InputLabelProps={{ shrink: true }}
+            sx={{ width: 155 }}
+          />
+          <TextField
+            size="small"
+            type="date"
+            label="To Date"
+            value={toDate}
+            onChange={(e) => { setToDate(e.target.value); setPaginationModel((p) => ({ ...p, page: 0 })); }}
+            InputLabelProps={{ shrink: true }}
+            sx={{ width: 155 }}
+          />
+          {(statusFilter || projectFilter || fromDate || toDate) && (
+            <Button size="small" variant="text" onClick={() => { setStatusFilter(''); setProjectFilter(''); setFromDate(''); setToDate(''); setPaginationModel((p) => ({ ...p, page: 0 })); }}>
+              Clear
+            </Button>
+          )}
+        </Box>
       </Paper>
 
       <Paper sx={{ height: 620 }}>

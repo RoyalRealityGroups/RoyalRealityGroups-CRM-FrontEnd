@@ -91,6 +91,8 @@ const SiteVisits: React.FC = () => {
   const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({ page: 0, pageSize: 20 });
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<SiteVisitStatus | ''>('');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
 
   // Dialog state
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -112,13 +114,15 @@ const SiteVisits: React.FC = () => {
 
   // --- Queries ---
   const { data: visitsData, isLoading, refetch } = useQuery({
-    queryKey: ['site-visits', paginationModel, searchQuery, statusFilter],
+    queryKey: ['site-visits', paginationModel, searchQuery, statusFilter, fromDate, toDate],
     queryFn: () =>
       siteVisitApi.getSiteVisits({
         page: paginationModel.page + 1,
         page_size: paginationModel.pageSize,
         search: searchQuery || undefined,
         status: statusFilter || undefined,
+        from_date: fromDate || undefined,
+        to_date: toDate || undefined,
       }),
     staleTime: 0,
   });
@@ -360,24 +364,47 @@ const SiteVisits: React.FC = () => {
 
       {/* Filters */}
       <Paper sx={{ p: 2, mb: 2 }}>
-        <Box sx={{ display: 'flex', gap: 2 }}>
+        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
           <TextField
             size="small"
             placeholder="Search by customer or project..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => { setSearchQuery(e.target.value); setPaginationModel((p) => ({ ...p, page: 0 })); }}
             InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon /></InputAdornment> }}
             sx={{ width: 300 }}
           />
           <FormControl size="small" sx={{ minWidth: 150 }}>
             <InputLabel shrink>Status</InputLabel>
-            <Select value={statusFilter} label="Status" displayEmpty notched onChange={(e) => setStatusFilter(e.target.value as any)}>
+            <Select value={statusFilter} label="Status" displayEmpty notched onChange={(e) => { setStatusFilter(e.target.value as any); setPaginationModel((p) => ({ ...p, page: 0 })); }}>
               <MenuItem value="">All</MenuItem>
               {statuses.map((s) => (
                 <MenuItem key={s.value} value={s.value}>{s.label}</MenuItem>
               ))}
             </Select>
           </FormControl>
+          <TextField
+            size="small"
+            type="date"
+            label="From Date"
+            value={fromDate}
+            onChange={(e) => { setFromDate(e.target.value); setPaginationModel((p) => ({ ...p, page: 0 })); }}
+            InputLabelProps={{ shrink: true }}
+            sx={{ width: 160 }}
+          />
+          <TextField
+            size="small"
+            type="date"
+            label="To Date"
+            value={toDate}
+            onChange={(e) => { setToDate(e.target.value); setPaginationModel((p) => ({ ...p, page: 0 })); }}
+            InputLabelProps={{ shrink: true }}
+            sx={{ width: 160 }}
+          />
+          {(statusFilter || fromDate || toDate) && (
+            <Button size="small" variant="text" onClick={() => { setStatusFilter(''); setFromDate(''); setToDate(''); setPaginationModel((p) => ({ ...p, page: 0 })); }}>
+              Clear Filters
+            </Button>
+          )}
         </Box>
       </Paper>
 
