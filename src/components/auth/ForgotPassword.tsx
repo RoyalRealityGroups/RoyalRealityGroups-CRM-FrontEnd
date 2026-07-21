@@ -15,6 +15,7 @@ import {
 import { ArrowBack as BackIcon } from '@mui/icons-material';
 import apiClient from '../../api/axios.config';
 import { ROUTES } from '../../utils/constants';
+import { validatePassword, PASSWORD_RULES } from '../../utils/passwordValidation';
 
 const steps = ['Enter Email', 'Verify OTP', 'Set New Password'];
 
@@ -62,8 +63,9 @@ const ForgotPassword: React.FC = () => {
 
   // Step 3: Reset password
   const handleResetPassword = async () => {
-    if (!password || password.length < 4) {
-      setError('Password must be at least 4 characters');
+    const errors = validatePassword(password);
+    if (errors.length > 0) {
+      setError(errors[0]);
       return;
     }
     if (password !== confirmPassword) {
@@ -188,8 +190,22 @@ const ForgotPassword: React.FC = () => {
                   onChange={(e) => { setPassword(e.target.value); setError(''); }}
                   disabled={loading}
                   autoFocus
-                  sx={{ mb: 2 }}
+                  sx={{ mb: 1 }}
                 />
+                {/* Password rules */}
+                {password && (
+                  <Box sx={{ mb: 2 }}>
+                    {PASSWORD_RULES.map((rule) => (
+                      <Typography
+                        key={rule.label}
+                        variant="caption"
+                        sx={{ display: 'block', color: rule.test(password) ? 'success.main' : 'text.secondary' }}
+                      >
+                        {rule.test(password) ? '✓' : '○'} {rule.label}
+                      </Typography>
+                    ))}
+                  </Box>
+                )}
                 <TextField
                   fullWidth
                   type="password"
