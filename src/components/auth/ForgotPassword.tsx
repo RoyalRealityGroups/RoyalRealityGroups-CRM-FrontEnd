@@ -35,7 +35,13 @@ const ForgotPassword: React.FC = () => {
   // Step 1: Request OTP
   const handleRequestOTP = async () => {
     if (!username.trim()) {
-      setError('Please enter your username or email');
+      setError('Please enter your email address');
+      return;
+    }
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(username.trim())) {
+      setError('Please enter a valid email address');
       return;
     }
     setLoading(true);
