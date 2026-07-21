@@ -139,6 +139,9 @@ const GeneralSettings: React.FC = () => {
       });
       formData.append('company_logo', logoFile);
       mutation.mutate(formData as any);
+    } else if (!logoPreview && !logoFile && data?.company_logo) {
+      // Logo was removed — send flag to clear it
+      mutation.mutate({ ...settings, company_logo: null } as any);
     } else {
       mutation.mutate(settings as any);
     }
@@ -271,6 +274,11 @@ const GeneralSettings: React.FC = () => {
                       }
                     }}
                   />
+                </Button>
+              )}
+              {isAdmin && (logoPreview || logoFile) && (
+                <Button variant="outlined" size="small" color="error" onClick={() => { setLogoFile(null); setLogoPreview(null); }}>
+                  Remove
                 </Button>
               )}
             </Box>
