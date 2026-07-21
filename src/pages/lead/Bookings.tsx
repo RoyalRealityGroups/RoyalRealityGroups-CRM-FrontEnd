@@ -643,7 +643,7 @@ const Bookings: React.FC = () => {
                   >
                     {employees?.map((emp: any) => (
                       <MenuItem key={emp.id} value={emp.id}>
-                        {emp.first_name ? `${emp.first_name} ${emp.last_name || ''}` : emp.username}
+                        {emp.name || emp.username || 'Unknown'}
                       </MenuItem>
                     ))}
                   </Select>
