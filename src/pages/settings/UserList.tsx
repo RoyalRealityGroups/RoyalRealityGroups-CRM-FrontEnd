@@ -337,10 +337,9 @@ const UserList: React.FC = () => {
               paginationMode="server"
               onPaginationModelChange={setPaginationModel}
               disableRowSelectionOnClick
-                disableColumnMenu
+              disableColumnMenu
               getRowHeight={() => 'auto'}
               sx={{
-                ...getDataGridStyles(),
                 '& .MuiDataGrid-cell': { 
                   py: 1,
                   display: 'flex',
