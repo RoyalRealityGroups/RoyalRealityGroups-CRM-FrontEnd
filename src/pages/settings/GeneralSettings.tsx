@@ -169,12 +169,13 @@ const GeneralSettings: React.FC = () => {
 
   return (
     <Box sx={{ p: 2, overflow: 'auto', height: '100%' }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+      <Paper sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', px: 2, py: 1, mb: 2 }}>
         <ScreenHeader
           title="General Settings"
           showBackButton
           onBack={() => navigate('/settings')}
           showAddButton={false}
+          disableBox
         />
         {isAdmin && (
           <Button
@@ -187,7 +188,7 @@ const GeneralSettings: React.FC = () => {
             {mutation.isPending ? 'Saving...' : 'Save Changes'}
           </Button>
         )}
-      </Box>
+      </Paper>
 
       {/* Notifications Section */}
       <Paper sx={{ p: 3, mb: 3 }}>
