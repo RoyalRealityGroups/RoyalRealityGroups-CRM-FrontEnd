@@ -207,7 +207,7 @@ const UserList: React.FC = () => {
       filterable: false,
       renderCell: (params) => (
         <Box>
-          {hasPermission(user, 'change_user') && (
+          {hasPermission(user, 'change_user') && params.row.id !== user?.id && (
             <IconButton
               size="small"
               onClick={() => navigate(`/settings/users/${params.row.id}`)}
@@ -216,10 +216,14 @@ const UserList: React.FC = () => {
               <EditIcon fontSize="small" />
             </IconButton>
           )}
-          {hasPermission(user, 'delete_user') && (
+          {hasPermission(user, 'delete_user') && params.row.id !== user?.id && (
             <IconButton
               size="small"
               onClick={() => {
+                if (params.row.is_active) {
+                  toastError('Please deactivate the user before deleting.');
+                  return;
+                }
                 setSelectedUser(params.row);
                 setDeleteDialogOpen(true);
               }}

@@ -580,7 +580,7 @@ const AppBar: React.FC<AppBarProps> = ({ onMenuClick }) => {
             <ListItemIcon><LockIcon fontSize="small" /></ListItemIcon>
             Change Password
           </MenuItem>
-          {user?.is_superuser && (
+          {(user?.is_superuser || user?.permissions?.some((p: string) => p.includes('user') || p.includes('Users'))) && (
             <MenuItem onClick={() => { handleClose(); navigate('/settings'); }}>
               <ListItemIcon><SettingsIcon fontSize="small" /></ListItemIcon>
               Settings

@@ -102,14 +102,7 @@ const SettingsHub: React.FC = () => {
           if (submenu.name.toLowerCase() === 'settings' && submenu.menuitems) {
             submenu.menuitems.forEach((menuitem) => {
               if (hasAccessToMenuItem(menuitem)) {
-                // Non-superusers only see General Settings
-                if (!isSuperuser(user)) {
-                  if (menuitem.name?.toLowerCase() === 'general settings') {
-                    items.push(menuitem);
-                  }
-                } else {
-                  items.push(menuitem);
-                }
+                items.push(menuitem);
               }
             });
           }
