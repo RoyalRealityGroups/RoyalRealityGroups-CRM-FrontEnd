@@ -93,6 +93,7 @@ const UserForm: React.FC = () => {
 
   const [selectedGroups, setSelectedGroups] = useState<Group[]>([]);
   const [showPassword, setShowPassword] = useState(false);
+  const [selectedReportingManager, setSelectedReportingManager] = useState<any>(null);
   
   // Profile picture state
   const [profilePictureFile, setProfilePictureFile] = useState<File | null>(null);
@@ -161,6 +162,15 @@ const UserForm: React.FC = () => {
         joining_date: userData.joining_date || '',
         reporting_manager: userData.reporting_manager || '',
       });
+
+      if (userData.reporting_manager) {
+        setSelectedReportingManager({
+          id: userData.reporting_manager,
+          fullname: userData.reporting_manager_name || '',
+        });
+      } else {
+        setSelectedReportingManager(null);
+      }
       
       if (userData.groups) {
         setSelectedGroups(userData.groups);
@@ -620,8 +630,9 @@ const UserForm: React.FC = () => {
                     <SearchableDropdown
                       label=""
                       apiEndpoint="/api/usermanagement/dropdowns/reporting-managers/"
-                      value={field.value ? { id: field.value, name: userData?.reporting_manager_name || '' } as any : null}
+                      value={selectedReportingManager}
                       onChange={(newValue: any) => {
+                        setSelectedReportingManager(newValue || null);
                         field.onChange(newValue?.id || null);
                       }}
                       disabled={isSubmitting}

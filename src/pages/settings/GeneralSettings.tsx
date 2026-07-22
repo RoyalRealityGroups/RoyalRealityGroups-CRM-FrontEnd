@@ -76,8 +76,6 @@ const GeneralSettings: React.FC = () => {
   const user = useSelector((state: RootState) => state.auth.user);
   const isAdmin = isSuperuser(user);
   const [settings, setSettings] = useState<GeneralSettingsState>(defaultSettings);
-  const [logoFile, setLogoFile] = useState<File | null>(null);
-  const [logoPreview, setLogoPreview] = useState<string | null>(null);
 
   usePageTitle('General Settings');
 
@@ -113,9 +111,6 @@ const GeneralSettings: React.FC = () => {
         password_expiry_days: data.password_expiry_days || 0,
         max_login_attempts: data.max_login_attempts || 5,
       });
-      if (data.company_logo) {
-        setLogoPreview(data.company_logo);
-      }
     }
   }, [data]);
 
@@ -131,20 +126,7 @@ const GeneralSettings: React.FC = () => {
   });
 
   const handleSave = () => {
-    if (logoFile) {
-      // Use FormData when uploading a file
-      const formData = new FormData();
-      Object.entries(settings).forEach(([key, value]) => {
-        formData.append(key, String(value));
-      });
-      formData.append('company_logo', logoFile);
-      mutation.mutate(formData as any);
-    } else if (!logoPreview && !logoFile && data?.company_logo) {
-      // Logo was removed — send flag to clear it
-      mutation.mutate({ ...settings, company_logo: null } as any);
-    } else {
-      mutation.mutate(settings as any);
-    }
+    mutation.mutate(settings as any);
   };
 
   const handleToggle = (field: keyof GeneralSettingsState) => (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -169,12 +151,13 @@ const GeneralSettings: React.FC = () => {
 
   return (
     <Box sx={{ p: 2, overflow: 'auto', height: '100%' }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+      <Paper sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', px: 2, py: 1, mb: 2 }}>
         <ScreenHeader
           title="General Settings"
           showBackButton
           onBack={() => navigate('/settings')}
           showAddButton={false}
+          disableBox
         />
         {isAdmin && (
           <Button
@@ -187,7 +170,7 @@ const GeneralSettings: React.FC = () => {
             {mutation.isPending ? 'Saving...' : 'Save Changes'}
           </Button>
         )}
-      </Box>
+      </Paper>
 
       {/* Notifications Section */}
       <Paper sx={{ p: 3, mb: 3 }}>
@@ -248,42 +231,6 @@ const GeneralSettings: React.FC = () => {
         </Box>
 
         <Grid container spacing={3}>
-          <Grid size={{ xs: 12, md: 4 }}>
-            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>Company Logo</Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              {(logoPreview || logoFile) && (
-                <Box
-                  component="img"
-                  src={logoFile ? URL.createObjectURL(logoFile) : logoPreview || ''}
-                  alt="Logo"
-                  sx={{ height: 50, maxWidth: 160, objectFit: 'contain', border: '1px solid #e0e0e0', borderRadius: 1, p: 0.5 }}
-                />
-              )}
-              {isAdmin && (
-                <Button variant="outlined" size="small" component="label">
-                  {logoPreview || logoFile ? 'Change' : 'Upload'}
-                  <input
-                    type="file"
-                    hidden
-                    accept="image/*"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        setLogoFile(file);
-                        setLogoPreview(null);
-                      }
-                    }}
-                  />
-                </Button>
-              )}
-              {isAdmin && (logoPreview || logoFile) && (
-                <Button variant="outlined" size="small" color="error" onClick={() => { setLogoFile(null); setLogoPreview(null); }}>
-                  Remove
-                </Button>
-              )}
-            </Box>
-            <Typography variant="caption" color="text.secondary">Recommended: 200×60px, PNG/JPG</Typography>
-          </Grid>
           <Grid size={{ xs: 12, md: 4 }}>
             <TextField
               fullWidth
