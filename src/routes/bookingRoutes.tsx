@@ -1,8 +1,8 @@
-import { Route } from 'react-router-dom';
+import { Route, Navigate } from 'react-router-dom';
 import { Suspense, lazy } from 'react';
 import { PageLoader } from '../components/common/PageLoader';
 
-const Bookings = lazy(() => import('../pages/lead/Bookings'));
+const BookingList = lazy(() => import('../pages/booking/BookingList'));
 
 const withSuspense = (Component: React.LazyExoticComponent<any>) => (
   <Suspense fallback={<PageLoader />}>
@@ -12,6 +12,7 @@ const withSuspense = (Component: React.LazyExoticComponent<any>) => (
 
 export const bookingRoutes = (
   <>
-    <Route path="booking" element={withSuspense(Bookings)} />
+    <Route path="booking" element={<Navigate to="/booking/list" replace />} />
+    <Route path="booking/list" element={withSuspense(BookingList)} />
   </>
 );
