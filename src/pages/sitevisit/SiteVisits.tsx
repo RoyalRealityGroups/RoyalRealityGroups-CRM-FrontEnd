@@ -49,7 +49,7 @@ import { useToast } from '../../contexts/ToastContext';
 import { usePageTitle } from '../../hooks';
 import HomeIcon from '@mui/icons-material/Home';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
-import type { SiteVisit, SiteVisitStatus } from '../../types/siteVisit.types';
+import type { SiteVisit, SiteVisitPhoto, SiteVisitStatus } from '../../types/siteVisit.types';
 import { API_BASE_URL } from '../../utils/constants';
 
 const statusColors: Record<SiteVisitStatus, 'default' | 'primary' | 'success' | 'warning' | 'error' | 'info'> = {
@@ -108,6 +108,7 @@ const SiteVisits: React.FC = () => {
   const [form, setForm] = useState<FormState>(emptyForm);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [filePreviews, setFilePreviews] = useState<string[]>([]);
+  const [savedPhotos, setSavedPhotos] = useState<SiteVisitPhoto[]>([]);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   // View dialog state
@@ -242,6 +243,7 @@ const SiteVisits: React.FC = () => {
       customer_feedback: item.customer_feedback || '',
       remarks: item.remarks || '',
     });
+    setSavedPhotos(item.photos || []);
     setSelectedFiles([]);
     setFilePreviews([]);
     setDialogOpen(true);
@@ -254,6 +256,7 @@ const SiteVisits: React.FC = () => {
     filePreviews.forEach((url) => URL.revokeObjectURL(url));
     setSelectedFiles([]);
     setFilePreviews([]);
+    setSavedPhotos([]);
   };
 
   const handleSubmit = () => {
@@ -307,6 +310,17 @@ const SiteVisits: React.FC = () => {
   const getPhotoUrl = (url: string) => {
     if (url.startsWith('http')) return url;
     return `${API_BASE_URL}${url}`;
+  };
+
+  const handleDeleteSavedPhoto = async (photo: SiteVisitPhoto) => {
+    if (!editing) return;
+    try {
+      await siteVisitApi.deletePhoto(editing.id, photo.id);
+      setSavedPhotos((prev) => prev.filter((p) => p.id !== photo.id));
+      toastSuccess('Photo deleted');
+    } catch {
+      toastError('Failed to delete photo');
+    }
   };
 
   const statuses = choices?.statuses || DEFAULT_STATUSES;
@@ -543,6 +557,18 @@ const SiteVisits: React.FC = () => {
                 <Grid size={{ xs: 12 }}>
                   <Typography variant="subtitle2" sx={{ mb: 1 }}>Photos</Typography>
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, alignItems: 'center' }}>
+                    {/* Already saved photos */}
+                    {savedPhotos.map((photo) => (
+                      <Box key={`saved-${photo.id}`} sx={{ position: 'relative', width: 80, height: 80 }}>
+                        <img src={getPhotoUrl(photo.photo)} alt={photo.caption || 'Photo'}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 4 }} />
+                        <IconButton size="small" onClick={() => handleDeleteSavedPhoto(photo)}
+                          sx={{ position: 'absolute', top: -6, right: -6, bgcolor: 'error.main', color: 'white', '&:hover': { bgcolor: 'error.dark' }, width: 20, height: 20 }}>
+                          <DeletePhotoIcon sx={{ fontSize: 12 }} />
+                        </IconButton>
+                      </Box>
+                    ))}
+                    {/* Newly selected files */}
                     {filePreviews.map((url, idx) => (
                       <Box key={idx} sx={{ position: 'relative', width: 80, height: 80 }}>
                         <img src={url} alt={`Photo ${idx + 1}`}

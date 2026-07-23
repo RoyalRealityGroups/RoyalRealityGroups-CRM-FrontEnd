@@ -358,9 +358,14 @@ const SiteVisitForm: React.FC = () => {
                 />
               </Grid>
             </Grid>
+          </>
+        )}
 
-            {/* Photos */}
-            <Typography variant="subtitle2" sx={{ fontWeight: 600, mt: 3, mb: 1 }}>
+        {/* Photos — shown when status is COMPLETED or when existing photos are present */}
+        {(showCompletion || (formData.photos && formData.photos.length > 0) || filePreviews.length > 0) && (
+          <>
+            {!showCompletion && <Divider sx={{ my: 3 }} />}
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, mt: showCompletion ? 3 : 0, mb: 1 }}>
               Photos
             </Typography>
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, alignItems: 'center' }}>
@@ -416,7 +421,7 @@ const SiteVisitForm: React.FC = () => {
                   <input type="file" hidden multiple accept="image/*" onChange={handleFileSelect} />
                 </Box>
               )}
-              {disabled && (formData.photos || []).length === 0 && (
+              {disabled && (formData.photos || []).length === 0 && filePreviews.length === 0 && (
                 <Typography variant="body2" color="text.secondary">No photos</Typography>
               )}
             </Box>

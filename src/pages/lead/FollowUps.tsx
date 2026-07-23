@@ -219,7 +219,7 @@ const FollowUps: React.FC = () => {
       code: item.lead.code || '',
       name: item.lead.name || '',
       mobile: item.lead.mobile || '',
-      email: '',
+      email: item.lead.email || '',
     } : null);
     setDialogOpen(true);
   };
