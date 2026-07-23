@@ -60,6 +60,7 @@ export interface LeadFollowUp {
     name: string;
     code: string;
     mobile: string;
+    email?: string;
     status: string;
     assigned_employee?: string;
   };
