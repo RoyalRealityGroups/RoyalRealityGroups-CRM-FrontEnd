@@ -44,4 +44,5 @@ export interface MenuItemDetail {
 
 export interface UserMenu {
   menus: MenuItem[];
+  permissions?: string[];
 }
