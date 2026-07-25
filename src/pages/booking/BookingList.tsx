@@ -113,13 +113,13 @@ const BookingList: React.FC = () => {
 
   const { data: availablePlots } = useQuery({
     queryKey: ['available-plots', form.project],
-    queryFn: () => inventoryApi.getPlots({ project: form.project, status: 'AVAILABLE' }),
+    queryFn: () => inventoryApi.getPlots({ project: form.project, status__in: 'AVAILABLE,BLOCKED' }),
     enabled: !!form.project && form.unit_type === 'PLOT' && dialogOpen,
   });
 
   const { data: availableFlats } = useQuery({
     queryKey: ['available-flats', form.project],
-    queryFn: () => inventoryApi.getFlats({ project: form.project, status: 'AVAILABLE' }),
+    queryFn: () => inventoryApi.getFlats({ project: form.project, status__in: 'AVAILABLE,BLOCKED' }),
     enabled: !!form.project && form.unit_type === 'FLAT' && dialogOpen,
   });
 
