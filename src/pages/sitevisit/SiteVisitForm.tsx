@@ -235,7 +235,6 @@ const SiteVisitForm: React.FC = () => {
   }
 
   const statuses = choices?.statuses || DEFAULT_STATUSES;
-  const showCompletion = formData.status === 'COMPLETED';
   const isSaving = createMutation.isPending || updateMutation.isPending;
 
   return (
@@ -329,104 +328,95 @@ const SiteVisitForm: React.FC = () => {
           </Grid>
         </Grid>
 
-        {/* Completion Details Section - shown when status is COMPLETED */}
-        {showCompletion && (
-          <>
-            <Divider sx={{ my: 3 }} />
-            <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'primary.main', mb: 2 }}>
-              Completion Details
-            </Typography>
-            <Grid container spacing={3}>
-              {/* Customer Feedback */}
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <TextField
-                  fullWidth size="small" multiline rows={3}
-                  label="Customer Feedback"
-                  value={formData.customer_feedback || ''}
-                  disabled={disabled}
-                  onChange={(e) => setFormData({ ...formData, customer_feedback: e.target.value })}
-                />
-              </Grid>
-              {/* Remarks */}
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <TextField
-                  fullWidth size="small" multiline rows={3}
-                  label="Remarks"
-                  value={formData.remarks || ''}
-                  disabled={disabled}
-                  onChange={(e) => setFormData({ ...formData, remarks: e.target.value })}
-                />
-              </Grid>
-            </Grid>
-          </>
-        )}
+        {/* Additional Details Section - always visible */}
+        <Divider sx={{ my: 3 }} />
+        <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'primary.main', mb: 2 }}>
+          Additional Details
+        </Typography>
+        <Grid container spacing={3}>
+          {/* Customer Feedback */}
+          <Grid size={{ xs: 12, sm: 6 }}>
+            <TextField
+              fullWidth size="small" multiline rows={3}
+              label="Customer Feedback"
+              value={formData.customer_feedback || ''}
+              disabled={disabled}
+              onChange={(e) => setFormData({ ...formData, customer_feedback: e.target.value })}
+            />
+          </Grid>
+          {/* Remarks */}
+          <Grid size={{ xs: 12, sm: 6 }}>
+            <TextField
+              fullWidth size="small" multiline rows={3}
+              label="Remarks"
+              value={formData.remarks || ''}
+              disabled={disabled}
+              onChange={(e) => setFormData({ ...formData, remarks: e.target.value })}
+            />
+          </Grid>
+        </Grid>
 
-        {/* Photos — shown when status is COMPLETED or when existing photos are present */}
-        {(showCompletion || (formData.photos && formData.photos.length > 0) || filePreviews.length > 0) && (
-          <>
-            {!showCompletion && <Divider sx={{ my: 3 }} />}
-            <Typography variant="subtitle2" sx={{ fontWeight: 600, mt: showCompletion ? 3 : 0, mb: 1 }}>
-              Photos
-            </Typography>
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, alignItems: 'center' }}>
-              {/* Saved photos */}
-              {(formData.photos || []).map((p, idx) => (
-                <Box key={`saved-${p.id ?? idx}`} sx={{ position: 'relative', width: 100, height: 100 }}>
-                  <img
-                    src={p.photo}
-                    alt={p.caption || `Photo ${idx + 1}`}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 4 }}
-                  />
-                  {!disabled && (
-                    <IconButton
-                      size="small"
-                      onClick={() => handleDeleteSavedPhoto(p)}
-                      sx={{ position: 'absolute', top: -8, right: -8, bgcolor: 'error.main', color: 'white', '&:hover': { bgcolor: 'error.dark' }, width: 22, height: 22 }}
-                    >
-                      <DeleteIcon sx={{ fontSize: 14 }} />
-                    </IconButton>
-                  )}
-                </Box>
-              ))}
-              {/* New files selected */}
-              {filePreviews.map((url, idx) => (
-                <Box key={`new-${idx}`} sx={{ position: 'relative', width: 100, height: 100 }}>
-                  <img
-                    src={url}
-                    alt={`New ${idx + 1}`}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 4 }}
-                  />
-                  {!disabled && (
-                    <IconButton
-                      size="small"
-                      onClick={() => handleRemoveFile(idx)}
-                      sx={{ position: 'absolute', top: -8, right: -8, bgcolor: 'error.main', color: 'white', '&:hover': { bgcolor: 'error.dark' }, width: 22, height: 22 }}
-                    >
-                      <DeleteIcon sx={{ fontSize: 14 }} />
-                    </IconButton>
-                  )}
-                </Box>
-              ))}
-              {/* Add photo button */}
+        {/* Photos - always visible */}
+        <Typography variant="subtitle2" sx={{ fontWeight: 600, mt: 3, mb: 1 }}>
+          Photos
+        </Typography>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, alignItems: 'center' }}>
+          {/* Saved photos */}
+          {(formData.photos || []).map((p, idx) => (
+            <Box key={`saved-${p.id ?? idx}`} sx={{ position: 'relative', width: 100, height: 100 }}>
+              <img
+                src={p.photo}
+                alt={p.caption || `Photo ${idx + 1}`}
+                style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 4 }}
+              />
               {!disabled && (
-                <Box
-                  component="label"
-                  sx={{
-                    width: 100, height: 100, border: '2px dashed', borderColor: 'grey.400',
-                    borderRadius: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    cursor: 'pointer', '&:hover': { borderColor: 'primary.main', bgcolor: 'action.hover' },
-                  }}
+                <IconButton
+                  size="small"
+                  onClick={() => handleDeleteSavedPhoto(p)}
+                  sx={{ position: 'absolute', top: -8, right: -8, bgcolor: 'error.main', color: 'white', '&:hover': { bgcolor: 'error.dark' }, width: 22, height: 22 }}
                 >
-                  <AddPhotoIcon sx={{ fontSize: 32, color: 'grey.500' }} />
-                  <input type="file" hidden multiple accept="image/*" onChange={handleFileSelect} />
-                </Box>
-              )}
-              {disabled && (formData.photos || []).length === 0 && filePreviews.length === 0 && (
-                <Typography variant="body2" color="text.secondary">No photos</Typography>
+                  <DeleteIcon sx={{ fontSize: 14 }} />
+                </IconButton>
               )}
             </Box>
-          </>
-        )}
+          ))}
+          {/* New files selected */}
+          {filePreviews.map((url, idx) => (
+            <Box key={`new-${idx}`} sx={{ position: 'relative', width: 100, height: 100 }}>
+              <img
+                src={url}
+                alt={`New ${idx + 1}`}
+                style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 4 }}
+              />
+              {!disabled && (
+                <IconButton
+                  size="small"
+                  onClick={() => handleRemoveFile(idx)}
+                  sx={{ position: 'absolute', top: -8, right: -8, bgcolor: 'error.main', color: 'white', '&:hover': { bgcolor: 'error.dark' }, width: 22, height: 22 }}
+                >
+                  <DeleteIcon sx={{ fontSize: 14 }} />
+                </IconButton>
+              )}
+            </Box>
+          ))}
+          {/* Add photo button */}
+          {!disabled && (
+            <Box
+              component="label"
+              sx={{
+                width: 100, height: 100, border: '2px dashed', borderColor: 'grey.400',
+                borderRadius: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: 'pointer', '&:hover': { borderColor: 'primary.main', bgcolor: 'action.hover' },
+              }}
+            >
+              <AddPhotoIcon sx={{ fontSize: 32, color: 'grey.500' }} />
+              <input type="file" hidden multiple accept="image/*" onChange={handleFileSelect} />
+            </Box>
+          )}
+          {disabled && (formData.photos || []).length === 0 && filePreviews.length === 0 && (
+            <Typography variant="body2" color="text.secondary">No photos</Typography>
+          )}
+        </Box>
 
         {/* Save / Cancel Buttons */}
         {!disabled && (
