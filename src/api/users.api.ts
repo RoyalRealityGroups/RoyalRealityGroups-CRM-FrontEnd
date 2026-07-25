@@ -266,6 +266,12 @@ export const usersApi = {
     return response.data || {};
   },
 
+  // Force logout a user — invalidates all their JWT sessions
+  forceLogout: async (id: string): Promise<{ message: string }> => {
+    const response = await apiClient.post<{ message: string }>(`${BASE_URL}/force-logout/${id}/`);
+    return response.data;
+  },
+
   // Get mini list (for dropdowns)
   mini: async (): Promise<Array<{ id: string; fullname: string }>> => {
     const response = await apiClient.get(`${BASE_URL}/mini/users/`);
