@@ -1,7 +1,7 @@
 import { useAppSelector, useAppDispatch } from '../store/hooks';
 import { loginStart, loginSuccess, loginFailure, logout as logoutAction, setUser } from '../store/slices/authSlice';
 import { clearMenu, fetchMenuSuccess } from '../store/slices/menuSlice';
-import { clearPermissions } from '../store/slices/permissionsSlice';
+import { clearPermissions, fetchPermissionsSuccess } from '../store/slices/permissionsSlice';
 import { authApi } from '../api/auth.api';
 import { menuApi } from '../api/menu.api';
 import { channelConfigApi, generalSettingsApi } from '../api/masters.api';
@@ -88,8 +88,11 @@ export const useAuth = () => {
       queryClient.clear();
 
       // Preload critical data before navigation to prevent loading gaps
-      const [, permissionsResult] = await Promise.allSettled([
-        menuApi.getUserMenu().then(res => dispatch(fetchMenuSuccess(res.menus))),
+      const [menuResult, permissionsResult] = await Promise.allSettled([
+        menuApi.getUserMenu().then(res => {
+          dispatch(fetchMenuSuccess(res.menus));
+          return res;
+        }),
         authApi.getPermissions(),
         queryClient.prefetchQuery({
           queryKey: ['channelConfig'],
@@ -101,8 +104,10 @@ export const useAuth = () => {
         }),
       ]);
 
-      // Update user permissions if fetched successfully (don't overwrite with empty)
-      if (permissionsResult.status === 'fulfilled' && permissionsResult.value.length > 0) {
+      // Use permissions from menu response (most fresh) or fall back to dedicated endpoint
+      if (menuResult.status === 'fulfilled' && menuResult.value.permissions && menuResult.value.permissions.length > 0) {
+        dispatch(fetchPermissionsSuccess(menuResult.value.permissions));
+      } else if (permissionsResult.status === 'fulfilled' && permissionsResult.value.length > 0) {
         dispatch(setUser({ ...user, permissions: permissionsResult.value }));
       }
 

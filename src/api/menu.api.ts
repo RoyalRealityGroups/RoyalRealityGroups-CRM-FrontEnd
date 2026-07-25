@@ -4,11 +4,16 @@ import { API_ENDPOINTS } from '../utils/constants';
 
 // Menu API functions
 export const menuApi = {
-  // Get user-specific menu
+  // Get user-specific menu (returns menus + permissions)
   getUserMenu: async (): Promise<UserMenu> => {
-    const response = await apiClient.get<{ count: number; results: any[] }>(API_ENDPOINTS.USER_MENU);
-    // API returns paginated response with { count, results }
-    return { menus: response.data.results || [] };
+    const response = await apiClient.get(API_ENDPOINTS.USER_MENU);
+    const data = response.data;
+    // New shape: { menus: [...], permissions: [...] }
+    if (data.menus) {
+      return { menus: data.menus, permissions: data.permissions || [] };
+    }
+    // Fallback for old paginated shape: { count, results }
+    return { menus: data.results || [], permissions: [] };
   },
 
   // Get all menus
