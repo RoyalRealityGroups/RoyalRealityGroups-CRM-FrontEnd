@@ -113,13 +113,13 @@ const BookingList: React.FC = () => {
 
   const { data: availablePlots } = useQuery({
     queryKey: ['available-plots', form.project],
-    queryFn: () => inventoryApi.getPlots({ project: form.project, status: 'AVAILABLE' }),
+    queryFn: () => inventoryApi.getPlots({ project: form.project, status__in: 'AVAILABLE,BLOCKED' }),
     enabled: !!form.project && form.unit_type === 'PLOT' && dialogOpen,
   });
 
   const { data: availableFlats } = useQuery({
     queryKey: ['available-flats', form.project],
-    queryFn: () => inventoryApi.getFlats({ project: form.project, status: 'AVAILABLE' }),
+    queryFn: () => inventoryApi.getFlats({ project: form.project, status__in: 'AVAILABLE,BLOCKED' }),
     enabled: !!form.project && form.unit_type === 'FLAT' && dialogOpen,
   });
 
@@ -507,10 +507,10 @@ const BookingList: React.FC = () => {
                 <Grid size={{ xs: 12 }}>
                   <Divider sx={{ my: 1 }} />
                   <Typography variant="subtitle2" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
-                    <HistoryIcon fontSize="small" /> Status History
+                    <HistoryIcon fontSize="small" /> Status History (Last 5)
                   </Typography>
                   <Box sx={{ pl: 2, borderLeft: '2px solid', borderColor: 'divider', display: 'flex', flexDirection: 'column', gap: 1 }}>
-                    {statusHistory.map((h) => (
+                    {statusHistory.slice(0, 3).map((h) => (
                       <Box key={h.id}>
                         <Typography variant="body2" fontWeight={600}>{h.from_status || 'INIT'} → {h.to_status}</Typography>
                         <Typography variant="caption" color="text.secondary">

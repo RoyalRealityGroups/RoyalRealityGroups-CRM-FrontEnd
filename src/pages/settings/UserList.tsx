@@ -27,6 +27,7 @@ import {
   People as PeopleIcon,
   CheckCircle as ActiveIcon,
   Cancel as InactiveIcon,
+  Logout as LogoutIcon,
 } from '@mui/icons-material';
 import { DataGrid, type GridColDef, type GridPaginationModel } from '@mui/x-data-grid';
 import { useNavigate } from 'react-router-dom';
@@ -100,6 +101,16 @@ const UserList: React.FC = () => {
       setDeleteDialogOpen(false);
       setSelectedUser(null);
       toastError(message);
+    },
+  });
+
+  const forceLogoutMutation = useMutation({
+    mutationFn: (id: string) => usersApi.forceLogout(id),
+    onSuccess: (response) => {
+      toastSuccess(response?.message || 'User logged out successfully');
+    },
+    onError: (error: any) => {
+      toastError(error.response?.data?.error || 'Failed to logout user');
     },
   });
 
@@ -202,7 +213,7 @@ const UserList: React.FC = () => {
     {
       field: 'actions',
       headerName: 'Actions',
-      width: 120,
+      width: 150,
       sortable: false,
       filterable: false,
       renderCell: (params) => (
@@ -231,6 +242,17 @@ const UserList: React.FC = () => {
               color="error"
             >
               <DeleteIcon fontSize="small" />
+            </IconButton>
+          )}
+          {params.row.id !== user?.id && (
+            <IconButton
+              size="small"
+              onClick={() => forceLogoutMutation.mutate(params.row.id)}
+              title="Force Logout"
+              color="warning"
+              disabled={forceLogoutMutation.isPending}
+            >
+              <LogoutIcon fontSize="small" />
             </IconButton>
           )}
         </Box>
