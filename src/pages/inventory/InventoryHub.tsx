@@ -5,7 +5,7 @@ import { Landscape as PlotIcon, Apartment as FlatIcon } from '@mui/icons-materia
 import ScreenHeader from '../../components/common/ScreenHeader';
 import { useBreadcrumbs } from '../../contexts/BreadcrumbContext';
 import HomeIcon from '@mui/icons-material/Home';
-import InventoryIcon from '@mui/icons-material/Inventory2';
+import ListAltIcon from '@mui/icons-material/ListAlt';
 import { usePageTitle } from '../../hooks';
 
 const InventoryHub: React.FC = () => {
@@ -15,11 +15,11 @@ const InventoryHub: React.FC = () => {
   React.useEffect(() => {
     setBreadcrumbs([
       { label: 'Home', path: '/', icon: <HomeIcon fontSize="small" /> },
-      { label: 'Inventory Management', path: '/inventory', icon: <InventoryIcon fontSize="small" /> },
+      { label: 'Availability List', path: '/inventory', icon: <ListAltIcon fontSize="small" /> },
     ]);
   }, [setBreadcrumbs]);
 
-  usePageTitle('Inventory Management');
+  usePageTitle('Availability List');
 
   const menuItems = [
     {
@@ -40,7 +40,7 @@ const InventoryHub: React.FC = () => {
 
   return (
     <Box>
-      <ScreenHeader title="Inventory Management" showAddButton={false} />
+      <ScreenHeader title="Availability List" showAddButton={false} />
 
       <Grid container spacing={3} sx={{ mt: 2 }}>
         {menuItems.map((item) => (

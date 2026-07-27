@@ -12,7 +12,7 @@ import { useBreadcrumbs } from '../../contexts/BreadcrumbContext';
 import { useToast } from '../../contexts/ToastContext';
 import { usePageTitle } from '../../hooks';
 import HomeIcon from '@mui/icons-material/Home';
-import InventoryIcon from '@mui/icons-material/Inventory2';
+import ListAltIcon from '@mui/icons-material/ListAlt';
 import PlotIcon from '@mui/icons-material/Landscape';
 import type { PlotFormData, InventoryStatus } from '../../types/inventory.types';
 import { getPageContainerStyles, getContentSectionStyles } from '../../utils/spacing';
@@ -47,7 +47,7 @@ const PlotForm: React.FC = () => {
   useEffect(() => {
     setBreadcrumbs([
       { label: 'Home', path: '/', icon: <HomeIcon fontSize="small" /> },
-      { label: 'Inventory', path: '/inventory/plots', icon: <InventoryIcon fontSize="small" /> },
+      { label: 'Availability List', path: '/inventory/plots', icon: <ListAltIcon fontSize="small" /> },
       { label: 'Plots', path: '/inventory/plots', icon: <PlotIcon fontSize="small" /> },
       { label: isViewMode ? 'View' : isEditMode ? 'Edit' : 'Add' },
     ]);

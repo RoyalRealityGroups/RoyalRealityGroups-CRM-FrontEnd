@@ -23,7 +23,7 @@ import { useBreadcrumbs } from '../../contexts/BreadcrumbContext';
 import { useToast } from '../../contexts/ToastContext';
 import { usePageTitle } from '../../hooks';
 import HomeIcon from '@mui/icons-material/Home';
-import InventoryIcon from '@mui/icons-material/Inventory2';
+import ListAltIcon from '@mui/icons-material/ListAlt';
 import type { Flat, InventoryStatus, FlatFormData } from '../../types/inventory.types';
 import { STATUS_COLORS, STATUS_LABELS } from '../../types/inventory.types';
 
@@ -66,7 +66,7 @@ const FlatList: React.FC = () => {
   useEffect(() => {
     setBreadcrumbs([
       { label: 'Home', path: '/', icon: <HomeIcon fontSize="small" /> },
-      { label: 'Inventory Management', path: '/inventory', icon: <InventoryIcon fontSize="small" /> },
+      { label: 'Availability List', path: '/inventory', icon: <ListAltIcon fontSize="small" /> },
       { label: 'Flats', icon: <FlatIcon fontSize="small" /> },
     ]);
   }, [setBreadcrumbs]);

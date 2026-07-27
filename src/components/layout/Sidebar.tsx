@@ -284,7 +284,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           <List>
             {allSubmenus.map((submenu) => {
               const isLeadMgmt = submenu.name?.toLowerCase() === 'lead management';
-              const isInventoryMgmt = submenu.name?.toLowerCase() === 'inventory management';
+              const isInventoryMgmt = submenu.name?.toLowerCase() === 'inventory management' || submenu.name?.toLowerCase() === 'availability list';
               const hasChildren = submenu.menuitems && submenu.menuitems.length > 0;
               const isExpanded = expandedSubmenu === submenu.id;
               const activeChildMenuItem = (isLeadMgmt || isInventoryMgmt) && hasChildren

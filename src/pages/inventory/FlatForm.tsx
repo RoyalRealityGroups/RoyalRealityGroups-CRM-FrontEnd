@@ -12,7 +12,7 @@ import { useBreadcrumbs } from '../../contexts/BreadcrumbContext';
 import { useToast } from '../../contexts/ToastContext';
 import { usePageTitle } from '../../hooks';
 import HomeIcon from '@mui/icons-material/Home';
-import InventoryIcon from '@mui/icons-material/Inventory2';
+import ListAltIcon from '@mui/icons-material/ListAlt';
 import FlatIcon from '@mui/icons-material/Apartment';
 import type { FlatFormData, InventoryStatus } from '../../types/inventory.types';
 import { getPageContainerStyles, getContentSectionStyles } from '../../utils/spacing';
@@ -48,7 +48,7 @@ const FlatForm: React.FC = () => {
   useEffect(() => {
     setBreadcrumbs([
       { label: 'Home', path: '/', icon: <HomeIcon fontSize="small" /> },
-      { label: 'Inventory', path: '/inventory/flats', icon: <InventoryIcon fontSize="small" /> },
+      { label: 'Availability List', path: '/inventory/flats', icon: <ListAltIcon fontSize="small" /> },
       { label: 'Flats', path: '/inventory/flats', icon: <FlatIcon fontSize="small" /> },
       { label: isViewMode ? 'View' : isEditMode ? 'Edit' : 'Add' },
     ]);
