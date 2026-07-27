@@ -78,7 +78,7 @@ const Layout: React.FC = () => {
             position: 'relative', 
             zIndex: 1,
             flexGrow: 1,
-            overflow: 'hidden',
+            overflow: 'auto',
             display: 'flex',
             flexDirection: 'column',
             p: { xs: 0.5, sm: 0.75, md: 1 },

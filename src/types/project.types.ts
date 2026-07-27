@@ -1,5 +1,17 @@
 // Project Master Types — SRS Module 6
 
+export interface ProjectImage {
+  id: string;
+  project: string;
+  image: string;
+  image_type: 'GALLERY' | 'FLOOR_PLAN' | 'ELEVATION';
+  image_type_display?: string;
+  title?: string;
+  description?: string;
+  order: number;
+  created_on?: string;
+}
+
 export interface Project {
   id: string;
   code: string;
@@ -14,6 +26,21 @@ export interface Project {
   status_display?: string;
   /** Project image / thumbnail (ImageField → URL string from DRF) */
   sub?: string | null;
+  
+  // New enhanced fields
+  overview?: string | null;
+  description?: string | null;
+  amenities?: string | null;
+  specifications?: string | null;
+  floor_plans_text?: string | null;
+  elevation_image?: string | null;
+  thumbnail?: string | null;
+  preview_image?: string | null;
+  floor_plans?: string[];
+  gallery?: string[];
+  brochure?: string | null;
+  images?: ProjectImage[];
+  
   is_active: boolean;
   is_deleted?: boolean;
   created_by?: string;
@@ -27,12 +54,24 @@ export interface Project {
 export interface ProjectFormData {
   name: string;
   developer_name?: string;
-  project_type: string;
+  project_type?: string;
   location?: string | null;
-  approval_type: string;
-  status: string;
-  is_active: boolean;
-  sub?: string | null;
+  approval_type?: string;
+  status?: string;
+  is_active?: boolean;
+  sub?: string | File | null;
+  
+  // New enhanced fields
+  overview?: string | null;
+  description?: string | null;
+  amenities?: string | null;
+  specifications?: string | null;
+  floor_plans_text?: string | null;
+  elevation_image?: string | File | null;
+  thumbnail?: string | File | null;
+  floor_plans?: string[];
+  gallery?: string[];
+  brochure?: string | File | null;
 }
 
 export interface ProjectMini {
@@ -44,6 +83,9 @@ export interface ProjectMini {
   project_type: string;
   project_type_display?: string;
   is_active: boolean;
+  // For preview cards
+  thumbnail?: string | null;
+  elevation_image?: string | null;
 }
 
 export interface ProjectListParams {
