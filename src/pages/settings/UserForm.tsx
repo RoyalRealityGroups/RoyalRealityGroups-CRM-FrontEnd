@@ -94,6 +94,7 @@ const UserForm: React.FC = () => {
   const [selectedGroups, setSelectedGroups] = useState<Group[]>([]);
   const [showPassword, setShowPassword] = useState(false);
   const [selectedReportingManager, setSelectedReportingManager] = useState<any>(null);
+  const [apiErrors, setApiErrors] = useState<Record<string, string>>({});
   
   // Profile picture state
   const [profilePictureFile, setProfilePictureFile] = useState<File | null>(null);
@@ -183,11 +184,37 @@ const UserForm: React.FC = () => {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
       toastSuccess('User created successfully');
+      setApiErrors({});
       setTimeout(() => navigate('/settings/users'), 1000);
     },
     onError: (error: any) => {
-      const errorMsg = error.response?.data?.message || error.response?.data?.username?.[0] || error.response?.data?.detail || 'Failed to create user';
-      toastError(errorMsg);
+      // Parse field-specific errors from Django REST Framework
+      const responseData = error.response?.data;
+      if (responseData && typeof responseData === 'object') {
+        const fieldErrors: Record<string, string> = {};
+        
+        // Check if errors are wrapped in 'errors' key (custom exception handler format)
+        const errorsObj = responseData.errors || responseData;
+        
+        Object.keys(errorsObj).forEach(key => {
+          if (key === 'detail' || key === 'error') return; // Skip meta fields
+          const value = errorsObj[key];
+          if (Array.isArray(value)) {
+            fieldErrors[key] = value.join(' ');
+          } else if (typeof value === 'string') {
+            fieldErrors[key] = value;
+          }
+        });
+        
+        setApiErrors(fieldErrors);
+        
+        // Show toast for detail message if no field-specific errors shown
+        if (responseData.detail && Object.keys(fieldErrors).length === 0) {
+          toastError(responseData.detail);
+        }
+      } else {
+        toastError('Failed to create user');
+      }
     },
   });
 
@@ -197,6 +224,7 @@ const UserForm: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
       queryClient.invalidateQueries({ queryKey: ['user', id] });
       toastSuccess('User updated successfully');
+      setApiErrors({});
       // Refresh auth user data to update AppBar avatar
       if (isProfileMode) {
         authApi.getCurrentUser().then((userData) => {
@@ -206,8 +234,33 @@ const UserForm: React.FC = () => {
       setTimeout(() => navigate(backPath), 1000);
     },
     onError: (error: any) => {
-      const errorMsg = error.response?.data?.message || error.response?.data?.username?.[0] || error.response?.data?.detail || 'Failed to update user';
-      toastError(errorMsg);
+      // Parse field-specific errors from Django REST Framework
+      const responseData = error.response?.data;
+      if (responseData && typeof responseData === 'object') {
+        const fieldErrors: Record<string, string> = {};
+        
+        // Check if errors are wrapped in 'errors' key (custom exception handler format)
+        const errorsObj = responseData.errors || responseData;
+        
+        Object.keys(errorsObj).forEach(key => {
+          if (key === 'detail' || key === 'error') return; // Skip meta fields
+          const value = errorsObj[key];
+          if (Array.isArray(value)) {
+            fieldErrors[key] = value.join(' ');
+          } else if (typeof value === 'string') {
+            fieldErrors[key] = value;
+          }
+        });
+        
+        setApiErrors(fieldErrors);
+        
+        // Show toast for detail message if no field-specific errors shown
+        if (responseData.detail && Object.keys(fieldErrors).length === 0) {
+          toastError(responseData.detail);
+        }
+      } else {
+        toastError('Failed to update user');
+      }
     },
   });
 
@@ -464,12 +517,13 @@ const UserForm: React.FC = () => {
                   variant="subtitle2" 
                   sx={{ mb: 0.5, fontWeight: 600, color: 'text.primary' }}
                 >
-                  Email
+                  Email <Box component="span" sx={{ color: '#f44336', fontWeight: 600 }}>*</Box>
                 </Typography>
                 <Controller
                   name="email"
                   control={control}
                   rules={{
+                    required: 'Email is required',
                     pattern: {
                       value: CONTACT_EMAIL_REGEX,
                       message: 'Please enter a valid email address (e.g., john@company.com)',
@@ -478,16 +532,20 @@ const UserForm: React.FC = () => {
                   render={({ field }) => (
                     <TextField
                       {...field}
-                      placeholder="e.g., user@company.com"
+                      placeholder="e.g., user@royalrealitygroup.com"
                       type="email"
                       fullWidth
                       size="small"
-                      error={!!errors.email}
-                      helperText={errors.email?.message}
+                      error={!!errors.email || !!apiErrors.email}
+                      helperText={errors.email?.message || apiErrors.email}
                       disabled={isSubmitting}
                       onChange={(e) => {
                         const value = e.target.value.replace(/\s/g, '');
                         field.onChange(value);
+                        // Clear API error when user starts typing
+                        if (apiErrors.email) {
+                          setApiErrors(prev => ({ ...prev, email: '' }));
+                        }
                       }}
                     />
                   )}
