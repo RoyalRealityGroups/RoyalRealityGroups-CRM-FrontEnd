@@ -64,3 +64,45 @@ export interface SiteVisitListResponse {
 export interface SiteVisitChoices {
   statuses: { value: SiteVisitStatus; label: string }[];
 }
+
+// Calendar types
+export type CalendarColour = 'RED' | 'YELLOW' | 'GREEN' | 'BLUE' | 'ORANGE';
+
+export interface SiteVisitCalendarEvent {
+  id: string;
+  code: string;
+  customer_name: string;
+  project_name: string;
+  project_id: string | null;
+  visit_date: string;
+  assigned_employee_id: string | null;
+  assigned_employee_name: string;
+  status: SiteVisitStatus;
+  status_display: string;
+  lead_id: string | null;
+  lead_status: string | null;
+  colour: CalendarColour;
+  remarks: string;
+}
+
+export interface SiteVisitCalendarSummary {
+  total: number;
+  scheduled: number;
+  confirmed: number;
+  completed: number;
+  cancelled: number;
+}
+
+export interface SiteVisitCalendarResponse {
+  month: number;
+  year: number;
+  events: SiteVisitCalendarEvent[];
+  summary: SiteVisitCalendarSummary;
+}
+
+export interface CalendarTodo {
+  id: number;
+  date: string;
+  title: string;
+  is_completed: boolean;
+}

@@ -5,6 +5,8 @@ import type {
   SiteVisitListParams,
   SiteVisitListResponse,
   SiteVisitChoices,
+  SiteVisitCalendarResponse,
+  CalendarTodo,
 } from '../types/siteVisit.types';
 
 const BASE = '/api/sitevisit/site-visits/';
@@ -78,5 +80,41 @@ export const siteVisitApi = {
   getStats: async () => {
     const response = await apiClient.get(`${BASE}stats/`);
     return response.data;
+  },
+
+  /** Get site visits for calendar view (monthly) */
+  getCalendar: async (params: {
+    month: number;
+    year: number;
+    assigned_employee?: string;
+    project?: string;
+    status?: string;
+  }): Promise<SiteVisitCalendarResponse> => {
+    const response = await apiClient.get(`${BASE}calendar/`, { params });
+    return response.data;
+  },
+
+  // --- Calendar To-Do API ---
+  /** Get todos for a month */
+  getTodos: async (month: number, year: number): Promise<CalendarTodo[]> => {
+    const response = await apiClient.get('/api/sitevisit/todos/', { params: { month, year } });
+    return response.data;
+  },
+
+  /** Create a new todo */
+  createTodo: async (date: string, title: string): Promise<CalendarTodo> => {
+    const response = await apiClient.post('/api/sitevisit/todos/', { date, title });
+    return response.data;
+  },
+
+  /** Toggle todo completion or update title */
+  updateTodo: async (id: number, data: { is_completed?: boolean; title?: string }): Promise<CalendarTodo> => {
+    const response = await apiClient.patch(`/api/sitevisit/todos/${id}/`, data);
+    return response.data;
+  },
+
+  /** Delete a todo */
+  deleteTodo: async (id: number): Promise<void> => {
+    await apiClient.delete(`/api/sitevisit/todos/${id}/`);
   },
 };

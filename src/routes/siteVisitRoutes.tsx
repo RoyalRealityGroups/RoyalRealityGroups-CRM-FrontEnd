@@ -4,6 +4,7 @@ import { PageLoader } from '../components/common/PageLoader';
 
 const SiteVisits = lazy(() => import('../pages/sitevisit/SiteVisits'));
 const SiteVisitForm = lazy(() => import('../pages/sitevisit/SiteVisitForm'));
+const SiteVisitCalendar = lazy(() => import('../pages/sitevisit/SiteVisitCalendar'));
 
 const withSuspense = (Component: React.LazyExoticComponent<any>) => (
   <Suspense fallback={<PageLoader />}>
@@ -14,6 +15,7 @@ const withSuspense = (Component: React.LazyExoticComponent<any>) => (
 export const siteVisitRoutes = (
   <>
     <Route path="sitevisit/list" element={withSuspense(SiteVisits)} />
+    <Route path="sitevisit/calendar" element={withSuspense(SiteVisitCalendar)} />
     <Route path="sitevisit/add" element={withSuspense(SiteVisitForm)} />
     <Route path="sitevisit/edit/:id" element={withSuspense(SiteVisitForm)} />
     <Route path="sitevisit/view/:id" element={withSuspense(SiteVisitForm)} />

@@ -283,18 +283,18 @@ const Sidebar: React.FC<SidebarProps> = ({
         ) : (
           <List>
             {allSubmenus.map((submenu) => {
-              const isLeadMgmt = submenu.name?.toLowerCase() === 'lead management';
-              const isInventoryMgmt = submenu.name?.toLowerCase() === 'inventory management' || submenu.name?.toLowerCase() === 'availability list';
               const hasChildren = submenu.menuitems && submenu.menuitems.length > 0;
+              const hasMultipleChildren = submenu.menuitems && submenu.menuitems.length > 1;
               const isExpanded = expandedSubmenu === submenu.id;
-              const activeChildMenuItem = (isLeadMgmt || isInventoryMgmt) && hasChildren
+              const activeChildMenuItem = hasChildren
                 ? submenu.menuitems!.find(mi => location.pathname === (mi.path || mi.link || ''))
                 : null;
               const visibleMenuitems = hasChildren
                 ? submenu.menuitems!.filter(checkMenuItemAccess).sort((a, b) => a.sequence - b.sequence)
                 : [];
 
-              if (isLeadMgmt || isInventoryMgmt) {
+              // Expandable submenu: has multiple children OR specifically configured to expand
+              if (hasMultipleChildren) {
                 return (
                   <React.Fragment key={submenu.id}>
                     <ListItem disablePadding>
