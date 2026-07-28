@@ -348,13 +348,17 @@ const Sidebar: React.FC<SidebarProps> = ({
                 );
               }
 
-              // Old flat behavior for other submenus
+              // Flat behavior: single child or no children — navigate directly
+              // If there's exactly 1 visible menuitem, navigate to its path
+              const flatPath = visibleMenuitems.length === 1
+                ? (visibleMenuitems[0].path || visibleMenuitems[0].link || getSubmenuPath(submenu))
+                : getSubmenuPath(submenu);
               return (
                 <ListItem key={submenu.id} disablePadding>
                   <Tooltip title={collapsed && !isMobile ? submenu.name : ''} placement="right" arrow>
                     <ListItemButton
-                      onClick={() => handleNavigate(getSubmenuPath(submenu))}
-                      selected={location.pathname === getSubmenuPath(submenu)}
+                      onClick={() => handleNavigate(flatPath)}
+                      selected={location.pathname === flatPath}
                       onMouseEnter={() => setHoveredSubmenu(submenu.id)}
                       onMouseLeave={() => setHoveredSubmenu(null)}
                       sx={{
