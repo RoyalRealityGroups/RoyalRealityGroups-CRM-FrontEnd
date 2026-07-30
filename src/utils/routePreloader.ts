@@ -17,8 +17,9 @@ export const preloadRoute = (routePath: string) => {
     '/sales/orders': () => import('../pages/sales/SaleOrder/SalesOrderList'),
     '/sales/invoice/create': () => import('../pages/sales/Invoice/InvoiceForm'),
     '/sales/invoice': () => import('../pages/sales/Invoice/InvoiceList'),
-    '/masters/items': () => import('../pages/masters/Item/ItemList'),
-    '/masters/items/add': () => import('../pages/masters/Item/ItemForm'),
+    // ponytail: Item pages not built yet — re-add when src/pages/masters/Item/{ItemList,ItemForm}.tsx exist
+    // '/masters/items': () => import('../pages/masters/Item/ItemList'),
+    // '/masters/items/add': () => import('../pages/masters/Item/ItemForm'),
     '/projects/list': () => import('../pages/masters/Project/ProjectList'),
     '/projects/view/:id': () => import('../pages/masters/Project/ProjectView'),
     '/projects/add': () => import('../pages/masters/Project/ProjectForm'),
