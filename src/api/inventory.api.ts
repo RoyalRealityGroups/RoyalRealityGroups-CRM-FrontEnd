@@ -79,9 +79,9 @@ export const inventoryApi = {
     return response.data;
   },
 
-  // ========== PROJECTS (from Masters) ==========
+  // ========== PROJECTS (from ProjectManagement) ==========
   getProjects: async () => {
-    const response = await apiClient.get('/api/masters/projects/', {
+    const response = await apiClient.get('/api/projects/', {
       params: { page_size: 1000, is_active: true },
     });
     return response.data.results || response.data;
