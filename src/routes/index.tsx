@@ -3,7 +3,6 @@ import { Suspense, lazy, useEffect } from 'react';
 import { PageLoader } from '../components/common/PageLoader';
 import { ROUTES } from '../utils/constants';
 import { publicRoutes } from './publicRoutes';
-import { mastersRoutes } from './mastersRoutes';
 import { leadRoutes } from './leadRoutes';
 import { settingsRoutes } from './settingsRoutes';
 import { receiptsRoutes, receiptsPrintRoutes } from './receiptsRoutes';
@@ -17,7 +16,7 @@ import { setNavigateRef } from '../api/axios.config';
 const Dashboard = lazy(() => import('../pages/dashboard/DashboardPage'));
 const NotFound = lazy(() => import('../pages/NotFound'));
 
-// ponytail: Project is a top-level domain in this CRM, not a master
+// Project is a top-level domain in this CRM, not a master
 const ProjectList = lazy(() => import('../pages/masters/Project/ProjectList'));
 const ProjectView = lazy(() => import('../pages/masters/Project/ProjectView'));
 const ProjectForm = lazy(() => import('../pages/masters/Project/ProjectForm'));
@@ -64,7 +63,6 @@ export const AppRoutes = () => (
           </Suspense>
         }
       />
-      {mastersRoutes}
       <Route path="projects/list" element={withSuspense(ProjectList)} />
       <Route path="projects/view/:id" element={withSuspense(ProjectView)} />
       <Route path="projects/add" element={withSuspense(ProjectForm)} />

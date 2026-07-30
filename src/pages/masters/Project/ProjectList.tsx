@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Box, Paper, Button, IconButton, Tooltip, TextField,
+  Box, Paper, Button, IconButton, Tooltip, TextField, Chip, Typography,
 } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import type { GridColDef } from '@mui/x-data-grid';
@@ -117,9 +117,38 @@ const ProjectList: React.FC = () => {
   const columns: GridColDef<Project>[] = [
     { field: 'code', headerName: 'Code', width: 100 },
     { field: 'name', headerName: 'Project Name', flex: 1, minWidth: 180 },
-    { field: 'developer_name', headerName: 'Developer', width: 150 },
-    { field: 'location', headerName: 'Location', width: 150 },
-    { field: 'overview', headerName: 'Overview', flex: 1, minWidth: 200 },
+    { field: 'developer_name', headerName: 'Developer', width: 160,
+      renderCell: (p) => (
+        <Typography variant="body2">{p.row.developer_name || '-'}</Typography>
+      ),
+    },
+    { field: 'location', headerName: 'Location', width: 160,
+      renderCell: (p) => (
+        <Typography variant="body2">{p.row.location || '-'}</Typography>
+      ),
+    },
+    {
+      field: 'overview',
+      headerName: 'Overview',
+      flex: 1,
+      minWidth: 200,
+      renderCell: (p) => (
+        <Typography variant="body2" noWrap sx={{ color: 'text.secondary' }} title={p.row.overview || ''}>
+          {p.row.overview || '-'}
+        </Typography>
+      ),
+    },
+    {
+      field: 'is_active', headerName: 'Active', width: 80, headerAlign: 'center', align: 'center',
+      renderCell: (p) => (
+        <Chip
+          size="small"
+          label={p.row.is_active ? 'Yes' : 'No'}
+          color={p.row.is_active ? 'success' : 'default'}
+          variant="outlined"
+        />
+      ),
+    },
     {
       field: 'actions', headerName: 'Actions', width: 120, sortable: false, filterable: false, headerAlign: 'center', align: 'center',
       renderCell: (p) => (

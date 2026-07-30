@@ -131,8 +131,26 @@ const GroupForm: React.FC = () => {
       'sales', 'sessions', 'system', 'thirdparty',
       'token_blacklist', 'delivery', 'dispatch',
     ]);
+
+    // For Masters app, only show project-related models (hide FMCG legacy models)
+    const MASTERS_ALLOWED_MODELS = new Set([
+      'project', 'projectimage', 'projectstatushistory',
+    ]);
+
     return appsData
       .filter((app) => !HIDDEN_APP_LABELS.has((app.app_label || app.name || '').toLowerCase()))
+      .map((app) => {
+        const appLabel = (app.app_label || app.name || '').toLowerCase();
+        if (appLabel === 'masters') {
+          return {
+            ...app,
+            contenttypedetails: (app.contenttypedetails || []).filter(
+              (ct) => MASTERS_ALLOWED_MODELS.has(ct.model?.toLowerCase() || '')
+            ),
+          };
+        }
+        return app;
+      })
       .filter((app) => app.contenttypedetails?.some((ct) => ct.permissions?.length > 0))
       .sort((a, b) => a.sequence - b.sequence || a.name.localeCompare(b.name));
   }, [appsData]);
