@@ -220,11 +220,15 @@ const LeadList: React.FC = () => {
   const handleOpenCreate = () => {
     setEditing(null);
     setForm(emptyForm);
+    setFieldErrors({});
+    setDuplicates(null);
     setDialogOpen(true);
   };
 
   const handleOpenEdit = (item: Lead) => {
     setEditing(item);
+    setFieldErrors({});
+    setDuplicates(null);
     setForm({
       name: item.name || '',
       mobile: item.mobile || '',
@@ -552,7 +556,7 @@ const LeadList: React.FC = () => {
             </Grid>
           </Grid>
 
-          {saveMutation.isError && (
+          {saveMutation.isError && !(saveMutation.error as any)?.response?.data?.has_duplicates && (
             <Alert severity="error" sx={{ mt: 2 }}>
               {(() => {
                 const errs = Object.values(fieldErrors);
