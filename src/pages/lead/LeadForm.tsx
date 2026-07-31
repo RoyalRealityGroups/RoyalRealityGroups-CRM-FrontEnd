@@ -202,8 +202,8 @@ const LeadForm: React.FC = () => {
         });
         const msg =
           lines.length > 0
-            ? `Duplicate ${lines.join(' • ')}`
-            : data.non_field_errors?.[0] || 'Duplicate lead detected';
+            ? `This client already exists in the CRM and is assigned to another employee. Matched on ${lines.join(' • ')}`
+            : data.non_field_errors?.[0] || 'This client already exists in the CRM and is assigned to another employee.';
 
         setCrossCheckResult({
           has_duplicates: true,
@@ -576,7 +576,7 @@ const LeadForm: React.FC = () => {
       {crossCheckResult?.has_duplicates && !crossCheckOpen && (
         <Box sx={{ mb: 3 }}>
           <Alert severity="warning" sx={{ mb: 1 }}>
-            Duplicate lead(s) detected — notification sent to your inbox
+            This client already exists in the CRM and is assigned to another employee.
           </Alert>
           {crossCheckResult.duplicates.map((dup, i) => (
             <Box key={i} sx={{ mb: 1, p: 1.5, bgcolor: 'grey.100', borderRadius: 1 }}>
@@ -592,11 +592,11 @@ const LeadForm: React.FC = () => {
 
       {/* Cross Check Warning Dialog */}
       <Dialog open={crossCheckOpen} onClose={handleCrossCheckCancel} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ color: 'warning.main' }}>Duplicate Lead Found!</DialogTitle>
+        <DialogTitle sx={{ color: 'warning.main' }}>Client Already Exists!</DialogTitle>
         <DialogContent>
           <Alert severity="warning" sx={{ mb: 2 }}>
             {crossCheckResult?.matchedFields?.length
-              ? `Duplicate ${crossCheckResult.matchedFields
+              ? `This client already exists in the CRM and is assigned to another employee. Matched on ${crossCheckResult.matchedFields
                   .map((f) =>
                     f === 'mobile'
                       ? 'Mobile'
@@ -606,9 +606,9 @@ const LeadForm: React.FC = () => {
                       ? 'Email'
                       : f
                   )
-                  .join(' & ')} found. Review the matches below before proceeding.`
+                  .join(' & ')}.`
               : crossCheckResult?.message ||
-                'Similar leads exist in the system. Please review before proceeding.'}
+                'This client already exists in the CRM and is assigned to another employee.'}
           </Alert>
 
           {crossCheckResult?.duplicates.map((dup, index) => (

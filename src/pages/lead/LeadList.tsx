@@ -644,10 +644,10 @@ const LeadList: React.FC = () => {
 
       {/* Duplicate Lead Dialog */}
       <Dialog open={!!duplicates} onClose={() => setDuplicates(null)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ color: 'warning.main' }}>Duplicate Lead Found</DialogTitle>
+        <DialogTitle sx={{ color: 'warning.main' }}>Client Already Exists</DialogTitle>
         <DialogContent>
           <Typography variant="body2" sx={{ mb: 2 }}>
-            A lead with the same details already exists:
+            This client already exists in the CRM and is assigned to another employee:
           </Typography>
           {duplicates?.map((dup, idx) => (
             <Paper key={idx} variant="outlined" sx={{ p: 2, mb: 1.5 }}>
