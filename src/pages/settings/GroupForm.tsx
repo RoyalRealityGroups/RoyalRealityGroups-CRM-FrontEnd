@@ -124,33 +124,16 @@ const GroupForm: React.FC = () => {
 
   // Filter apps that have content types with permissions
   const filteredApps = useMemo(() => {
-    // ponytail: hide internal/system apps from the Add Group permission picker
+    // Hide internal/system apps from the permission picker
     const HIDDEN_APP_LABELS = new Set([
-      'admin', 'auth', 'contenttypes', 'core_users', 'dispatch',
+      'admin', 'auth', 'contenttypes', 'core_users',
       'dynamic_preferences', 'general', 'invoice', 'receipt', 'receipts',
       'sales', 'sessions', 'system', 'thirdparty',
-      'token_blacklist', 'delivery', 'dispatch',
-    ]);
-
-    // For Masters app, only show project-related models (hide FMCG legacy models)
-    const MASTERS_ALLOWED_MODELS = new Set([
-      'project', 'projectimage', 'projectstatushistory',
+      'token_blacklist', 'delivery', 'dispatch', 'masters',
     ]);
 
     return appsData
       .filter((app) => !HIDDEN_APP_LABELS.has((app.app_label || app.name || '').toLowerCase()))
-      .map((app) => {
-        const appLabel = (app.app_label || app.name || '').toLowerCase();
-        if (appLabel === 'masters') {
-          return {
-            ...app,
-            contenttypedetails: (app.contenttypedetails || []).filter(
-              (ct) => MASTERS_ALLOWED_MODELS.has(ct.model?.toLowerCase() || '')
-            ),
-          };
-        }
-        return app;
-      })
       .filter((app) => app.contenttypedetails?.some((ct) => ct.permissions?.length > 0))
       .sort((a, b) => a.sequence - b.sequence || a.name.localeCompare(b.name));
   }, [appsData]);

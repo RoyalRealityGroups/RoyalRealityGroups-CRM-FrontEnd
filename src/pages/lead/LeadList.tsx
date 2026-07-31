@@ -183,7 +183,10 @@ const LeadList: React.FC = () => {
       setDeleteId(null);
       refetch();
     },
-    onError: () => toastError('Failed to delete lead'),
+    onError: (err: any) => {
+      const msg = err?.response?.data?.detail || err?.response?.data?.error || 'Failed to delete lead';
+      toastError(msg);
+    },
   });
 
   // --- Dialog handlers ---
@@ -692,11 +695,14 @@ const LeadList: React.FC = () => {
       <ConfirmDialog
         open={!!deleteId}
         title="Delete Lead?"
-        message="This action cannot be undone."
+        message={deleteMutation.isError 
+          ? ((deleteMutation.error as any)?.response?.data?.detail || 'Failed to delete lead')
+          : "This action cannot be undone."
+        }
         confirmLabel="Delete"
         severity="error"
         onConfirm={() => deleteId && deleteMutation.mutate(deleteId)}
-        onCancel={() => setDeleteId(null)}
+        onCancel={() => { setDeleteId(null); deleteMutation.reset(); }}
       />
     </Box>
   );

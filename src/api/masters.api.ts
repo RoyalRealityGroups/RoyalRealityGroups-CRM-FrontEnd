@@ -11,15 +11,15 @@ import type {
   StateListResponse,
 } from '../types/masters.types';
 
-// Channel Configuration API
+// Channel Configuration API — stubbed for Real Estate (no channel partner tiers needed)
 export const channelConfigApi = {
   getChannelConfig: async (): Promise<{
     enable_superstockist: boolean;
     enable_distributor: boolean;
     enable_retailer: boolean;
   }> => {
-    const response = await apiClient.get('/api/masters/channel-config/');
-    return response.data;
+    // Real Estate CRM does not use channel partner configuration
+    return { enable_superstockist: false, enable_distributor: false, enable_retailer: false };
   },
 };
 
