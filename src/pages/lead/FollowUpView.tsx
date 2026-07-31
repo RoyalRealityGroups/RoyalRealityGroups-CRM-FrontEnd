@@ -37,7 +37,9 @@ const getStatusColor = (status: string): 'default' | 'primary' | 'secondary' | '
     case 'NEW_LEAD': return 'default';
     case 'CONTACT_ATTEMPTED': return 'info';
     case 'CONNECTED': return 'primary';
+    case 'PROSPECT': return 'secondary';
     case 'INTERESTED': return 'success';
+    case 'HOT_LEAD': return 'error';
     case 'SITE_VISIT_SCHEDULED': return 'warning';
     case 'SITE_VISIT_COMPLETED': return 'success';
     case 'NEGOTIATION': return 'warning';
