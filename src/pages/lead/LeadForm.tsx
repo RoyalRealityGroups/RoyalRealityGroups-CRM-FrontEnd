@@ -35,7 +35,7 @@ import type { LeadFormData, LeadChoices, CrossCheckResult } from '../../types/le
 import { getPageContainerStyles, getContentSectionStyles } from '../../utils/spacing';
 
 const statusColors: Record<string, 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning'> = {
-  ONGOING: 'info',
+  ONGOING: 'warning',
   LIVE: 'success',
   DEAD: 'error',
 };

@@ -34,7 +34,7 @@ import { getPageContainerStyles, getContentSectionStyles } from '../../utils/spa
 
 const getStatusColor = (status: string): 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' => {
   switch (status) {
-    case 'ONGOING': return 'info';
+    case 'ONGOING': return 'warning';
     case 'LIVE': return 'success';
     case 'DEAD': return 'error';
     default: return 'default';

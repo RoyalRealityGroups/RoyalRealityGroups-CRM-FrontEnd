@@ -49,7 +49,7 @@ import PersonIcon from '@mui/icons-material/Person';
 import type { Lead, LeadFormData, LeadChoices } from '../../types/lead.types';
 
 const statusColors: Record<string, 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning'> = {
-  ONGOING: 'info',
+  ONGOING: 'warning',
   LIVE: 'success',
   DEAD: 'error',
 };
