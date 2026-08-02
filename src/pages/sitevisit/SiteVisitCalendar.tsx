@@ -47,13 +47,13 @@ import HomeIcon from '@mui/icons-material/Home';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import type { SiteVisitCalendarEvent, CalendarColour, CalendarTodo } from '../../types/siteVisit.types';
 
-// Colour configuration for the calendar
+// Colour configuration for the calendar — matches the status chip colours on the list screen
 const COLOUR_CONFIG: Record<CalendarColour, { hex: string; label: string; description: string }> = {
-  RED: { hex: '#EF4444', label: 'Lead Dead', description: 'Lead is lost or visit cancelled' },
-  YELLOW: { hex: '#F59E0B', label: 'Visit Done', description: 'Site visit completed, awaiting conversion' },
-  GREEN: { hex: '#10B981', label: 'Sale Closed', description: 'Lead converted to booking/registration' },
-  BLUE: { hex: '#3B82F6', label: 'Planned', description: 'Visit confirmed, upcoming' },
-  ORANGE: { hex: '#8B5CF6', label: 'Scheduled', description: 'Visit scheduled, pending confirmation' },
+  ORANGE: { hex: '#0284C7', label: 'Scheduled',  description: 'Visit scheduled, pending confirmation' },  // light blue
+  BLUE:   { hex: '#7C3AED', label: 'Confirmed',  description: 'Visit confirmed, upcoming' },               // purple
+  YELLOW: { hex: '#16A34A', label: 'Completed',  description: 'Site visit completed' },                    // green
+  RED:    { hex: '#DC2626', label: 'Cancelled',  description: 'Visit cancelled' },                         // red
+  GREEN:  { hex: '#10B981', label: 'Sale Closed', description: 'Lead converted to booking/registration' }, // teal
 };
 
 const TODO_COLOUR = '#EC4899'; // Pink for todos — distinct from all visit colours
