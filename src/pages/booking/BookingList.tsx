@@ -428,8 +428,8 @@ const BookingList: React.FC = () => {
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
               <FormControl fullWidth size="small">
-                <InputLabel>Sales Executive</InputLabel>
-                <Select value={form.sales_executive || ''} label="Sales Executive"
+                <InputLabel>Employee</InputLabel>
+                <Select value={form.sales_executive || ''} label="Employee"
                   onChange={(e) => setForm((p) => ({ ...p, sales_executive: e.target.value }))}>
                   <MenuItem value="">— None —</MenuItem>
                   {(employees || []).map((e: any) => <MenuItem key={e.id} value={e.id}>{e.name || e.username}</MenuItem>)}
