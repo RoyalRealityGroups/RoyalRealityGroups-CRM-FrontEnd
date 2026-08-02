@@ -27,8 +27,6 @@ import {
   Today as TodayIcon,
   LocationOn as SiteVisitIcon,
   BookOnline as BookingIcon,
-  HowToReg as RegistrationIcon,
-  TrendingUp as RevenueIcon,
 } from '@mui/icons-material';
 import { reReportsApi } from '../../api/reReports';
 import { usePageTitle } from '../../hooks';
@@ -166,18 +164,6 @@ const DashboardPage = () => {
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <StatCard title="Bookings" value={data?.bookings?.total || 0} icon={<BookingIcon />} color="#388e3c" onClick={() => navigate('/booking')} />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <StatCard title="Registrations" value={data?.registrations?.total || 0} icon={<RegistrationIcon />} color="#00838f" />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <StatCard title="Total Revenue" value={`₹${Number(data?.revenue?.total || 0).toLocaleString('en-IN')}`} icon={<RevenueIcon />} color="#2e7d32" />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <StatCard title="This Month Revenue" value={`₹${Number(data?.revenue?.this_month || 0).toLocaleString('en-IN')}`} icon={<RevenueIcon />} color="#f57c00" />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <StatCard title="Bookings This Month" value={data?.bookings?.this_month || 0} icon={<BookingIcon />} color="#c62828" />
         </Grid>
       </Grid>
 
