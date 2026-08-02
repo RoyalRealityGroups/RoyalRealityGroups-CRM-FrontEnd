@@ -163,10 +163,12 @@ const BookingForm: React.FC = () => {
     saveMutation.mutate(formData);
   };
 
-  const field = (key: keyof BookingFormData) => ({
+  const leadSelected = !!formData.lead;
+
+  const field = (key: keyof BookingFormData, lockWhenLeadSelected = false) => ({
     value: formData[key] ?? '',
     onChange: (e: any) => setFormData((p) => ({ ...p, [key]: e.target.value })),
-    disabled: isView || saveMutation.isPending,
+    disabled: isView || saveMutation.isPending || (lockWhenLeadSelected && leadSelected),
   });
 
   if (bookingLoading) return <Box p={3}><Typography>Loading...</Typography></Box>;
@@ -217,13 +219,28 @@ const BookingForm: React.FC = () => {
                 </FormControl>
               </Grid>
               <Grid size={{ xs: 12, md: 6 }}>
-                <TextField fullWidth required size="small" label="Customer Name" {...field('customer_name')} />
+                <TextField
+                  fullWidth required size="small" label="Customer Name"
+                  value={formData.customer_name ?? ''}
+                  onChange={(e) => setFormData((p) => ({ ...p, customer_name: e.target.value }))}
+                  disabled={isView || saveMutation.isPending || leadSelected}
+                />
               </Grid>
               <Grid size={{ xs: 12, md: 6 }}>
-                <TextField fullWidth size="small" label="Mobile" {...field('customer_mobile')} />
+                <TextField
+                  fullWidth size="small" label="Mobile"
+                  value={formData.customer_mobile ?? ''}
+                  onChange={(e) => setFormData((p) => ({ ...p, customer_mobile: e.target.value }))}
+                  disabled={isView || saveMutation.isPending || leadSelected}
+                />
               </Grid>
               <Grid size={{ xs: 12, md: 6 }}>
-                <TextField fullWidth size="small" label="Email" type="email" {...field('customer_email')} />
+                <TextField
+                  fullWidth size="small" label="Email" type="email"
+                  value={formData.customer_email ?? ''}
+                  onChange={(e) => setFormData((p) => ({ ...p, customer_email: e.target.value }))}
+                  disabled={isView || saveMutation.isPending || leadSelected}
+                />
               </Grid>
 
               <Grid size={{ xs: 12 }}>

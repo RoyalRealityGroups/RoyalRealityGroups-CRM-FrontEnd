@@ -192,6 +192,8 @@ const BookingList: React.FC = () => {
     }));
   };
 
+  const leadSelected = !!form.lead;
+
   const handleSubmit = () => {
     if (!form.customer_name || !form.project || !form.booking_amount || !form.booking_date) {
       toastError('Customer Name, Project, Booking Amount and Date are required');
@@ -334,8 +336,8 @@ const BookingList: React.FC = () => {
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid size={{ xs: 12, md: 6 }}>
               <FormControl fullWidth size="small">
-                <InputLabel>Link to Lead (optional)</InputLabel>
-                <Select value={form.lead || ''} label="Link to Lead (optional)"
+                <InputLabel>Lead</InputLabel>
+                <Select value={form.lead || ''} label="Lead"
                   onChange={(e) => handleLeadChange(e.target.value)}>
                   <MenuItem value="">— No lead —</MenuItem>
                   {leads?.results?.map((l: any) => <MenuItem key={l.id} value={l.id}>{l.name} ({l.code})</MenuItem>)}
@@ -344,15 +346,21 @@ const BookingList: React.FC = () => {
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
               <TextField fullWidth required size="small" label="Customer Name"
-                value={form.customer_name} onChange={(e) => setForm((p) => ({ ...p, customer_name: e.target.value }))} />
+                value={form.customer_name}
+                onChange={(e) => setForm((p) => ({ ...p, customer_name: e.target.value }))}
+                disabled={leadSelected} />
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
               <TextField fullWidth size="small" label="Mobile"
-                value={form.customer_mobile} onChange={(e) => setForm((p) => ({ ...p, customer_mobile: e.target.value }))} />
+                value={form.customer_mobile}
+                onChange={(e) => setForm((p) => ({ ...p, customer_mobile: e.target.value }))}
+                disabled={leadSelected} />
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
               <TextField fullWidth size="small" label="Email" type="email"
-                value={form.customer_email} onChange={(e) => setForm((p) => ({ ...p, customer_email: e.target.value }))} />
+                value={form.customer_email}
+                onChange={(e) => setForm((p) => ({ ...p, customer_email: e.target.value }))}
+                disabled={leadSelected} />
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
               <FormControl fullWidth required size="small">
