@@ -172,10 +172,8 @@ const FlatList: React.FC = () => {
   };
 
   const columns: GridColDef<Flat>[] = [
-    { field: 'project_name', headerName: 'Project', flex: 1, minWidth: 140, valueGetter: (_v, row) => row.project_name || row.project },
-    { field: 'tower', headerName: 'Tower', width: 90 },
-    { field: 'floor', headerName: 'Floor', width: 80 },
     { field: 'unit_number', headerName: 'Unit #', width: 100 },
+    { field: 'project_name', headerName: 'Project', flex: 1, minWidth: 140, valueGetter: (_v, row) => row.project_name || row.project },
     { field: 'flat_type', headerName: 'Type', width: 90 },
     { field: 'area_sqft', headerName: 'Area (sq.ft)', width: 110, valueFormatter: (v: any) => v ? `${v}` : '-' },
     { field: 'price', headerName: 'Price', width: 130, valueFormatter: (v: any) => v != null ? `₹${Number(v).toLocaleString()}` : '-' },
@@ -248,28 +246,10 @@ const FlatList: React.FC = () => {
               <TextField fullWidth required size="small" label="Unit Number" value={form.unit_number} onChange={(e) => setForm({ ...form, unit_number: e.target.value })} />
             </Grid>
             <Grid size={{ xs: 12, md: 4 }}>
-              <TextField fullWidth size="small" label="Tower" value={form.tower} onChange={(e) => setForm({ ...form, tower: e.target.value })} />
-            </Grid>
-            <Grid size={{ xs: 12, md: 4 }}>
-              <TextField fullWidth size="small" label="Floor" type="number" value={form.floor} onChange={(e) => setForm({ ...form, floor: e.target.value })} />
-            </Grid>
-            <Grid size={{ xs: 12, md: 4 }}>
               <TextField fullWidth size="small" label="Flat Type (e.g. 2BHK)" value={form.flat_type} onChange={(e) => setForm({ ...form, flat_type: e.target.value })} />
             </Grid>
             <Grid size={{ xs: 12, md: 4 }}>
               <TextField fullWidth size="small" label="Area (sq.ft)" type="number" value={form.area_sqft} onChange={(e) => setForm({ ...form, area_sqft: e.target.value })} />
-            </Grid>
-            <Grid size={{ xs: 12, md: 4 }}>
-              <TextField fullWidth size="small" label="Carpet Area (sq.ft)" type="number" value={form.carpet_area_sqft} onChange={(e) => setForm({ ...form, carpet_area_sqft: e.target.value })} />
-            </Grid>
-            <Grid size={{ xs: 12, md: 4 }}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Facing</InputLabel>
-                <Select label="Facing" value={form.facing} onChange={(e) => setForm({ ...form, facing: e.target.value })}>
-                  <MenuItem value="">None</MenuItem>
-                  {(choices?.facings || []).map((f) => <MenuItem key={f.value} value={f.value}>{f.label}</MenuItem>)}
-                </Select>
-              </FormControl>
             </Grid>
             <Grid size={{ xs: 12, md: 4 }}>
               <TextField fullWidth size="small" label="Price" type="number" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} />
