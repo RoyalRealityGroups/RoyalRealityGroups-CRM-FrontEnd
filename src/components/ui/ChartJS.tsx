@@ -72,9 +72,11 @@ interface PieChartCardProps {
 export const PieChartCard: React.FC<PieChartCardProps> = ({
   data,
   title,
-  height = 300,
+  height = 260,
   donut = false,
 }) => {
+  const total = data.reduce((a, b) => a + b.value, 0);
+
   const chartData: ChartData<'pie' | 'doughnut'> = {
     labels: data.map((d) => d.name),
     datasets: [
@@ -98,15 +100,7 @@ export const PieChartCard: React.FC<PieChartCardProps> = ({
       easing: 'easeOutQuart',
     },
     plugins: {
-      legend: {
-        position: 'bottom',
-        labels: {
-          padding: 16,
-          usePointStyle: true,
-          pointStyle: 'circle',
-          font: { size: 12 },
-        },
-      },
+      legend: { display: false },
       tooltip: {
         backgroundColor: 'rgba(0, 0, 0, 0.8)',
         titleFont: { size: 13 },
@@ -115,9 +109,8 @@ export const PieChartCard: React.FC<PieChartCardProps> = ({
         cornerRadius: 8,
         callbacks: {
           label: (ctx) => {
-            const total = (ctx.dataset.data as number[]).reduce((a, b) => a + b, 0);
             const value = ctx.parsed;
-            const percentage = ((value / total) * 100).toFixed(1);
+            const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : '0.0';
             return ` ${ctx.label}: ${value} (${percentage}%)`;
           },
         },
@@ -126,6 +119,7 @@ export const PieChartCard: React.FC<PieChartCardProps> = ({
   };
 
   const ChartComponent = donut ? Doughnut : Pie;
+  const colors = data.map((d, i) => d.color || CHARTJS_PALETTE[i % CHARTJS_PALETTE.length]);
 
   return (
     <Paper sx={{ p: 3, border: 1, borderColor: 'divider', height: '100%' }}>
@@ -136,6 +130,20 @@ export const PieChartCard: React.FC<PieChartCardProps> = ({
       )}
       <Box sx={{ height, position: 'relative' }}>
         <ChartComponent data={chartData as any} options={options as any} />
+      </Box>
+      {/* Always-visible legend with counts */}
+      <Box sx={{ mt: 2, display: 'flex', flexWrap: 'wrap', gap: 1, justifyContent: 'center' }}>
+        {data.map((d, i) => {
+          const pct = total > 0 ? ((d.value / total) * 100).toFixed(1) : '0.0';
+          return (
+            <Box key={d.name} sx={{ display: 'flex', alignItems: 'center', gap: 0.5, px: 1, py: 0.25, borderRadius: 1, bgcolor: colors[i] + '18' }}>
+              <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: colors[i], flexShrink: 0 }} />
+              <Typography variant="caption" sx={{ color: colors[i], fontWeight: 600 }}>
+                {d.name}: {d.value} ({pct}%)
+              </Typography>
+            </Box>
+          );
+        })}
       </Box>
     </Paper>
   );
