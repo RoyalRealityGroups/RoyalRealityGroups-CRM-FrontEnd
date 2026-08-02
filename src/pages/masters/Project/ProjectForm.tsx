@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box, Paper, Grid, Button, TextField, CircularProgress, Typography, 
   IconButton, Chip, Card, CardContent, Divider, Dialog, DialogTitle,
-  DialogContent, DialogActions,
+  DialogContent, DialogActions, FormControl, InputLabel, Select, MenuItem,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import SaveIcon from '@mui/icons-material/Save';
@@ -286,6 +286,12 @@ const ProjectFormPage: React.FC = () => {
     return () => setBreadcrumbs([]);
   }, [setBreadcrumbs, isEdit]);
 
+  const { data: choices } = useQuery({
+    queryKey: ['project-choices'],
+    queryFn: () => projectsApi.choices(),
+    staleTime: 10 * 60 * 1000,
+  });
+
   const { data: project } = useQuery<Project>({
     queryKey: ['project', id],
     queryFn: () => projectsApi.get(id!),
@@ -319,7 +325,10 @@ const ProjectFormPage: React.FC = () => {
       setForm({
         name: project.name,
         developer_name: project.developer_name || '',
+        project_type: project.project_type || 'PLOT',
         location: project.location || null,
+        approval_type: project.approval_type || 'PENDING',
+        status: project.status || 'UPCOMING',
         overview: project.overview || '',
         description: project.description || '',
         amenities: project.amenities || '',
@@ -327,7 +336,7 @@ const ProjectFormPage: React.FC = () => {
         floor_plans_text: project.floor_plans_text || '',
       });
     } else if (!isEdit) {
-      setForm({ name: '', developer_name: '', location: null, overview: '', description: '', amenities: '', specifications: '', floor_plans_text: '' });
+      setForm({ name: '', developer_name: '', project_type: 'PLOT', location: null, approval_type: 'PENDING', status: 'UPCOMING', overview: '', description: '', amenities: '', specifications: '', floor_plans_text: '' });
     }
   }, [project, isEdit]);
 
@@ -436,6 +445,33 @@ const ProjectFormPage: React.FC = () => {
                 InputProps={{ startAdornment: <LocationOnIcon color="primary" sx={{ mr: 1 }} /> }}
                 sx={{ mb: 2, '& .MuiOutlinedInput-root': { bgcolor: 'white' } }}
               />
+
+              <Grid container spacing={1.5} sx={{ mb: 2 }}>
+                <Grid size={{ xs: 12, sm: 4 }}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>Type</InputLabel>
+                    <Select label="Type" value={form.project_type || 'PLOT'} onChange={(e) => setForm({ ...form, project_type: e.target.value })} sx={{ bgcolor: 'white' }}>
+                      {(choices?.project_types || []).map((c) => <MenuItem key={c.value} value={c.value}>{c.label}</MenuItem>)}
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid size={{ xs: 12, sm: 4 }}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>Approval</InputLabel>
+                    <Select label="Approval" value={form.approval_type || 'PENDING'} onChange={(e) => setForm({ ...form, approval_type: e.target.value })} sx={{ bgcolor: 'white' }}>
+                      {(choices?.approval_types || []).map((c) => <MenuItem key={c.value} value={c.value}>{c.label}</MenuItem>)}
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid size={{ xs: 12, sm: 4 }}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>Status</InputLabel>
+                    <Select label="Status" value={form.status || 'UPCOMING'} onChange={(e) => setForm({ ...form, status: e.target.value })} sx={{ bgcolor: 'white' }}>
+                      {(choices?.project_statuses || []).map((c) => <MenuItem key={c.value} value={c.value}>{c.label}</MenuItem>)}
+                    </Select>
+                  </FormControl>
+                </Grid>
+              </Grid>
 
               <TextField
                 fullWidth

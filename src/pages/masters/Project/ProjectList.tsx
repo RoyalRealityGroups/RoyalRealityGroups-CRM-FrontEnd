@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Box, Paper, Button, IconButton, Tooltip, TextField, Chip,
+  Box, Paper, Button, IconButton, Tooltip, TextField, Chip, Select, MenuItem,
 } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import type { GridColDef } from '@mui/x-data-grid';
@@ -51,6 +51,13 @@ const ProjectList: React.FC = () => {
   const [toDate, setToDate] = useState('');
 
   const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  // Choices
+  const { data: choices } = useQuery({
+    queryKey: ['project-choices'],
+    queryFn: () => projectsApi.choices(),
+    staleTime: 10 * 60 * 1000,
+  });
 
   // List
   const { data, isLoading } = useQuery({
@@ -123,23 +130,73 @@ const ProjectList: React.FC = () => {
     { field: 'location', headerName: 'Location', width: 150,
       valueGetter: (_: any, row: Project) => row.location || '-',
     },
-    { field: 'project_type', headerName: 'Type', width: 100, headerAlign: 'center', align: 'center',
+    { field: 'project_type', headerName: 'Type', width: 130, headerAlign: 'center', align: 'center',
       renderCell: (p) => {
-        const colors: Record<string, 'default' | 'primary' | 'success' | 'warning' | 'secondary'> = {
+        const typeColors: Record<string, 'default' | 'success' | 'primary' | 'secondary' | 'warning'> = {
           PLOT: 'success', FLAT: 'primary', VILLA: 'secondary', MIXED: 'warning',
         };
-        return <Chip size="small" label={p.row.project_type_display || p.row.project_type} color={colors[p.row.project_type] || 'default'} />;
+        return (
+          <Select
+            value={p.row.project_type || ''}
+            size="small"
+            variant="outlined"
+            IconComponent={() => null}
+            sx={{
+              height: 32,
+              '& .MuiSelect-select': { py: 0.5, pr: '8px !important', display: 'flex', alignItems: 'center', justifyContent: 'center' },
+              '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
+              '&:hover .MuiOutlinedInput-notchedOutline': { border: 'none' },
+            }}
+            onChange={async (e) => {
+              try {
+                await projectsApi.patch(p.row.id, { project_type: e.target.value });
+                success('Type updated');
+                queryClient.invalidateQueries({ queryKey: ['projects'] });
+              } catch { toastError('Failed to update type'); }
+            }}
+            renderValue={(value) => (
+              <Chip label={choices?.project_types?.find((c) => c.value === value)?.label || value} color={typeColors[value as string] || 'default'} size="small" />
+            )}
+          >
+            {(choices?.project_types || []).map((c) => <MenuItem key={c.value} value={c.value}>{c.label}</MenuItem>)}
+          </Select>
+        );
       },
     },
     { field: 'approval_type', headerName: 'Approval', width: 110, headerAlign: 'center', align: 'center',
       valueGetter: (_: any, row: Project) => row.approval_type_display || row.approval_type || '-',
     },
-    { field: 'status', headerName: 'Status', width: 120, headerAlign: 'center', align: 'center',
+    { field: 'status', headerName: 'Status', width: 140, headerAlign: 'center', align: 'center',
       renderCell: (p) => {
-        const colors: Record<string, 'default' | 'info' | 'success' | 'warning' | 'error'> = {
+        const statusColors: Record<string, 'default' | 'info' | 'success' | 'warning' | 'error'> = {
           UPCOMING: 'info', ACTIVE: 'success', COMPLETED: 'warning', SOLD_OUT: 'error',
         };
-        return <Chip size="small" label={p.row.status_display || p.row.status} color={colors[p.row.status] || 'default'} />;
+        return (
+          <Select
+            value={p.row.status || ''}
+            size="small"
+            variant="outlined"
+            IconComponent={() => null}
+            sx={{
+              height: 32,
+              '& .MuiSelect-select': { py: 0.5, pr: '8px !important', display: 'flex', alignItems: 'center', justifyContent: 'center' },
+              '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
+              '&:hover .MuiOutlinedInput-notchedOutline': { border: 'none' },
+            }}
+            onChange={async (e) => {
+              try {
+                await projectsApi.patch(p.row.id, { status: e.target.value });
+                success('Status updated');
+                queryClient.invalidateQueries({ queryKey: ['projects'] });
+              } catch { toastError('Failed to update status'); }
+            }}
+            renderValue={(value) => (
+              <Chip label={choices?.project_statuses?.find((c) => c.value === value)?.label || value} color={statusColors[value as string] || 'default'} size="small" />
+            )}
+          >
+            {(choices?.project_statuses || []).map((c) => <MenuItem key={c.value} value={c.value}>{c.label}</MenuItem>)}
+          </Select>
+        );
       },
     },
     {
