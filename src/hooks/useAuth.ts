@@ -111,7 +111,8 @@ export const useAuth = () => {
         dispatch(setUser({ ...user, permissions: permissionsResult.value }));
       }
 
-      navigate(ROUTES.DASHBOARD);
+      // Navigate to root — SmartRedirect will pick the first accessible screen
+      navigate('/');
     } catch (err: any) {
       // Check if it's a field-specific error (username or password)
       const hasFieldError = hasLoginFieldError(err.response?.data);

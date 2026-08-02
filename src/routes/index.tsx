@@ -10,6 +10,7 @@ import { siteVisitRoutes } from './siteVisitRoutes';
 import { inventoryRoutes } from './inventoryRoutes';
 import { bookingRoutes } from './bookingRoutes';
 import ProtectedRoute from '../components/auth/ProtectedRoute';
+import SmartRedirect from '../components/auth/SmartRedirect';
 import { Layout } from '../components/layout';
 import { setNavigateRef } from '../api/axios.config';
 
@@ -54,13 +55,15 @@ export const AppRoutes = () => (
         </ProtectedRoute>
       }
     >
-      <Route index element={<Navigate to={ROUTES.DASHBOARD} replace />} />
+      <Route index element={<SmartRedirect />} />
       <Route
         path={ROUTES.DASHBOARD.substring(1)}
         element={
-          <Suspense fallback={<PageLoader />}>
-            <Dashboard />
-          </Suspense>
+          <ProtectedRoute permission="view_dashboard">
+            <Suspense fallback={<PageLoader />}>
+              <Dashboard />
+            </Suspense>
+          </ProtectedRoute>
         }
       />
       <Route path="projects/list" element={withSuspense(ProjectList)} />
