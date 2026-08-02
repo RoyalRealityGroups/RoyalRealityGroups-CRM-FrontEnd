@@ -488,11 +488,13 @@ const SiteVisitCalendar: React.FC = () => {
               return (
                 <Box
                   key={idx}
+                  onClick={() => { if (day.isCurrentMonth && (day.events.length > 0 || day.todos.length > 0)) setMoreDialogDate(day.dateStr); }}
                   sx={{
                     border: `1px solid ${theme.palette.divider}`,
                     borderTop: 'none',
                     borderLeft: idx % 7 === 0 ? `1px solid ${theme.palette.divider}` : 'none',
                     p: 0.5, minHeight: 80,
+                    cursor: day.isCurrentMonth && (day.events.length > 0 || day.todos.length > 0) ? 'pointer' : 'default',
                     bgcolor: isPast
                       ? alpha(theme.palette.action.disabled, 0.06)
                       : day.isToday
@@ -500,6 +502,7 @@ const SiteVisitCalendar: React.FC = () => {
                         : day.isCurrentMonth
                           ? 'background.paper'
                           : alpha(theme.palette.action.disabled, 0.03),
+                    '&:hover': day.isCurrentMonth && (day.events.length > 0 || day.todos.length > 0) ? { bgcolor: alpha(theme.palette.primary.main, 0.04) } : {},
                     '&:hover .add-todo-btn': { opacity: 1 },
                     position: 'relative', overflow: 'hidden',
                   }}
@@ -722,7 +725,6 @@ const SiteVisitCalendar: React.FC = () => {
                   sx={{
                     p: 1.5, borderRadius: 2, cursor: 'pointer',
                     border: '1px solid', borderColor: 'divider',
-                    borderLeft: `4px solid ${COLOUR_CONFIG[event.colour].hex}`,
                     '&:hover': { boxShadow: 1, bgcolor: alpha(COLOUR_CONFIG[event.colour].hex, 0.05) },
                   }}
                 >
