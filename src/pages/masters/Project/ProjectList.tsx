@@ -202,7 +202,7 @@ const ProjectList: React.FC = () => {
     {
       field: 'actions', headerName: 'Actions', width: 120, sortable: false, filterable: false, headerAlign: 'center', align: 'center',
       renderCell: (p) => (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5, height: '100%' }}>
           <Tooltip title="View">
             <IconButton size="small" onClick={() => navigate(`/projects/view/${p.row.id}`)}>
               <VisibilityIcon fontSize="small" />
