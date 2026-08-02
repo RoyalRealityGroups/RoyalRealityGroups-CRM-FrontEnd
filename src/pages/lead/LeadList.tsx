@@ -49,18 +49,9 @@ import PersonIcon from '@mui/icons-material/Person';
 import type { Lead, LeadFormData, LeadChoices } from '../../types/lead.types';
 
 const statusColors: Record<string, 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning'> = {
-  NEW_LEAD: 'info',
-  CONTACT_ATTEMPTED: 'warning',
-  CONNECTED: 'primary',
-  PROSPECT: 'secondary',
-  INTERESTED: 'success',
-  HOT_LEAD: 'error',
-  SITE_VISIT_SCHEDULED: 'secondary',
-  SITE_VISIT_COMPLETED: 'success',
-  NEGOTIATION: 'warning',
-  BOOKING: 'primary',
-  REGISTRATION: 'success',
-  LOST: 'error',
+  ONGOING: 'info',
+  LIVE: 'success',
+  DEAD: 'error',
 };
 
 const emptyForm: LeadFormData = {
@@ -72,7 +63,7 @@ const emptyForm: LeadFormData = {
   preferred_area: '',
   property_requirement: '',
   lead_source: '',
-  status: 'NEW_LEAD',
+  status: 'ONGOING',
   assigned_employee_id: '',
   remarks: '',
 };
@@ -240,7 +231,7 @@ const LeadList: React.FC = () => {
       preferred_area: item.preferred_area || '',
       property_requirement: item.property_requirement || '',
       lead_source: item.lead_source || '',
-      status: item.status || 'NEW_LEAD',
+      status: item.status || 'ONGOING',
       assigned_employee_id: item.assigned_employee?.id || '',
       remarks: item.remarks || '',
     });

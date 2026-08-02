@@ -35,18 +35,9 @@ import type { LeadFormData, LeadChoices, CrossCheckResult } from '../../types/le
 import { getPageContainerStyles, getContentSectionStyles } from '../../utils/spacing';
 
 const statusColors: Record<string, 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning'> = {
-  NEW_LEAD: 'info',
-  CONTACT_ATTEMPTED: 'warning',
-  CONNECTED: 'primary',
-  PROSPECT: 'secondary',
-  INTERESTED: 'success',
-  HOT_LEAD: 'error',
-  SITE_VISIT_SCHEDULED: 'secondary',
-  SITE_VISIT_COMPLETED: 'success',
-  NEGOTIATION: 'warning',
-  BOOKING: 'primary',
-  REGISTRATION: 'success',
-  LOST: 'error',
+  ONGOING: 'info',
+  LIVE: 'success',
+  DEAD: 'error',
 };
 
 const LeadForm: React.FC = () => {

@@ -34,18 +34,9 @@ import { getPageContainerStyles, getContentSectionStyles } from '../../utils/spa
 
 const getStatusColor = (status: string): 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' => {
   switch (status) {
-    case 'NEW_LEAD': return 'default';
-    case 'CONTACT_ATTEMPTED': return 'info';
-    case 'CONNECTED': return 'primary';
-    case 'PROSPECT': return 'secondary';
-    case 'INTERESTED': return 'success';
-    case 'HOT_LEAD': return 'error';
-    case 'SITE_VISIT_SCHEDULED': return 'warning';
-    case 'SITE_VISIT_COMPLETED': return 'success';
-    case 'NEGOTIATION': return 'warning';
-    case 'BOOKING': return 'primary';
-    case 'REGISTRATION': return 'success';
-    case 'LOST': return 'error';
+    case 'ONGOING': return 'info';
+    case 'LIVE': return 'success';
+    case 'DEAD': return 'error';
     default: return 'default';
   }
 };
