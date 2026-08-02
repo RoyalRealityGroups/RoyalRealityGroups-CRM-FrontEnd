@@ -12,6 +12,8 @@ export interface Lead {
   property_requirement?: string;
   lead_source: string;
   status: string;
+  bucket?: string;
+  bucket_display?: string;
   assigned_employee?: {
     id: string;
     name: string;
@@ -34,12 +36,12 @@ export interface LeadFormData {
   property_requirement?: string;
   lead_source: string;
   status?: string;
+  bucket?: string;
   assigned_employee_id?: string;
   remarks?: string;
   cross_lead_override?: boolean;
   cross_lead_override_reason?: string;
 }
-
 export interface LeadStatusHistory {
   id: string;
   lead: string;
@@ -114,6 +116,7 @@ export interface CrossCheckResult {
 export interface LeadChoices {
   lead_sources: { value: string; label: string }[];
   lead_statuses: { value: string; label: string }[];
+  lead_buckets: { value: string; label: string }[];
   follow_up_types: { value: string; label: string }[];
 }
 

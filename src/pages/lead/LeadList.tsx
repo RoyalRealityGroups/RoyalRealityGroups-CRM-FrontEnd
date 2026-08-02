@@ -64,6 +64,7 @@ const emptyForm: LeadFormData = {
   property_requirement: '',
   lead_source: '',
   status: 'ONGOING',
+  bucket: '',
   assigned_employee_id: '',
   remarks: '',
 };
@@ -232,6 +233,7 @@ const LeadList: React.FC = () => {
       property_requirement: item.property_requirement || '',
       lead_source: item.lead_source || '',
       status: item.status || 'ONGOING',
+      bucket: item.bucket || '',
       assigned_employee_id: item.assigned_employee?.id || '',
       remarks: item.remarks || '',
     });
@@ -270,6 +272,7 @@ const LeadList: React.FC = () => {
     if (form.preferred_area) payload.preferred_area = form.preferred_area;
     if (form.property_requirement) payload.property_requirement = form.property_requirement;
     if (form.remarks) payload.remarks = form.remarks;
+    if (form.bucket) payload.bucket = form.bucket;
     if (form.assigned_employee_id) payload.assigned_employee = form.assigned_employee_id;
     if (form.cross_lead_override) payload.cross_lead_override = true;
     saveMutation.mutate(payload);
@@ -331,6 +334,58 @@ const LeadList: React.FC = () => {
     {
       field: 'assigned_employee', headerName: 'Assigned To', width: 130,
       valueGetter: (value: any) => value?.name || '-',
+    },
+    {
+      field: 'bucket', headerName: 'Bucket', width: 160, headerAlign: 'center', align: 'center',
+      renderCell: (params) => {
+        const bucketColors: Record<string, 'default' | 'warning' | 'success'> = {
+          NEW_LEAD: 'default',
+          HOT_LEAD: 'warning',
+          PROSPECTS: 'success',
+        };
+        return (
+          <Select
+            value={params.value || ''}
+            size="small"
+            variant="outlined"
+            IconComponent={() => null}
+            displayEmpty
+            sx={{
+              height: 32,
+              '& .MuiSelect-select': { py: 0.5, pr: '8px !important', display: 'flex', alignItems: 'center', justifyContent: 'center' },
+              '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
+              '&:hover .MuiOutlinedInput-notchedOutline': { border: 'none' },
+            }}
+            onChange={async (e) => {
+              const newBucket = e.target.value;
+              try {
+                await leadApi.updateLead(params.row.id, {
+                  name: params.row.name,
+                  mobile: params.row.mobile,
+                  lead_source: params.row.lead_source,
+                  assigned_employee: params.row.assigned_employee?.id || null,
+                  status: params.row.status,
+                  bucket: newBucket || null,
+                } as any);
+                toastSuccess('Bucket updated');
+                refetch();
+              } catch {
+                toastError('Failed to update bucket');
+              }
+            }}
+            renderValue={(value) => {
+              if (!value) return <Chip label="— None —" size="small" />;
+              const label = choices?.lead_buckets?.find((b) => b.value === value)?.label || value;
+              return <Chip label={label} color={bucketColors[value as string] || 'default'} size="small" />;
+            }}
+          >
+            <MenuItem value="">— None —</MenuItem>
+            {(choices?.lead_buckets || []).map((b) => (
+              <MenuItem key={b.value} value={b.value}>{b.label}</MenuItem>
+            ))}
+          </Select>
+        );
+      },
     },
     {
       field: 'actions', headerName: 'Actions', width: 160, sortable: false, filterable: false,
@@ -523,6 +578,19 @@ const LeadList: React.FC = () => {
                   ))}
                 </Select>
                 {fieldErrors.status && <FormHelperText>{fieldErrors.status}</FormHelperText>}
+              </FormControl>
+            </Grid>
+            <Grid size={{ xs: 12, md: 4 }}>
+              <FormControl fullWidth error={!!fieldErrors.bucket}>
+                <InputLabel>Bucket</InputLabel>
+                <Select label="Bucket" value={form.bucket || ''}
+                  onChange={(e) => { setForm({ ...form, bucket: e.target.value }); setFieldErrors((p) => { if (!p.bucket) return p; const n = { ...p }; delete n.bucket; return n; }); }}>
+                  <MenuItem value="">— None —</MenuItem>
+                  {(choices?.lead_buckets || []).map((s) => (
+                    <MenuItem key={s.value} value={s.value}>{s.label}</MenuItem>
+                  ))}
+                </Select>
+                {fieldErrors.bucket && <FormHelperText>{fieldErrors.bucket}</FormHelperText>}
               </FormControl>
             </Grid>
             <Grid size={{ xs: 12, md: 4 }}>
