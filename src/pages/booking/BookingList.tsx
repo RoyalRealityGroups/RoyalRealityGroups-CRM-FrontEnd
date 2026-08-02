@@ -95,7 +95,7 @@ const BookingList: React.FC = () => {
 
   const { data: projects } = useQuery({
     queryKey: ['projects-mini'],
-    queryFn: async () => { const r = await apiClient.get('/api/masters/projects/mini/'); return r.data.results || r.data; },
+    queryFn: async () => { const r = await apiClient.get('/api/projects/mini/'); return r.data.results || r.data; },
     staleTime: 5 * 60 * 1000,
   });
 
@@ -366,13 +366,18 @@ const BookingList: React.FC = () => {
               <FormControl fullWidth required size="small">
                 <InputLabel>Project</InputLabel>
                 <Select value={form.project || ''} label="Project"
-                  onChange={(e) => setForm((p) => ({ ...p, project: e.target.value, plot: '', flat: '' }))}>
+                  onChange={(e) => {
+                    const projectId = e.target.value;
+                    const selected = (projects || []).find((p: any) => p.id === projectId);
+                    const unitType = selected?.project_type === 'FLAT' ? 'FLAT' : 'PLOT';
+                    setForm((p) => ({ ...p, project: projectId, unit_type: unitType, plot: '', flat: '' }));
+                  }}>
                   {(projects || []).map((p: any) => <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>)}
                 </Select>
               </FormControl>
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
-              <FormControl fullWidth required size="small">
+              <FormControl fullWidth required size="small" disabled={!!form.project}>
                 <InputLabel>Unit Type</InputLabel>
                 <Select value={form.unit_type} label="Unit Type"
                   onChange={(e) => setForm((p) => ({ ...p, unit_type: e.target.value as any, plot: '', flat: '' }))}>
