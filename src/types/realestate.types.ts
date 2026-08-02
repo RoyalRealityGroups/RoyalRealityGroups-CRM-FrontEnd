@@ -84,6 +84,9 @@ export interface Booking {
   cancellation_reason?: string;
   cancelled_date?: string;
   remarks?: string;
+  property_cost?: number;
+  revenue?: number;
+  incentive?: number;
   created_on?: string;
 }
 
@@ -102,6 +105,9 @@ export interface BookingFormData {
   sales_executive?: string;
   status?: string;
   remarks?: string;
+  property_cost?: number;
+  revenue?: number;
+  incentive?: number;
 }
 
 export interface BookingStatusHistory {

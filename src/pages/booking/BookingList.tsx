@@ -46,6 +46,7 @@ const emptyForm: BookingFormData = {
   agreed_price: undefined, booking_amount: 0,
   booking_date: new Date().toISOString().split('T')[0],
   sales_executive: '', remarks: '',
+  property_cost: undefined, revenue: undefined, incentive: undefined,
 };
 
 const BookingList: React.FC = () => {
@@ -173,6 +174,9 @@ const BookingList: React.FC = () => {
       sales_executive: typeof item.sales_executive === 'object' ? (item.sales_executive as any)?.id || '' : item.sales_executive || '',
       status: item.status,
       remarks: item.remarks || '',
+      property_cost: item.property_cost ? Number(item.property_cost) : undefined,
+      revenue: item.revenue ? Number(item.revenue) : undefined,
+      incentive: item.incentive ? Number(item.incentive) : undefined,
     });
     setDialogOpen(true);
   };
@@ -439,6 +443,21 @@ const BookingList: React.FC = () => {
             <Grid size={{ xs: 12, md: 6 }}>
               <TextField fullWidth size="small" multiline rows={2} label="Remarks"
                 value={form.remarks} onChange={(e) => setForm((p) => ({ ...p, remarks: e.target.value }))} />
+            </Grid>
+            <Grid size={{ xs: 12, md: 4 }}>
+              <TextField fullWidth size="small" type="number" label="Property Cost (₹)"
+                value={form.property_cost ?? ''}
+                onChange={(e) => setForm((p) => ({ ...p, property_cost: e.target.value ? Number(e.target.value) : undefined }))} />
+            </Grid>
+            <Grid size={{ xs: 12, md: 4 }}>
+              <TextField fullWidth size="small" type="number" label="Revenue (₹)"
+                value={form.revenue ?? ''}
+                onChange={(e) => setForm((p) => ({ ...p, revenue: e.target.value ? Number(e.target.value) : undefined }))} />
+            </Grid>
+            <Grid size={{ xs: 12, md: 4 }}>
+              <TextField fullWidth size="small" type="number" label="Incentive (₹)"
+                value={form.incentive ?? ''}
+                onChange={(e) => setForm((p) => ({ ...p, incentive: e.target.value ? Number(e.target.value) : undefined }))} />
             </Grid>
           </Grid>
           {saveMutation.isError && (
