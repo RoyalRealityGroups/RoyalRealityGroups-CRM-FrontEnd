@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Box, Paper, Button, IconButton, Tooltip, TextField, Chip, Typography,
+  Box, Paper, Button, IconButton, Tooltip, TextField, Chip,
 } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import type { GridColDef } from '@mui/x-data-grid';
@@ -116,43 +116,36 @@ const ProjectList: React.FC = () => {
 
   const columns: GridColDef<Project>[] = [
     { field: 'code', headerName: 'Code', width: 100 },
-    { field: 'name', headerName: 'Project Name', flex: 1, minWidth: 180 },
-    { field: 'developer_name', headerName: 'Developer', width: 160,
-      renderCell: (p) => (
-        <Typography variant="body2">{p.row.developer_name || '-'}</Typography>
-      ),
+    { field: 'name', headerName: 'Project Name', flex: 1, minWidth: 160 },
+    { field: 'developer_name', headerName: 'Developer', width: 150,
+      valueGetter: (_: any, row: Project) => row.developer_name || '-',
     },
-    { field: 'location', headerName: 'Location', width: 160,
-      renderCell: (p) => (
-        <Typography variant="body2">{p.row.location || '-'}</Typography>
-      ),
+    { field: 'location', headerName: 'Location', width: 150,
+      valueGetter: (_: any, row: Project) => row.location || '-',
     },
-    {
-      field: 'overview',
-      headerName: 'Overview',
-      flex: 1,
-      minWidth: 200,
-      renderCell: (p) => (
-        <Typography variant="body2" noWrap sx={{ color: 'text.secondary' }} title={p.row.overview || ''}>
-          {p.row.overview || '-'}
-        </Typography>
-      ),
+    { field: 'project_type', headerName: 'Type', width: 100, headerAlign: 'center', align: 'center',
+      renderCell: (p) => {
+        const colors: Record<string, 'default' | 'primary' | 'success' | 'warning' | 'secondary'> = {
+          PLOT: 'success', FLAT: 'primary', VILLA: 'secondary', MIXED: 'warning',
+        };
+        return <Chip size="small" label={p.row.project_type_display || p.row.project_type} color={colors[p.row.project_type] || 'default'} />;
+      },
     },
-    {
-      field: 'is_active', headerName: 'Active', width: 80, headerAlign: 'center', align: 'center',
-      renderCell: (p) => (
-        <Chip
-          size="small"
-          label={p.row.is_active ? 'Yes' : 'No'}
-          color={p.row.is_active ? 'success' : 'default'}
-          variant="outlined"
-        />
-      ),
+    { field: 'approval_type', headerName: 'Approval', width: 110, headerAlign: 'center', align: 'center',
+      valueGetter: (_: any, row: Project) => row.approval_type_display || row.approval_type || '-',
+    },
+    { field: 'status', headerName: 'Status', width: 120, headerAlign: 'center', align: 'center',
+      renderCell: (p) => {
+        const colors: Record<string, 'default' | 'info' | 'success' | 'warning' | 'error'> = {
+          UPCOMING: 'info', ACTIVE: 'success', COMPLETED: 'warning', SOLD_OUT: 'error',
+        };
+        return <Chip size="small" label={p.row.status_display || p.row.status} color={colors[p.row.status] || 'default'} />;
+      },
     },
     {
       field: 'actions', headerName: 'Actions', width: 120, sortable: false, filterable: false, headerAlign: 'center', align: 'center',
       renderCell: (p) => (
-        <Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
           <Tooltip title="View">
             <IconButton size="small" onClick={() => navigate(`/projects/view/${p.row.id}`)}>
               <VisibilityIcon fontSize="small" />
@@ -233,6 +226,7 @@ const ProjectList: React.FC = () => {
           rows={rows}
           columns={columns}
           loading={isLoading}
+          rowHeight={52}
           paginationMode="server"
           rowCount={total}
           paginationModel={{ page, pageSize }}
