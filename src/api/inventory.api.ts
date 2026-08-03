@@ -82,7 +82,7 @@ export const inventoryApi = {
   // ========== PROJECTS (from ProjectManagement) ==========
   getProjects: async () => {
     const response = await apiClient.get('/api/projects/', {
-      params: { page_size: 1000, is_active: true },
+      params: { page_size: 1000 },
     });
     return response.data.results || response.data;
   },
