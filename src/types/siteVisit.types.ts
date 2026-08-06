@@ -1,4 +1,4 @@
-export type SiteVisitStatus = 'SCHEDULED' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED';
+export type SiteVisitStatus = 'SCHEDULED' | 'COMPLETED' | 'CANCELLED';
 
 export interface SiteVisitPhoto {
   id: string;

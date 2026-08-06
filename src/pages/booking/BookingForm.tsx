@@ -155,7 +155,7 @@ const BookingForm: React.FC = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.customer_name || !formData.project || !formData.booking_amount || !formData.booking_date) {
-      toastError('Customer Name, Project, Booking Amount, and Date are required');
+      toastError('Customer Name, Project, Total Cost, and Date are required');
       return;
     }
     if (formData.unit_type === 'PLOT' && !formData.plot) { toastError('Please select a plot'); return; }
@@ -316,7 +316,7 @@ const BookingForm: React.FC = () => {
                   disabled={isView || saveMutation.isPending} />
               </Grid>
               <Grid size={{ xs: 12, md: 4 }}>
-                <TextField fullWidth required size="small" type="number" label="Booking Amount (₹)"
+                <TextField fullWidth required size="small" type="number" label="Total Cost (₹)"
                   value={formData.booking_amount}
                   onChange={(e) => setFormData((p) => ({ ...p, booking_amount: Number(e.target.value) }))}
                   disabled={isView || saveMutation.isPending} />

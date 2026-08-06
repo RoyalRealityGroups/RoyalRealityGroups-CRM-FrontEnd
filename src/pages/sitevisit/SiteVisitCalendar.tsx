@@ -19,6 +19,7 @@ import {
   Divider,
   TextField,
   Checkbox,
+  Collapse,
   useTheme,
   alpha,
 } from '@mui/material';
@@ -28,6 +29,8 @@ import {
   Today as TodayIcon,
   Circle as CircleIcon,
   CalendarMonth as CalendarIcon,
+  ExpandMore as ExpandMoreIcon,
+  ExpandLess as ExpandLessIcon,
   Add as AddIcon,
   Visibility as VisibilityIcon,
   VisibilityOff as VisibilityOffIcon,
@@ -49,8 +52,8 @@ import type { SiteVisitCalendarEvent, CalendarColour, CalendarTodo } from '../..
 
 // Colour configuration for the calendar — matches the status chip colours on the list screen
 const COLOUR_CONFIG: Record<CalendarColour, { hex: string; label: string; description: string }> = {
-  ORANGE: { hex: '#0284C7', label: 'Scheduled',  description: 'Visit scheduled, pending confirmation' },  // light blue
-  BLUE:   { hex: '#7C3AED', label: 'Confirmed',  description: 'Visit confirmed, upcoming' },               // purple
+  ORANGE: { hex: '#F97316', label: 'Scheduled',  description: 'Visit scheduled — waiting' },              // orange
+  BLUE:   { hex: '#F97316', label: 'Scheduled',  description: 'Visit scheduled — waiting' },              // fallback for existing data
   YELLOW: { hex: '#16A34A', label: 'Completed',  description: 'Site visit completed' },                    // green
   RED:    { hex: '#DC2626', label: 'Cancelled',  description: 'Visit cancelled' },                         // red
   GREEN:  { hex: '#10B981', label: 'Sale Closed', description: 'Lead converted to booking/registration' }, // teal
@@ -99,6 +102,7 @@ const SiteVisitCalendar: React.FC = () => {
 
   // Dialogs
   const [selectedEvent, setSelectedEvent] = useState<SiteVisitCalendarEvent | null>(null);
+  const [upcomingOpen, setUpcomingOpen] = useState(false);
   const [todoDialogDate, setTodoDialogDate] = useState<string | null>(null);
   const [newTodoTitle, setNewTodoTitle] = useState('');
   // "+more" popover for a day
@@ -298,7 +302,6 @@ const SiteVisitCalendar: React.FC = () => {
             <Select value={statusFilter} label="Status" displayEmpty notched onChange={(e) => setStatusFilter(e.target.value)}>
               <MenuItem value="">All Statuses</MenuItem>
               <MenuItem value="SCHEDULED">Scheduled</MenuItem>
-              <MenuItem value="CONFIRMED">Confirmed</MenuItem>
               <MenuItem value="COMPLETED">Completed</MenuItem>
               <MenuItem value="CANCELLED">Cancelled</MenuItem>
             </Select>
@@ -315,69 +318,77 @@ const SiteVisitCalendar: React.FC = () => {
         {/* Left Sidebar */}
         <Box sx={{ width: { xs: '100%', md: 280 }, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
 
-          {/* Upcoming This Month — isolated card */}
+          {/* Upcoming This Month — collapsible card */}
           <Paper sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, p: 2, bgcolor: alpha(theme.palette.primary.main, 0.02) }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+            <Box
+              onClick={() => setUpcomingOpen(!upcomingOpen)}
+              sx={{ display: 'flex', alignItems: 'center', gap: 1, cursor: 'pointer', userSelect: 'none' }}
+            >
               <Box sx={{ width: 36, height: 36, borderRadius: 2, bgcolor: alpha(theme.palette.primary.main, 0.1), display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <CalendarIcon sx={{ color: 'primary.main', fontSize: 20 }} />
               </Box>
               <Typography variant="subtitle1" fontWeight={700}>Upcoming This Month</Typography>
               {calendarData?.events && (
                 <Chip
-                  label={calendarData.events.filter((e) => e.visit_date >= new Date().toISOString().split('T')[0] && (e.status === 'SCHEDULED' || e.status === 'CONFIRMED')).length}
+                  label={calendarData.events.filter((e) => e.visit_date >= new Date().toISOString().split('T')[0] && (e.status === 'SCHEDULED')).length}
                   size="small"
                   sx={{ ml: 'auto', height: 26, width: 26, borderRadius: '50%', bgcolor: alpha(theme.palette.primary.main, 0.1), color: 'primary.main', fontWeight: 700, fontSize: '0.8rem', '& .MuiChip-label': { p: 0 } }}
                 />
               )}
+              <IconButton size="small" sx={{ ml: calendarData?.events ? 0.5 : 'auto' }}>
+                {upcomingOpen ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+              </IconButton>
             </Box>
 
-            {/* Scrollable visit cards */}
-            <Box sx={{ maxHeight: 280, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 1 }}>
-              {calendarData?.events
-                ?.filter((e) => e.visit_date >= new Date().toISOString().split('T')[0] && (e.status === 'SCHEDULED' || e.status === 'CONFIRMED'))
-                .slice(0, 15)
-                .map((event) => (
-                  <Box
-                    key={event.id}
-                    onClick={() => setSelectedEvent(event)}
-                    sx={{
-                      p: 1.5, borderRadius: 2, cursor: 'pointer',
-                      border: '1px solid', borderColor: 'divider',
-                      borderLeft: `4px solid ${COLOUR_CONFIG[event.colour].hex}`,
-                      bgcolor: 'background.paper',
-                      '&:hover': { boxShadow: 1, borderColor: COLOUR_CONFIG[event.colour].hex },
-                      transition: 'all 0.15s',
-                    }}
-                  >
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
-                      <Typography variant="body2" fontWeight={600} sx={{ lineHeight: 1.3 }}>
-                        {event.customer_name}
-                      </Typography>
-                      <Chip
-                        label={event.status_display}
-                        size="small"
-                        sx={{ height: 18, fontSize: '0.6rem', bgcolor: alpha(COLOUR_CONFIG[event.colour].hex, 0.1), color: COLOUR_CONFIG[event.colour].hex }}
-                      />
+            <Collapse in={upcomingOpen}>
+              {/* Scrollable visit cards */}
+              <Box sx={{ maxHeight: 280, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 1, mt: 2 }}>
+                {calendarData?.events
+                  ?.filter((e) => e.visit_date >= new Date().toISOString().split('T')[0] && (e.status === 'SCHEDULED'))
+                  .slice(0, 15)
+                  .map((event) => (
+                    <Box
+                      key={event.id}
+                      onClick={() => setSelectedEvent(event)}
+                      sx={{
+                        p: 1.5, borderRadius: 2, cursor: 'pointer',
+                        border: '1px solid', borderColor: 'divider',
+                        borderLeft: `4px solid ${COLOUR_CONFIG[event.colour].hex}`,
+                        bgcolor: 'background.paper',
+                        '&:hover': { boxShadow: 1, borderColor: COLOUR_CONFIG[event.colour].hex },
+                        transition: 'all 0.15s',
+                      }}
+                    >
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
+                        <Typography variant="body2" fontWeight={600} sx={{ lineHeight: 1.3 }}>
+                          {event.customer_name}
+                        </Typography>
+                        <Chip
+                          label={event.status_display}
+                          size="small"
+                          sx={{ height: 18, fontSize: '0.6rem', bgcolor: alpha(COLOUR_CONFIG[event.colour].hex, 0.1), color: COLOUR_CONFIG[event.colour].hex }}
+                        />
+                      </Box>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography variant="caption" color="text.secondary">
+                          {event.project_name || '-'}
+                        </Typography>
+                        <Chip
+                          label={new Date(event.visit_date + 'T00:00:00').toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
+                          size="small"
+                          variant="outlined"
+                          sx={{ ml: 'auto', height: 20, fontSize: '0.65rem', borderRadius: 1 }}
+                        />
+                      </Box>
                     </Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Typography variant="caption" color="text.secondary">
-                        {event.project_name || '-'}
-                      </Typography>
-                      <Chip
-                        label={new Date(event.visit_date + 'T00:00:00').toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
-                        size="small"
-                        variant="outlined"
-                        sx={{ ml: 'auto', height: 20, fontSize: '0.65rem', borderRadius: 1 }}
-                      />
-                    </Box>
-                  </Box>
-                )) || null}
-              {(!calendarData?.events || calendarData.events.filter((e) => e.visit_date >= new Date().toISOString().split('T')[0] && (e.status === 'SCHEDULED' || e.status === 'CONFIRMED')).length === 0) && (
-                <Typography variant="body2" color="text.secondary" textAlign="center" sx={{ py: 3 }}>
-                  No upcoming visits this month
-                </Typography>
-              )}
-            </Box>
+                  )) || null}
+                {(!calendarData?.events || calendarData.events.filter((e) => e.visit_date >= new Date().toISOString().split('T')[0] && (e.status === 'SCHEDULED')).length === 0) && (
+                  <Typography variant="body2" color="text.secondary" textAlign="center" sx={{ py: 3 }}>
+                    No upcoming visits this month
+                  </Typography>
+                )}
+              </Box>
+            </Collapse>
           </Paper>
 
           {/* To-Do — isolated card */}
@@ -584,7 +595,9 @@ const SiteVisitCalendar: React.FC = () => {
           {/* Bottom Legend Bar — clickable toggles */}
           <Box sx={{ display: 'flex', gap: 1.5, mt: 1.5, flexWrap: 'wrap', alignItems: 'center' }}>
             <Typography variant="caption" color="text.secondary" fontWeight={600}>Legend:</Typography>
-            {(Object.entries(COLOUR_CONFIG) as [CalendarColour, typeof COLOUR_CONFIG[CalendarColour]][]).map(
+            {(Object.entries(COLOUR_CONFIG) as [CalendarColour, typeof COLOUR_CONFIG[CalendarColour]][]).filter(
+              ([colour]) => colour !== 'BLUE' && colour !== 'GREEN'
+            ).map(
               ([colour, config]) => (
                 <Chip
                   key={colour}

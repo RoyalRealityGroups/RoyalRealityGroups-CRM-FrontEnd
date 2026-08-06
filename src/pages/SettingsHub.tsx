@@ -114,6 +114,27 @@ const SettingsHub: React.FC = () => {
     return items.sort((a, b) => a.sequence - b.sequence);
   }, [menus, user]);
 
+  // Add superuser-only settings that are not in the menu system
+  const allSettingsItems = React.useMemo(() => {
+    const items = [...settingsMenuItems];
+    if (user?.is_superuser) {
+      // Add Notifications settings if not already present
+      const hasNotif = items.some((i) => i.link === '/settings/notifications');
+      if (!hasNotif) {
+        items.push({
+          id: 'notif-settings',
+          name: 'Notifications',
+          code: 'MI-NOTIF',
+          icon: 'notifications',
+          link: '/settings/notifications',
+          sequence: 99,
+          description: 'Configure Firebase FCM push notifications',
+        } as any);
+      }
+    }
+    return items;
+  }, [settingsMenuItems, user]);
+
   const handleCardClick = (path: string) => {
     navigate(path);
   };
@@ -135,7 +156,7 @@ const SettingsHub: React.FC = () => {
   // List view rendering
   const renderListView = () => (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 1.5, md: 2 } }}>
-      {settingsMenuItems.map((item) => (
+      {allSettingsItems.map((item) => (
         <Card 
           key={item.id}
           sx={{ 
@@ -178,7 +199,7 @@ const SettingsHub: React.FC = () => {
   // Grid view rendering (square or rectangle)
   const renderGridView = () => (
     <Grid container spacing={{ xs: 2, md: 3 }}>
-      {settingsMenuItems.map((item) => (
+      {allSettingsItems.map((item) => (
         <Grid 
           size={{ 
             xs: viewMode === 'square' ? 6 : 12, 
@@ -287,7 +308,7 @@ const SettingsHub: React.FC = () => {
         </ToggleButtonGroup>
       </Box>
 
-      {settingsMenuItems.length === 0 ? (
+      {allSettingsItems.length === 0 ? (
         <Box 
           sx={{ 
             textAlign: 'center', 

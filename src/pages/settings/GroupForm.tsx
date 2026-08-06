@@ -483,6 +483,21 @@ const GroupForm: React.FC = () => {
                       const allChecked = ct.permissions.every((p) => selectedPermissions.has(p.id));
                       const someChecked = ct.permissions.some((p) => selectedPermissions.has(p.id));
 
+                      const handleSelectAll = (e: React.MouseEvent) => {
+                        e.stopPropagation();
+                        setSelectedPermissions((prev) => {
+                          const newSet = new Set(prev);
+                          if (allChecked) {
+                            // Deselect all for this content type
+                            ct.permissions.forEach((p) => newSet.delete(p.id));
+                          } else {
+                            // Select all for this content type
+                            ct.permissions.forEach((p) => newSet.add(p.id));
+                          }
+                          return newSet;
+                        });
+                      };
+
                       return (
                         <Box key={ct.id} sx={{ mb: 2 }}>
                           {/* Content Type Header */}
@@ -506,6 +521,17 @@ const GroupForm: React.FC = () => {
                             ) : (
                               <ExpandMore sx={{ ml: 0.5, fontSize: 20, color: 'primary.main' }} />
                             )}
+                            {/* Select All / Deselect All button */}
+                            <Button
+                              size="small"
+                              variant={allChecked ? 'outlined' : 'contained'}
+                              color={allChecked ? 'secondary' : 'primary'}
+                              onClick={handleSelectAll}
+                              disabled={isSubmitting}
+                              sx={{ ml: 'auto', textTransform: 'none', fontSize: '0.7rem', height: 24, minWidth: 70 }}
+                            >
+                              {allChecked ? 'Deselect All' : 'Select All'}
+                            </Button>
                           </Box>
 
                           {/* Permissions Grid */}

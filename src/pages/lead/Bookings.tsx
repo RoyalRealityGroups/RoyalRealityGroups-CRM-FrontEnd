@@ -257,7 +257,7 @@ const Bookings: React.FC = () => {
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.customer_name || !formData.project || !formData.booking_amount || !formData.booking_date) {
-      toastError('Please fill required fields (Customer Name, Project, Booking Amount, Date)');
+      toastError('Please fill required fields (Customer Name, Project, Total Cost, Date)');
       return;
     }
     if (formData.unit_type === 'PLOT' && !formData.plot) {
@@ -623,7 +623,7 @@ const Bookings: React.FC = () => {
                   required
                   type="number"
                   size="small"
-                  label="Downpayment / Booking Amount (₹)"
+                  label="Downpayment / Total Cost (₹)"
                   value={formData.booking_amount}
                   onChange={(e) => setFormData(p => ({ ...p, booking_amount: Number(e.target.value) }))}
                 />
@@ -725,7 +725,7 @@ const Bookings: React.FC = () => {
                     Agreed Sale Price: <b>₹{selectedBooking.agreed_price ? Number(selectedBooking.agreed_price).toLocaleString() : '—'}</b>
                   </Typography>
                   <Typography variant="body1">
-                    Booking Amount Paid: <b>₹{selectedBooking.booking_amount ? Number(selectedBooking.booking_amount).toLocaleString() : '—'}</b>
+                    Total Cost: <b>₹{selectedBooking.booking_amount ? Number(selectedBooking.booking_amount).toLocaleString() : '—'}</b>
                   </Typography>
 
                   <Box sx={{ mt: 3 }} />
