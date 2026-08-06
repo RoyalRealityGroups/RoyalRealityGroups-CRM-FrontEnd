@@ -15,6 +15,7 @@ import { Layout } from '../components/layout';
 import { setNavigateRef } from '../api/axios.config';
 
 const Dashboard = lazy(() => import('../pages/dashboard/DashboardPage'));
+const TodaysInsights = lazy(() => import('../pages/dashboard/TodaysInsights'));
 const NotFound = lazy(() => import('../pages/NotFound'));
 
 // Project is a top-level domain in this CRM, not a master
@@ -62,6 +63,16 @@ export const AppRoutes = () => (
           <ProtectedRoute permission="view_dashboard">
             <Suspense fallback={<PageLoader />}>
               <Dashboard />
+            </Suspense>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="dashboard/insights"
+        element={
+          <ProtectedRoute permission="view_dashboard">
+            <Suspense fallback={<PageLoader />}>
+              <TodaysInsights />
             </Suspense>
           </ProtectedRoute>
         }
