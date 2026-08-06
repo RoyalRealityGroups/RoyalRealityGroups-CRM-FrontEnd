@@ -51,6 +51,12 @@ export const reReportsApi = {
     return response.data;
   },
 
+  // Today's Insights - detailed view
+  getTodaysInsights: async () => {
+    const response = await apiClient.get('/api/re-reports/todays-insights/');
+    return response.data;
+  },
+
   // Export URLs (Excel / PDF)
   getExportUrl: (reportType: string, params: Record<string, string>, format: 'excel' | 'pdf' = 'excel') => {
     const queryParams = new URLSearchParams({ ...params, export: format }).toString();

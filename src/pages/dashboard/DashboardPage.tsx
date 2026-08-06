@@ -1,10 +1,14 @@
 /**
  * Module 12 - Dashboard
  *
- * Director Dashboard: Total Leads, Today's Leads, Site Visits, Bookings,
- *   Registrations, Revenue, Employee Performance, Project Performance
+ * Layout:
+ *   Row 1: KPI Cards — Today's Insights (clickable), Total Leads, Site Visits, Bookings
+ *   Row 2: Employee Performance Table (with calls column)
+ *   Row 3: Calling Trend (hourly bar chart for today)
+ *   Row 4: Lead Pipeline (Pie) + Site Visit Status (Bar)
+ *   Row 5: Project Performance Table
  *
- * With charts: Lead Pipeline (Pie), Revenue Trend (Bar), Site Visit Status (Donut)
+ * Data scoping: Regular users see only their own data; admins see all.
  */
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -21,17 +25,20 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  Chip,
 } from '@mui/material';
 import {
   People as LeadsIcon,
-  Today as TodayIcon,
+  Insights as InsightsIcon,
   LocationOn as SiteVisitIcon,
   BookOnline as BookingIcon,
+  Phone as PhoneIcon,
+  TrendingUp as TrendIcon,
 } from '@mui/icons-material';
 import { reReportsApi } from '../../api/reReports';
 import { usePageTitle } from '../../hooks';
 import { useBreadcrumbs } from '../../contexts/BreadcrumbContext';
-import { PieChartCard, AnimatedBarChartCard, AnimatedLineChartCard } from '../../components/ui/ChartJS';
+import { PieChartCard, AnimatedBarChartCard } from '../../components/ui/ChartJS';
 
 // ---------- Stat Card ----------
 interface StatCardProps {
@@ -40,9 +47,10 @@ interface StatCardProps {
   icon: React.ReactNode;
   color: string;
   onClick?: () => void;
+  subtitle?: string;
 }
 
-const StatCard = ({ title, value, icon, color, onClick }: StatCardProps) => (
+const StatCard = ({ title, value, icon, color, onClick, subtitle }: StatCardProps) => (
   <Paper
     onClick={onClick}
     sx={{
@@ -67,6 +75,9 @@ const StatCard = ({ title, value, icon, color, onClick }: StatCardProps) => (
     <Box>
       <Typography variant="h5" sx={{ fontWeight: 700, lineHeight: 1.2 }}>{value}</Typography>
       <Typography variant="body2" color="text.secondary">{title}</Typography>
+      {subtitle && (
+        <Typography variant="caption" sx={{ color, fontWeight: 500 }}>{subtitle}</Typography>
+      )}
     </Box>
   </Paper>
 );
@@ -115,29 +126,34 @@ const DashboardPage = () => {
     );
   }
 
-  // Chart data
-  const siteVisitChartData = [
-    { name: 'Completed', value: data?.site_visits?.completed || 0, color: '#4caf50' },
-    { name: 'Scheduled', value: data?.site_visits?.scheduled || 0, color: '#2196f3' },
-  ];
+  // Calling trend chart data (hourly)
+  const callingTrendData = (data?.calling_trend || []).map((h: any) => ({
+    name: h.label,
+    Calls: h.calls,
+  }));
 
-  const leadPipelineData = (data?.lead_pipeline || []).map((item: any, index: number) => ({
+  // Lead pipeline pie
+  const leadPipelineData = (data?.lead_pipeline || []).map((item: any) => ({
     name: item.status?.replace(/_/g, ' ') || 'Unknown',
     value: item.count || 0,
   }));
 
+  // Site visit chart
+  const siteVisitChartData = [
+    { name: 'Completed', Visits: data?.site_visits?.completed || 0 },
+    { name: 'Scheduled', Visits: data?.site_visits?.scheduled || 0 },
+  ];
+
+  // Project performance chart
   const projectChartData = (data?.project_performance || []).map((p: any) => ({
     name: p.project_name,
     Bookings: p.bookings,
     Registrations: p.registrations,
   }));
 
-  const employeeChartData = (data?.employee_performance || []).slice(0, 5).map((e: any) => ({
-    name: e.employee_name?.split(' ')[0] || 'Emp',
-    Leads: e.leads,
-    'Site Visits': e.site_visits,
-    Bookings: e.bookings,
-  }));
+  // Today's insights summary
+  const insights = data?.todays_insights || {};
+  const insightsSummary = `${insights.calls || 0} calls · ${insights.leads_entered || 0} leads · ${insights.follow_ups || 0} follow-ups`;
 
   return (
     <Box sx={{ p: { xs: 2, sm: 3 }, overflow: 'auto', height: '100%' }}>
@@ -148,46 +164,133 @@ const DashboardPage = () => {
         </Typography>
         <Typography variant="body2" color="text.secondary">
           Here's your overview for today
+          {data?.is_admin_view && (
+            <Chip label="Admin View" size="small" color="primary" variant="outlined" sx={{ ml: 1 }} />
+          )}
         </Typography>
       </Box>
 
-      {/* KPI Cards */}
+      {/* Row 1: KPI Cards */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <StatCard title="Total Leads" value={data?.leads?.total || 0} icon={<LeadsIcon />} color="#1976d2" onClick={() => navigate('/lead/list')} />
+          <StatCard
+            title="Today's Insights"
+            value={insights.calls || 0}
+            icon={<InsightsIcon />}
+            color="#0288d1"
+            onClick={() => navigate('/dashboard/insights')}
+            subtitle={insightsSummary}
+          />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <StatCard title="Today's Leads" value={data?.leads?.today || 0} icon={<TodayIcon />} color="#0288d1" />
+          <StatCard
+            title="Total Leads"
+            value={data?.leads?.total || 0}
+            icon={<LeadsIcon />}
+            color="#1976d2"
+            onClick={() => navigate('/lead/list')}
+          />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <StatCard title="Site Visits" value={data?.site_visits?.total || 0} icon={<SiteVisitIcon />} color="#7b1fa2" onClick={() => navigate('/sitevisit/list')} />
+          <StatCard
+            title="Site Visits"
+            value={data?.site_visits?.total || 0}
+            icon={<SiteVisitIcon />}
+            color="#7b1fa2"
+            onClick={() => navigate('/sitevisit/list')}
+          />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <StatCard title="Bookings" value={data?.bookings?.total || 0} icon={<BookingIcon />} color="#388e3c" onClick={() => navigate('/booking')} />
+          <StatCard
+            title="Bookings"
+            value={data?.bookings?.total || 0}
+            icon={<BookingIcon />}
+            color="#388e3c"
+            onClick={() => navigate('/booking')}
+          />
         </Grid>
       </Grid>
 
-      {/* Monthly Trend - Line Chart */}
+      {/* Row 2: Employee Performance Table */}
+      <Paper sx={{ p: 2, mb: 3 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+          <TrendIcon sx={{ color: '#1976d2' }} />
+          <Typography variant="h6" sx={{ fontWeight: 600 }}>Employee Performance</Typography>
+        </Box>
+        <TableContainer>
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell sx={{ fontWeight: 600 }}>Employee</TableCell>
+                <TableCell align="center" sx={{ fontWeight: 600 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
+                    <PhoneIcon sx={{ fontSize: 16 }} /> Calls Today
+                  </Box>
+                </TableCell>
+                <TableCell align="center" sx={{ fontWeight: 600 }}>Calls Total</TableCell>
+                <TableCell align="center" sx={{ fontWeight: 600 }}>Leads</TableCell>
+                <TableCell align="center" sx={{ fontWeight: 600 }}>Visits</TableCell>
+                <TableCell align="center" sx={{ fontWeight: 600 }}>Bookings</TableCell>
+                <TableCell align="center" sx={{ fontWeight: 600 }}>Reg.</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {(data?.employee_performance || []).length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} align="center">
+                    <Typography variant="body2" color="text.secondary">No data</Typography>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                (data?.employee_performance || []).map((emp: any) => (
+                  <TableRow key={emp.employee_id} hover>
+                    <TableCell>
+                      <Typography variant="body2" sx={{ fontWeight: 500 }}>{emp.employee_name}</Typography>
+                      {emp.designation && <Typography variant="caption" color="text.secondary">{emp.designation}</Typography>}
+                    </TableCell>
+                    <TableCell align="center">
+                      <Chip
+                        label={emp.calls_today}
+                        size="small"
+                        color={emp.calls_today > 0 ? 'primary' : 'default'}
+                        variant={emp.calls_today > 0 ? 'filled' : 'outlined'}
+                        sx={{ fontWeight: 600, minWidth: 36 }}
+                      />
+                    </TableCell>
+                    <TableCell align="center">{emp.calls_total}</TableCell>
+                    <TableCell align="center">{emp.leads}</TableCell>
+                    <TableCell align="center">{emp.site_visits}</TableCell>
+                    <TableCell align="center">{emp.bookings}</TableCell>
+                    <TableCell align="center">{emp.registrations}</TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Paper>
+
+      {/* Row 3: Calling Trend (Hourly) */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
         <Grid size={{ xs: 12 }}>
-          {(data?.monthly_trend || []).length > 0 ? (
-            <AnimatedLineChartCard
-              data={data.monthly_trend}
-              dataKeys={['leads', 'site_visits', 'bookings']}
-              xAxisKey="month"
-              title="Monthly Trend (Last 12 Months)"
-              colors={['#1976d2', '#7b1fa2', '#388e3c']}
-              fill={true}
+          {callingTrendData.some((d: any) => d.Calls > 0) ? (
+            <AnimatedBarChartCard
+              data={callingTrendData}
+              dataKeys={['Calls']}
+              xAxisKey="name"
+              title="Calling Trend (Today — Hourly)"
+              colors={['#1976d2']}
+              height={250}
             />
           ) : (
             <Paper sx={{ p: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 200 }}>
-              <Typography color="text.secondary">No trend data yet</Typography>
+              <Typography color="text.secondary">No calling data yet for today</Typography>
             </Paper>
           )}
         </Grid>
       </Grid>
 
-      {/* Charts Row */}
+      {/* Row 4: Lead Pipeline + Site Visit Status */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
         {/* Lead Pipeline - Pie Chart */}
         <Grid size={{ xs: 12, md: 4 }}>
@@ -206,7 +309,7 @@ const DashboardPage = () => {
         {/* Site Visit Status - Bar Chart */}
         <Grid size={{ xs: 12, md: 4 }}>
           <AnimatedBarChartCard
-            data={siteVisitChartData.map((d) => ({ name: d.name, Visits: d.value }))}
+            data={siteVisitChartData}
             dataKeys={['Visits']}
             xAxisKey="name"
             title="Site Visit Status"
@@ -232,69 +335,7 @@ const DashboardPage = () => {
         </Grid>
       </Grid>
 
-      {/* Employee Performance Chart + Table */}
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        {/* Employee Bar Chart */}
-        <Grid size={{ xs: 12, md: 6 }}>
-          {employeeChartData.length > 0 ? (
-            <AnimatedBarChartCard
-              data={employeeChartData}
-              dataKeys={['Leads', 'Site Visits', 'Bookings']}
-              xAxisKey="name"
-              title="Top Performers"
-              colors={['#1976d2', '#7b1fa2', '#388e3c']}
-            />
-          ) : (
-            <Paper sx={{ p: 3, height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Typography color="text.secondary">No employee data yet</Typography>
-            </Paper>
-          )}
-        </Grid>
-
-        {/* Employee Performance Table */}
-        <Grid size={{ xs: 12, md: 6 }}>
-          <Paper sx={{ p: 2, height: '100%' }}>
-            <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>Employee Performance</Typography>
-            <TableContainer>
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell sx={{ fontWeight: 600 }}>Employee</TableCell>
-                    <TableCell align="center" sx={{ fontWeight: 600 }}>Leads</TableCell>
-                    <TableCell align="center" sx={{ fontWeight: 600 }}>Visits</TableCell>
-                    <TableCell align="center" sx={{ fontWeight: 600 }}>Bookings</TableCell>
-                    <TableCell align="center" sx={{ fontWeight: 600 }}>Reg.</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {(data?.employee_performance || []).length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={5} align="center">
-                        <Typography variant="body2" color="text.secondary">No data</Typography>
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    (data?.employee_performance || []).map((emp: any) => (
-                      <TableRow key={emp.employee_id}>
-                        <TableCell>
-                          <Typography variant="body2" sx={{ fontWeight: 500 }}>{emp.employee_name}</Typography>
-                          {emp.designation && <Typography variant="caption" color="text.secondary">{emp.designation}</Typography>}
-                        </TableCell>
-                        <TableCell align="center">{emp.leads}</TableCell>
-                        <TableCell align="center">{emp.site_visits}</TableCell>
-                        <TableCell align="center">{emp.bookings}</TableCell>
-                        <TableCell align="center">{emp.registrations}</TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </Paper>
-        </Grid>
-      </Grid>
-
-      {/* Project Performance Table */}
+      {/* Row 5: Project Performance Table */}
       <Paper sx={{ p: 2 }}>
         <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>Project Performance</Typography>
         <TableContainer>
@@ -316,7 +357,7 @@ const DashboardPage = () => {
                 </TableRow>
               ) : (
                 (data?.project_performance || []).map((proj: any) => (
-                  <TableRow key={proj.project_id}>
+                  <TableRow key={proj.project_id} hover>
                     <TableCell><Typography variant="body2" sx={{ fontWeight: 500 }}>{proj.project_name}</Typography></TableCell>
                     <TableCell align="center">{proj.bookings}</TableCell>
                     <TableCell align="center">{proj.registrations}</TableCell>
