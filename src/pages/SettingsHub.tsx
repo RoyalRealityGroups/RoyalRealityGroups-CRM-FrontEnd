@@ -131,6 +131,19 @@ const SettingsHub: React.FC = () => {
           description: 'Configure Firebase FCM push notifications',
         } as any);
       }
+      // Add Alert Triggers if not already present
+      const hasAlertTriggers = items.some((i) => i.link === '/settings/alert-triggers');
+      if (!hasAlertTriggers) {
+        items.push({
+          id: 'alert-triggers',
+          name: 'Alert Triggers',
+          code: 'MI-ALERT-TRIGGERS',
+          icon: 'notifications_active',
+          link: '/settings/alert-triggers',
+          sequence: 100,
+          description: 'Create and manage notification triggers for business events',
+        } as any);
+      }
     }
     return items;
   }, [settingsMenuItems, user]);
