@@ -21,6 +21,8 @@ import {
   Typography,
   Alert,
   FormHelperText,
+  Tabs,
+  Tab,
 } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import type { GridColDef, GridPaginationModel } from '@mui/x-data-grid';
@@ -64,9 +66,11 @@ const emptyForm: LeadFormData = {
   property_requirement: '',
   lead_source: '',
   status: 'ONGOING',
-  bucket: '',
+  bucket: 'NEW_LEAD',
   assigned_employee_id: '',
   remarks: '',
+  lead_date: new Date().toISOString().split('T')[0],
+  lead_time: new Date().toTimeString().slice(0, 5),
 };
 
 const LeadList: React.FC = () => {
@@ -84,6 +88,13 @@ const LeadList: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
+  const [bucketTab, setBucketTab] = useState(0); // 0=New Lead, 1=Hot Lead, 2=Prospects
+
+  const BUCKET_TABS = [
+    { label: 'New Leads', value: 'NEW_LEAD' },
+    { label: 'Hot Leads', value: 'HOT_LEAD' },
+    { label: 'Prospects', value: 'PROSPECTS' },
+  ];
 
   // Dialog state
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -106,13 +117,14 @@ const LeadList: React.FC = () => {
 
   // --- Queries ---
   const { data: leadsData, isLoading, refetch } = useQuery({
-    queryKey: ['leads', paginationModel, searchQuery, statusFilter, fromDate, toDate],
+    queryKey: ['leads', paginationModel, searchQuery, statusFilter, fromDate, toDate, bucketTab],
     queryFn: () =>
       leadApi.getLeads({
         page: paginationModel.page + 1,
         page_size: paginationModel.pageSize,
         search: searchQuery || undefined,
         status: statusFilter || undefined,
+        bucket: BUCKET_TABS[bucketTab].value,
         from_date: fromDate || undefined,
         to_date: toDate || undefined,
       }),
@@ -213,7 +225,11 @@ const LeadList: React.FC = () => {
 
   const handleOpenCreate = () => {
     setEditing(null);
-    setForm(emptyForm);
+    setForm({
+      ...emptyForm,
+      lead_date: new Date().toISOString().split('T')[0],
+      lead_time: new Date().toTimeString().slice(0, 5),
+    });
     setFieldErrors({});
     setDuplicates(null);
     setDialogOpen(true);
@@ -223,6 +239,7 @@ const LeadList: React.FC = () => {
     setEditing(item);
     setFieldErrors({});
     setDuplicates(null);
+    const createdOn = item.created_on ? new Date(item.created_on) : null;
     setForm({
       name: item.name || '',
       mobile: item.mobile || '',
@@ -236,6 +253,8 @@ const LeadList: React.FC = () => {
       bucket: item.bucket || '',
       assigned_employee_id: item.assigned_employee?.id || '',
       remarks: item.remarks || '',
+      lead_date: createdOn ? createdOn.toISOString().split('T')[0] : '',
+      lead_time: createdOn ? createdOn.toTimeString().slice(0, 5) : '',
     });
     setDialogOpen(true);
   };
@@ -275,6 +294,11 @@ const LeadList: React.FC = () => {
     if (form.bucket) payload.bucket = form.bucket;
     if (form.assigned_employee_id) payload.assigned_employee = form.assigned_employee_id;
     if (form.cross_lead_override) payload.cross_lead_override = true;
+    // Send date/time as created_on (ISO datetime)
+    if (form.lead_date) {
+      const time = form.lead_time || '00:00';
+      payload.created_on = `${form.lead_date}T${time}:00`;
+    }
     saveMutation.mutate(payload);
   };
 
@@ -282,6 +306,14 @@ const LeadList: React.FC = () => {
   const columns: GridColDef<Lead>[] = [
     { field: 'code', headerName: 'Lead ID', width: 110 },
     { field: 'name', headerName: 'Name', flex: 1, minWidth: 140 },
+    {
+      field: 'created_on', headerName: 'Created At', width: 155,
+      valueGetter: (value: any) => {
+        if (!value) return '-';
+        const d = new Date(value);
+        return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) + ' ' + d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+      },
+    },
     { field: 'mobile', headerName: 'Mobile', width: 130 },
     {
       field: 'lead_source', headerName: 'Source', width: 120,
@@ -425,6 +457,23 @@ const LeadList: React.FC = () => {
         onAdd={handleOpenCreate}
       />
 
+      {/* Bucket Tabs */}
+      <Paper sx={{ mb: 2 }}>
+        <Tabs
+          value={bucketTab}
+          onChange={(_, newValue) => { setBucketTab(newValue); setPaginationModel((p) => ({ ...p, page: 0 })); }}
+          variant="fullWidth"
+          sx={{
+            '& .MuiTab-root': { fontWeight: 600, textTransform: 'none', fontSize: '0.9rem' },
+            '& .Mui-selected': { color: 'primary.main' },
+          }}
+        >
+          {BUCKET_TABS.map((tab) => (
+            <Tab key={tab.value} label={tab.label} />
+          ))}
+        </Tabs>
+      </Paper>
+
       <Paper sx={{ p: 2, mb: 2 }}>
         <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
           <TextField
@@ -519,6 +568,18 @@ const LeadList: React.FC = () => {
                 onChange={(e) => { setForm({ ...form, mobile: e.target.value.replace(/\D/g, '').slice(0, 10) }); setFieldErrors((p) => { if (!p.mobile) return p; const n = { ...p }; delete n.mobile; return n; }); }}
                 error={!!fieldErrors.mobile}
                 helperText={fieldErrors.mobile} />
+            </Grid>
+            <Grid size={{ xs: 12, md: 3 }}>
+              <TextField fullWidth label="Lead Date" type="date"
+                value={form.lead_date || ''}
+                onChange={(e) => setForm({ ...form, lead_date: e.target.value })}
+                InputLabelProps={{ shrink: true }} />
+            </Grid>
+            <Grid size={{ xs: 12, md: 3 }}>
+              <TextField fullWidth label="Lead Time" type="time"
+                value={form.lead_time || ''}
+                onChange={(e) => setForm({ ...form, lead_time: e.target.value })}
+                InputLabelProps={{ shrink: true }} />
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
               <TextField fullWidth label="Alternate Number"

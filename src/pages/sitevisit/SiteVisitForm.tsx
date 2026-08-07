@@ -48,7 +48,6 @@ const emptyForm: SiteVisitFormData = {
 
 const DEFAULT_STATUSES: { value: SiteVisitStatus; label: string }[] = [
   { value: 'SCHEDULED', label: 'Scheduled' },
-  { value: 'CONFIRMED', label: 'Confirmed' },
   { value: 'COMPLETED', label: 'Completed' },
   { value: 'CANCELLED', label: 'Cancelled' },
 ];

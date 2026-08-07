@@ -12,6 +12,7 @@ const UserList = lazy(() => import('../pages/settings/UserList'));
 const UserForm = lazy(() => import('../pages/settings/UserForm'));
 const UserView = lazy(() => import('../pages/settings/UserView'));
 const GeneralSettings = lazy(() => import('../pages/settings/GeneralSettings'));
+const NotificationSettings = lazy(() => import('../pages/settings/NotificationSettings'));
 
 const withSuspense = (Component: React.LazyExoticComponent<any>) => (
   <Suspense fallback={<PageLoader />}>
@@ -58,6 +59,7 @@ export const settingsRoutes = (
     <Route path="settings/users/view/:id" element={<UserManagementGuard>{withSuspense(UserView)}</UserManagementGuard>} />
     <Route path="settings/users/:id" element={<UserManagementGuard>{withSuspense(UserForm)}</UserManagementGuard>} />
     <Route path="settings/general-settings" element={<SuperuserGuard>{withSuspense(GeneralSettings)}</SuperuserGuard>} />
+    <Route path="settings/notifications" element={<SuperuserGuard>{withSuspense(NotificationSettings)}</SuperuserGuard>} />
     <Route path="profile" element={withSuspense(UserView)} />
     <Route path="profile/edit" element={withSuspense(UserForm)} />
   </>
