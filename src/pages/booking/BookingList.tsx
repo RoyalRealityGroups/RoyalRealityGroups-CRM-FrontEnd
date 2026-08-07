@@ -200,7 +200,7 @@ const BookingList: React.FC = () => {
 
   const handleSubmit = () => {
     if (!form.customer_name || !form.project || !form.booking_amount || !form.booking_date) {
-      toastError('Customer Name, Project, Booking Amount and Date are required');
+      toastError('Customer Name, Project, Total Cost and Date are required');
       return;
     }
     if (form.unit_type === 'PLOT' && !form.plot) { toastError('Please select a plot'); return; }
@@ -421,7 +421,7 @@ const BookingList: React.FC = () => {
                 onChange={(e) => setForm((p) => ({ ...p, agreed_price: e.target.value ? Number(e.target.value) : undefined }))} />
             </Grid>
             <Grid size={{ xs: 12, md: 4 }}>
-              <TextField fullWidth required size="small" type="number" label="Booking Amount (₹)"
+              <TextField fullWidth required size="small" type="number" label="Total Cost (₹)"
                 value={form.booking_amount}
                 onChange={(e) => setForm((p) => ({ ...p, booking_amount: Number(e.target.value) }))} />
             </Grid>
@@ -512,7 +512,7 @@ const BookingList: React.FC = () => {
                 <Typography variant="body1">{viewItem.agreed_price ? `₹${Number(viewItem.agreed_price).toLocaleString('en-IN')}` : '—'}</Typography>
               </Grid>
               <Grid size={{ xs: 6 }}>
-                <Typography variant="caption" color="text.secondary">Booking Amount</Typography>
+                <Typography variant="caption" color="text.secondary">Total Cost</Typography>
                 <Typography variant="body1">₹{Number(viewItem.booking_amount).toLocaleString('en-IN')}</Typography>
               </Grid>
               <Grid size={{ xs: 6 }}>

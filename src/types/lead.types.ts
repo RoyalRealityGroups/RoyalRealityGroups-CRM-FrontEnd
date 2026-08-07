@@ -41,6 +41,8 @@ export interface LeadFormData {
   remarks?: string;
   cross_lead_override?: boolean;
   cross_lead_override_reason?: string;
+  lead_date?: string;
+  lead_time?: string;
 }
 export interface LeadStatusHistory {
   id: string;
@@ -125,6 +127,7 @@ export interface LeadListParams {
   page_size?: number;
   search?: string;
   status?: string;
+  bucket?: string;
   lead_source?: string;
   assigned_employee_id?: string;
   ordering?: string;

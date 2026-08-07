@@ -53,15 +53,13 @@ import type { SiteVisit, SiteVisitPhoto, SiteVisitStatus } from '../../types/sit
 import { API_BASE_URL } from '../../utils/constants';
 
 const statusColors: Record<SiteVisitStatus, 'default' | 'primary' | 'success' | 'warning' | 'error' | 'info'> = {
-  SCHEDULED: 'info',
-  CONFIRMED: 'primary',
+  SCHEDULED: 'warning',
   COMPLETED: 'success',
   CANCELLED: 'error',
 };
 
 const DEFAULT_STATUSES: { value: SiteVisitStatus; label: string }[] = [
   { value: 'SCHEDULED', label: 'Scheduled' },
-  { value: 'CONFIRMED', label: 'Confirmed' },
   { value: 'COMPLETED', label: 'Completed' },
   { value: 'CANCELLED', label: 'Cancelled' },
 ];
