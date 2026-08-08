@@ -15,6 +15,7 @@ const GeneralSettings = lazy(() => import('../pages/settings/GeneralSettings'));
 const NotificationSettings = lazy(() => import('../pages/settings/NotificationSettings'));
 const AlertTriggerList = lazy(() => import('../pages/settings/AlertTriggerList'));
 const AlertTriggerForm = lazy(() => import('../pages/settings/AlertTriggerForm'));
+const TemplateList = lazy(() => import('../pages/settings/TemplateList'));
 
 const withSuspense = (Component: React.LazyExoticComponent<any>) => (
   <Suspense fallback={<PageLoader />}>
@@ -65,6 +66,7 @@ export const settingsRoutes = (
     <Route path="settings/alert-triggers" element={<SuperuserGuard>{withSuspense(AlertTriggerList)}</SuperuserGuard>} />
     <Route path="settings/alert-triggers/create" element={<SuperuserGuard>{withSuspense(AlertTriggerForm)}</SuperuserGuard>} />
     <Route path="settings/alert-triggers/:id" element={<SuperuserGuard>{withSuspense(AlertTriggerForm)}</SuperuserGuard>} />
+    <Route path="settings/templates" element={<SuperuserGuard>{withSuspense(TemplateList)}</SuperuserGuard>} />
     <Route path="profile" element={withSuspense(UserView)} />
     <Route path="profile/edit" element={withSuspense(UserForm)} />
   </>

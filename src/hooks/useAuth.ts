@@ -113,6 +113,15 @@ export const useAuth = () => {
 
       // Navigate to root — SmartRedirect will pick the first accessible screen
       navigate('/');
+
+      // Initialize Firebase push notifications (non-blocking)
+      import('../utils/firebase').then(({ initFirebase, requestNotificationPermission }) => {
+        initFirebase().then((initialized) => {
+          if (initialized) {
+            requestNotificationPermission();
+          }
+        });
+      });
     } catch (err: any) {
       // Check if it's a field-specific error (username or password)
       const hasFieldError = hasLoginFieldError(err.response?.data);

@@ -36,12 +36,14 @@ import {
   CheckCircleOutline as DoneIcon,
   DoneAll as DoneAllIcon,
   Schedule as ScheduleIcon,
+  Campaign as AlertIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth';
 import { authApi } from '../../api/auth.api';
 import { leadApi } from '../../api/lead.api';
+import { notificationApi, type NotificationItem } from '../../api/notification.api';
 import { setUser } from '../../store/slices/authSlice';
 import { useAppDispatch } from '../../store/hooks';
 import ChangePasswordDialog from '../auth/ChangePasswordDialog';
@@ -308,7 +310,7 @@ const AppBar: React.FC<AppBarProps> = ({ onMenuClick }) => {
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const [notifAnchorEl, setNotifAnchorEl] = React.useState<null | HTMLElement>(null);
   const [showChangePassword, setShowChangePassword] = React.useState(false);
-  const [activeTab, setActiveTab] = React.useState<0 | 1>(0); // 0=Upcoming, 1=Missed
+  const [activeTab, setActiveTab] = React.useState<0 | 1 | 2>(0); // 0=Alerts, 1=Upcoming, 2=Missed
 
   // Dismissed IDs in sessionStorage — survive re-renders & polls, reset on tab close
   const [dismissedIds, setDismissedIds] = React.useState<Set<string>>(() => {
@@ -332,13 +334,34 @@ const AppBar: React.FC<AppBarProps> = ({ onMenuClick }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Poll follow-up reminders every 5 minutes
+  // Poll follow-up reminders every 2 minutes
   const { data: remindersData } = useQuery({
     queryKey: ['followup-reminders'],
     queryFn: () => leadApi.getFollowUpReminders(),
-    refetchInterval: 5 * 60 * 1000,
-    staleTime: 2 * 60 * 1000,
+    refetchInterval: 2 * 60 * 1000,
+    staleTime: 30 * 1000,
   });
+
+  // Poll system notifications every 30 seconds
+  const queryClient = useQueryClient();
+  const { data: systemNotifications = [] } = useQuery({
+    queryKey: ['system-notifications'],
+    queryFn: () => notificationApi.getNotifications(),
+    refetchInterval: 30 * 1000,
+    staleTime: 10 * 1000,
+  });
+
+  const markAsReadMutation = useMutation({
+    mutationFn: (id: string | number) => notificationApi.markAsRead(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['system-notifications'] }),
+  });
+
+  const markAllAsReadMutation = useMutation({
+    mutationFn: () => notificationApi.markAllAsRead(),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['system-notifications'] }),
+  });
+
+  const systemNotifCount = systemNotifications.length;
 
   const allReminders: LeadFollowUp[] = remindersData?.results ?? [];
   // Parse server time; fall back to client time if missing
@@ -369,13 +392,14 @@ const AppBar: React.FC<AppBarProps> = ({ onMenuClick }) => {
 
   const upcomingCount = upcoming.length;
   const missedCount = missed.length;
-  const totalCount = upcomingCount + missedCount;
+  const totalCount = upcomingCount + missedCount + systemNotifCount;
 
-  // Auto-switch to Missed tab if there are missed items and none upcoming
+  // Auto-switch to tab with content
   useEffect(() => {
-    if (missedCount > 0 && upcomingCount === 0) setActiveTab(1);
-    else setActiveTab(0);
-  }, [missedCount, upcomingCount]);
+    if (systemNotifCount > 0) setActiveTab(0);
+    else if (missedCount > 0 && upcomingCount === 0) setActiveTab(2);
+    else setActiveTab(1);
+  }, [missedCount, upcomingCount, systemNotifCount]);
 
   const handleMarkOneRead = useCallback((e: React.MouseEvent, id: string) => {
     e.stopPropagation();
@@ -388,7 +412,12 @@ const AppBar: React.FC<AppBarProps> = ({ onMenuClick }) => {
 
   const handleMenu = (e: React.MouseEvent<HTMLElement>) => setAnchorEl(e.currentTarget);
   const handleClose = () => setAnchorEl(null);
-  const handleNotifOpen = (e: React.MouseEvent<HTMLElement>) => setNotifAnchorEl(e.currentTarget);
+  const handleNotifOpen = (e: React.MouseEvent<HTMLElement>) => {
+    setNotifAnchorEl(e.currentTarget);
+    // Refetch notifications and reminders immediately when bell is clicked
+    queryClient.invalidateQueries({ queryKey: ['system-notifications'] });
+    queryClient.invalidateQueries({ queryKey: ['followup-reminders'] });
+  };
   const handleNotifClose = () => setNotifAnchorEl(null);
   const handleChangePassword = () => { handleClose(); setShowChangePassword(true); };
   const handleLogout = () => { handleClose(); logout(); };
@@ -399,8 +428,8 @@ const AppBar: React.FC<AppBarProps> = ({ onMenuClick }) => {
     (user?.username?.[0] || 'U').toUpperCase();
 
   const tooltipTitle = totalCount > 0
-    ? `${upcomingCount} upcoming · ${missedCount} missed`
-    : 'No reminders';
+    ? `${systemNotifCount} alerts · ${upcomingCount} upcoming · ${missedCount} missed`
+    : 'No notifications';
 
   return (
     <MuiAppBar position="fixed">
@@ -464,7 +493,7 @@ const AppBar: React.FC<AppBarProps> = ({ onMenuClick }) => {
           <Box sx={{ px: 2, pt: 1.5, pb: 0.5, display: 'flex', alignItems: 'center',
             justifyContent: 'space-between', flexShrink: 0 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Typography variant="body2" fontWeight={700}>Follow-up Reminders</Typography>
+              <Typography variant="body2" fontWeight={700}>Notifications</Typography>
               {totalCount > 0 && (
                 <Chip label={totalCount} size="small" color="error"
                   sx={{ height: 18, fontSize: '0.68rem', fontWeight: 700, minWidth: 22 }} />
@@ -473,7 +502,7 @@ const AppBar: React.FC<AppBarProps> = ({ onMenuClick }) => {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
               {totalCount > 0 && (
                 <Tooltip title="Mark all as read">
-                  <Box onClick={handleMarkAllRead} sx={{
+                  <Box onClick={() => { handleMarkAllRead(); markAllAsReadMutation.mutate(); }} sx={{
                     display: 'flex', alignItems: 'center', gap: 0.4, cursor: 'pointer',
                     color: 'text.secondary', '&:hover': { color: 'success.main' },
                   }}>
@@ -484,11 +513,6 @@ const AppBar: React.FC<AppBarProps> = ({ onMenuClick }) => {
                   </Box>
                 </Tooltip>
               )}
-              <Typography variant="caption" color="primary.main"
-                sx={{ cursor: 'pointer', fontWeight: 500 }}
-                onClick={() => { handleNotifClose(); navigate('/lead/follow-ups'); }}>
-                View all
-              </Typography>
             </Box>
           </Box>
 
@@ -504,6 +528,19 @@ const AppBar: React.FC<AppBarProps> = ({ onMenuClick }) => {
               '& .MuiTabs-indicator': { height: 2 },
             }}
           >
+            <Tab
+              label={
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                  <AlertIcon sx={{ fontSize: 14 }} />
+                  Alerts
+                  {systemNotifCount > 0 && (
+                    <Chip label={systemNotifCount} size="small" color="primary"
+                      sx={{ height: 16, fontSize: '0.6rem', fontWeight: 700,
+                        '& .MuiChip-label': { px: 0.5 } }} />
+                  )}
+                </Box>
+              }
+            />
             <Tab
               label={
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
@@ -537,6 +574,51 @@ const AppBar: React.FC<AppBarProps> = ({ onMenuClick }) => {
           {/* ── Tab body ── */}
           <Box sx={{ overflowY: 'auto', flexGrow: 1 }}>
             {activeTab === 0 ? (
+              /* System Notifications / Alerts */
+              systemNotifCount === 0 ? (
+                <Box sx={{ py: 4, textAlign: 'center', color: 'text.secondary' }}>
+                  <AlertIcon sx={{ fontSize: 32, opacity: 0.3, mb: 1 }} />
+                  <Typography variant="body2">No alerts</Typography>
+                </Box>
+              ) : (
+                systemNotifications.map((notif: NotificationItem) => (
+                  <Box
+                    key={notif.id}
+                    sx={{
+                      px: 2, py: 1.25, display: 'flex', gap: 1.5, alignItems: 'flex-start',
+                      borderBottom: '1px solid', borderColor: 'divider',
+                      cursor: 'pointer',
+                      '&:hover': { backgroundColor: 'action.hover' },
+                    }}
+                    onClick={() => {
+                      markAsReadMutation.mutate(notif.id);
+                      handleNotifClose();
+                    }}
+                  >
+                    <AlertIcon sx={{ fontSize: 18, color: 'primary.main', mt: 0.25, flexShrink: 0 }} />
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Typography variant="body2" fontWeight={600} noWrap>
+                        {notif.subject}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{
+                        display: '-webkit-box', WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                      }}>
+                        {notif.body}
+                      </Typography>
+                      <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mt: 0.25 }}>
+                        {notif.type} · {new Date(notif.created_on).toLocaleString()}
+                      </Typography>
+                    </Box>
+                    <Tooltip title="Mark as read">
+                      <IconButton size="small" onClick={(e) => { e.stopPropagation(); markAsReadMutation.mutate(notif.id); }}>
+                        <DoneIcon sx={{ fontSize: 14 }} />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
+                ))
+              )
+            ) : activeTab === 1 ? (
               <BucketList
                 items={upcoming}
                 bucket="upcoming"
