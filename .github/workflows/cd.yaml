@@ -67,5 +67,4 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           port: ${{ secrets.SERVER_PORT }}
           script: |
-            sudo systemctl stop ${{ env.SERVICE_SOCKET_NAME }}.socket ${{ env.SERVICE_SOCKET_NAME }}.service nginx || true
-            sudo systemctl restart ${{ env.SERVICE_SOCKET_NAME }}.socket ${{ env.SERVICE_SOCKET_NAME }}.service nginx
+            sudo systemctl restart nginx
