@@ -7,11 +7,13 @@ on:
       - completed
     branches:
       - main
+      - testing
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     if: github.event.workflow_run.conclusion == 'success'
+
     permissions:
       actions: read
       contents: read
@@ -25,7 +27,18 @@ jobs:
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ secrets.GITHUB }}
 
-      - name: remove old build files
+      - name: Set Deployment Variables
+        id: vars
+        run: |
+          if [[ "${{ github.event.workflow_run.head_branch }}" == "main" ]]; then
+            echo "TARGET_PATH=${{ secrets.DEV_TARGET_PATH }}" >> $GITHUB_ENV
+            echo "SERVICE_SOCKET_NAME=${{ secrets.DEV_SERVICE_SOCKET_NAME }}" >> $GITHUB_ENV
+          elif [[ "${{ github.event.workflow_run.head_branch }}" == "testing" ]]; then
+            echo "TARGET_PATH=${{ secrets.TESTING_TARGET_PATH }}" >> $GITHUB_ENV
+            echo "SERVICE_SOCKET_NAME=${{ secrets.TESTING_SERVICE_SOCKET_NAME }}" >> $GITHUB_ENV
+          fi
+
+      - name: Remove old build files
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.SERVER_HOST }}
@@ -33,7 +46,7 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           port: ${{ secrets.SERVER_PORT }}
           script: |
-            sudo rm -rf ${{ secrets.TARGET_PATH }}
+            sudo rm -rf ${{ env.TARGET_PATH }}
 
       - name: Copy dist to Server
         uses: appleboy/scp-action@v0.1.7
@@ -43,7 +56,7 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           port: ${{ secrets.SERVER_PORT }}
           source: "dist/*"
-          target: ${{ secrets.TARGET_PATH }}
+          target: ${{ env.TARGET_PATH }}
           strip_components: 1
 
       - name: Deploy on Server
@@ -54,5 +67,5 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           port: ${{ secrets.SERVER_PORT }}
           script: |
-            sudo systemctl stop ${{ secrets.SERVICE_SOCKET_NAME }}.socket ${{ secrets.SERVICE_SOCKET_NAME }}.service nginx
-            sudo systemctl restart ${{ secrets.SERVICE_SOCKET_NAME }}.socket ${{ secrets.SERVICE_SOCKET_NAME }}.service nginx
+            sudo systemctl stop ${{ env.SERVICE_SOCKET_NAME }}.socket ${{ env.SERVICE_SOCKET_NAME }}.service nginx || true
+            sudo systemctl restart ${{ env.SERVICE_SOCKET_NAME }}.socket ${{ env.SERVICE_SOCKET_NAME }}.service nginx

@@ -4,9 +4,12 @@ on:
   push:
     branches:
       - main
+      - testing
+
   pull_request:
     branches:
       - main
+      - testing
 
 jobs:
   build:
@@ -27,7 +30,7 @@ jobs:
 
       - name: Build React App
         env:
-          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
+          VITE_API_BASE_URL: ${{ github.ref_name == 'main' && secrets.DEV_VITE_API_BASE_URL || secrets.TESTING_VITE_API_BASE_URL }}
           VITE_API_TIMEOUT: ${{ secrets.VITE_API_TIMEOUT }}
           VITE_APP_NAME: ${{ secrets.VITE_APP_NAME }}
           VITE_APP_VERSION: ${{ secrets.VITE_APP_VERSION }}
