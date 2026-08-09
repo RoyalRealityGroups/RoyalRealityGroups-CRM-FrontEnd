@@ -1,32 +1,37 @@
-name: RRG-FrontEnd-Deploy
+name: RRG-FrontEnd-Testing
 
 on:
-  workflow_run:
-    workflows: ["RRG-FrontEnd-Build"]
-    types:
-      - completed
+  push:
     branches:
-      - main
+      - testing
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
-    if: github.event.workflow_run.conclusion == 'success'
-
-    permissions:
-      actions: read
-      contents: read
 
     steps:
-      - name: Download Build Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: RRG-FrontEnd-Build
-          path: dist
-          run-id: ${{ github.event.workflow_run.id }}
-          github-token: ${{ secrets.GITHUB }}
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-      - name: Remove old build files
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install Dependencies
+        run: npm install --force
+
+      - name: Build React App
+        env:
+          VITE_API_BASE_URL: ${{ secrets.TESTING_VITE_API_BASE_URL }}
+          VITE_API_TIMEOUT: ${{ secrets.VITE_API_TIMEOUT }}
+          VITE_APP_NAME: ${{ secrets.VITE_APP_NAME }}
+          VITE_APP_VERSION: ${{ secrets.VITE_APP_VERSION }}
+          VITE_ENV: ${{ secrets.VITE_ENV }}
+        run: npm run build
+
+      - name: Remove old testing build
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.SERVER_HOST }}
@@ -34,9 +39,9 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           port: ${{ secrets.SERVER_PORT }}
           script: |
-            sudo rm -rf ${{ secrets.DEV_TARGET_PATH }}
+            sudo rm -rf ${{ secrets.TESTING_TARGET_PATH }}
 
-      - name: Copy dist to Server
+      - name: Copy Build to Testing Server
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SERVER_HOST }}
@@ -44,10 +49,10 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           port: ${{ secrets.SERVER_PORT }}
           source: "dist/*"
-          target: ${{ secrets.DEV_TARGET_PATH }}
+          target: ${{ secrets.TESTING_TARGET_PATH }}
           strip_components: 1
 
-      - name: Deploy on Server
+      - name: Restart Nginx
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.SERVER_HOST }}
