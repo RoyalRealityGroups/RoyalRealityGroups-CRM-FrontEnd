@@ -7,7 +7,6 @@ on:
       - completed
     branches:
       - main
-      - testing
 
 jobs:
   deploy:
@@ -27,17 +26,6 @@ jobs:
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ secrets.GITHUB }}
 
-      - name: Set Deployment Variables
-        id: vars
-        run: |
-          if [[ "${{ github.event.workflow_run.head_branch }}" == "main" ]]; then
-            echo "TARGET_PATH=${{ secrets.DEV_TARGET_PATH }}" >> $GITHUB_ENV
-            echo "SERVICE_SOCKET_NAME=${{ secrets.DEV_SERVICE_SOCKET_NAME }}" >> $GITHUB_ENV
-          elif [[ "${{ github.event.workflow_run.head_branch }}" == "testing" ]]; then
-            echo "TARGET_PATH=${{ secrets.TESTING_TARGET_PATH }}" >> $GITHUB_ENV
-            echo "SERVICE_SOCKET_NAME=${{ secrets.TESTING_SERVICE_SOCKET_NAME }}" >> $GITHUB_ENV
-          fi
-
       - name: Remove old build files
         uses: appleboy/ssh-action@v1.2.0
         with:
@@ -46,7 +34,7 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           port: ${{ secrets.SERVER_PORT }}
           script: |
-            sudo rm -rf ${{ env.TARGET_PATH }}
+            sudo rm -rf ${{ secrets.DEV_TARGET_PATH }}
 
       - name: Copy dist to Server
         uses: appleboy/scp-action@v0.1.7
@@ -56,7 +44,7 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           port: ${{ secrets.SERVER_PORT }}
           source: "dist/*"
-          target: ${{ env.TARGET_PATH }}
+          target: ${{ secrets.DEV_TARGET_PATH }}
           strip_components: 1
 
       - name: Deploy on Server
