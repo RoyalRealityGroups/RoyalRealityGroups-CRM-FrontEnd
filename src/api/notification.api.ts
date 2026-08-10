@@ -11,10 +11,22 @@ export interface NotificationItem {
   created_on: string;
 }
 
+export interface PaginatedNotifications {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: NotificationItem[];
+}
+
 export const notificationApi = {
-  getNotifications: async (): Promise<NotificationItem[]> => {
-    const response = await apiClient.get('/api/system/Notification/');
+  getNotifications: async (page: number = 1, pageSize: number = 50): Promise<NotificationItem[]> => {
+    const response = await apiClient.get(`/api/system/Notification/?page=${page}&page_size=${pageSize}`);
     return response.data?.results ?? response.data ?? [];
+  },
+
+  getNotificationsPaginated: async (page: number = 1, pageSize: number = 20): Promise<PaginatedNotifications> => {
+    const response = await apiClient.get(`/api/system/Notification/?page=${page}&page_size=${pageSize}`);
+    return response.data;
   },
 
   markAsRead: async (id: string | number): Promise<void> => {
