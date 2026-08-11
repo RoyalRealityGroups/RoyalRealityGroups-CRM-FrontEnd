@@ -9,20 +9,12 @@ import {
   CircularProgress,
   Alert,
   TextField,
-  Divider,
   Grid,
-  MenuItem,
-  Select,
-  FormControl,
-  InputLabel,
 } from '@mui/material';
 import HomeIcon from '@mui/icons-material/Home';
 import SettingsIcon from '@mui/icons-material/Settings';
-import TuneIcon from '@mui/icons-material/Tune';
+import EmailIcon from '@mui/icons-material/Email';
 import SaveIcon from '@mui/icons-material/Save';
-import NotificationsIcon from '@mui/icons-material/Notifications';
-import SecurityIcon from '@mui/icons-material/Security';
-import BusinessIcon from '@mui/icons-material/Business';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSelector } from 'react-redux';
@@ -32,40 +24,24 @@ import ScreenHeader from '../../components/common/ScreenHeader';
 import { useBreadcrumbs } from '../../contexts/BreadcrumbContext';
 import { useToast } from '../../contexts/ToastContext';
 import { usePageTitle } from '../../hooks';
-import { generalSettingsApi } from '../../api/masters.api';
+import apiClient from '../../api/axios.config';
 
-interface GeneralSettingsState {
-  company_scoped_item_enforcement: boolean;
-  allow_multiple_schemes: boolean;
-  enable_email_notifications: boolean;
-  enable_push_notifications: boolean;
-  notify_manager_on_booking: boolean;
-  notify_employee_on_lead_assignment: boolean;
-  company_name: string;
-  date_format: string;
-  currency_symbol: string;
-  pagination_size: number;
-  session_timeout: number;
-  force_password_reset_on_first_login: boolean;
-  password_expiry_days: number;
-  max_login_attempts: number;
+interface EmailGateway {
+  smtp_host: string;
+  smtp_port: number;
+  smtp_user: string;
+  smtp_password: string;
+  use_tls: boolean;
+  from_email: string;
 }
 
-const defaultSettings: GeneralSettingsState = {
-  company_scoped_item_enforcement: false,
-  allow_multiple_schemes: true,
-  enable_email_notifications: true,
-  enable_push_notifications: true,
-  notify_manager_on_booking: true,
-  notify_employee_on_lead_assignment: true,
-  company_name: 'Royal Reality Groups',
-  date_format: 'DD-MM-YYYY',
-  currency_symbol: '₹',
-  pagination_size: 20,
-  session_timeout: 60,
-  force_password_reset_on_first_login: true,
-  password_expiry_days: 0,
-  max_login_attempts: 5,
+const defaultGateway: EmailGateway = {
+  smtp_host: '',
+  smtp_port: 587,
+  smtp_user: '',
+  smtp_password: '',
+  use_tls: true,
+  from_email: '',
 };
 
 const GeneralSettings: React.FC = () => {
@@ -75,62 +51,62 @@ const GeneralSettings: React.FC = () => {
   const { success: toastSuccess, error: toastError } = useToast();
   const user = useSelector((state: RootState) => state.auth.user);
   const isAdmin = isSuperuser(user);
-  const [settings, setSettings] = useState<GeneralSettingsState>(defaultSettings);
+  const [settings, setSettings] = useState<EmailGateway>(defaultGateway);
 
-  usePageTitle('General Settings');
+  usePageTitle('Email Settings');
 
   useEffect(() => {
     setBreadcrumbs([
       { label: 'Home', path: '/', icon: <HomeIcon fontSize="small" /> },
       { label: 'Settings', path: '/settings', icon: <SettingsIcon fontSize="small" /> },
-      { label: 'General Settings', icon: <TuneIcon fontSize="small" /> },
+      { label: 'Email Settings', icon: <EmailIcon fontSize="small" /> },
     ]);
     return () => setBreadcrumbs([]);
   }, [setBreadcrumbs]);
 
   const { data, isLoading, isError } = useQuery({
-    queryKey: ['generalSettings'],
-    queryFn: generalSettingsApi.getGeneralSettings,
+    queryKey: ['emailConfig'],
+    queryFn: async () => {
+      const response = await apiClient.get('/api/system/settings/preferences/EMAIL_CONFIG/');
+      return response.data;
+    },
   });
 
   useEffect(() => {
-    if (data) {
+    if (data?.preferences) {
+      const gateway = data.preferences.Default || data.preferences.default || {};
       setSettings({
-        company_scoped_item_enforcement: data.company_scoped_item_enforcement ?? false,
-        allow_multiple_schemes: data.allow_multiple_schemes ?? true,
-        enable_email_notifications: data.enable_email_notifications ?? true,
-        enable_push_notifications: data.enable_push_notifications ?? true,
-        notify_manager_on_booking: data.notify_manager_on_booking ?? true,
-        notify_employee_on_lead_assignment: data.notify_employee_on_lead_assignment ?? true,
-        company_name: data.company_name || 'Royal Reality Groups',
-        date_format: data.date_format || 'DD-MM-YYYY',
-        currency_symbol: data.currency_symbol || '₹',
-        pagination_size: data.pagination_size || 20,
-        session_timeout: data.session_timeout || 60,
-        force_password_reset_on_first_login: data.force_password_reset_on_first_login ?? true,
-        password_expiry_days: data.password_expiry_days || 0,
-        max_login_attempts: data.max_login_attempts || 5,
+        smtp_host: gateway.smtp_host || '',
+        smtp_port: gateway.smtp_port || 587,
+        smtp_user: gateway.smtp_user || '',
+        smtp_password: gateway.smtp_password || '',
+        use_tls: gateway.use_tls ?? true,
+        from_email: gateway.from_email || '',
       });
     }
   }, [data]);
 
   const mutation = useMutation({
-    mutationFn: generalSettingsApi.updateGeneralSettings,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['generalSettings'] });
-      toastSuccess('Settings saved successfully');
+    mutationFn: async (config: EmailGateway) => {
+      const response = await apiClient.post('/api/system/settings/preferences/', {
+        preferences_code: 'EMAIL_CONFIG',
+        preferences: {
+          Default: config,
+        },
+      });
+      return response.data;
     },
-    onError: (error: any) => {
-      toastError(error?.response?.data?.detail || 'Failed to save settings');
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['emailConfig'] });
+      toastSuccess('Email settings saved successfully');
+    },
+    onError: () => {
+      toastError('Failed to save email settings');
     },
   });
 
   const handleSave = () => {
-    mutation.mutate(settings as any);
-  };
-
-  const handleToggle = (field: keyof GeneralSettingsState) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSettings((prev) => ({ ...prev, [field]: e.target.checked }));
+    mutation.mutate(settings);
   };
 
   if (isLoading) {
@@ -144,7 +120,7 @@ const GeneralSettings: React.FC = () => {
   if (isError) {
     return (
       <Box sx={{ p: 3 }}>
-        <Alert severity="error">Failed to load general settings.</Alert>
+        <Alert severity="error">Failed to load email settings.</Alert>
       </Box>
     );
   }
@@ -153,7 +129,7 @@ const GeneralSettings: React.FC = () => {
     <Box sx={{ p: 2, overflow: 'auto', height: '100%' }}>
       <Paper sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', px: 2, py: 1, mb: 2 }}>
         <ScreenHeader
-          title="General Settings"
+          title="Email Settings"
           showBackButton
           onBack={() => navigate('/settings')}
           showAddButton={false}
@@ -172,130 +148,95 @@ const GeneralSettings: React.FC = () => {
         )}
       </Paper>
 
-      {/* Notifications Section */}
+      {/* Email Configuration Section */}
       <Paper sx={{ p: 3, mb: 3 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-          <NotificationsIcon color="primary" />
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
+          <EmailIcon color="primary" />
           <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
-            Notifications
-          </Typography>
-        </Box>
-
-        <Grid container spacing={2}>
-          <Grid size={{ xs: 12, md: 6 }}>
-            <FormControlLabel
-              control={<Switch checked={settings.enable_email_notifications} onChange={handleToggle('enable_email_notifications')} disabled={!isAdmin} />}
-              label="Enable Email Notifications"
-            />
-            <Typography variant="caption" color="text.secondary" display="block" sx={{ ml: 4 }}>
-              Send email notifications for important events
-            </Typography>
-          </Grid>
-          <Grid size={{ xs: 12, md: 6 }}>
-            <FormControlLabel
-              control={<Switch checked={settings.enable_push_notifications} onChange={handleToggle('enable_push_notifications')} disabled={!isAdmin} />}
-              label="Enable Push Notifications"
-            />
-            <Typography variant="caption" color="text.secondary" display="block" sx={{ ml: 4 }}>
-              Send push notifications via Firebase
-            </Typography>
-          </Grid>
-          <Grid size={{ xs: 12, md: 6 }}>
-            <FormControlLabel
-              control={<Switch checked={settings.notify_manager_on_booking} onChange={handleToggle('notify_manager_on_booking')} disabled={!isAdmin} />}
-              label="Notify Manager on New Booking"
-            />
-            <Typography variant="caption" color="text.secondary" display="block" sx={{ ml: 4 }}>
-              Send notification to reporting manager when a booking is created
-            </Typography>
-          </Grid>
-          <Grid size={{ xs: 12, md: 6 }}>
-            <FormControlLabel
-              control={<Switch checked={settings.notify_employee_on_lead_assignment} onChange={handleToggle('notify_employee_on_lead_assignment')} disabled={!isAdmin} />}
-              label="Notify Employee on Lead Assignment"
-            />
-            <Typography variant="caption" color="text.secondary" display="block" sx={{ ml: 4 }}>
-              Send notification when a lead is assigned to an employee
-            </Typography>
-          </Grid>
-        </Grid>
-      </Paper>
-
-      {/* System Section */}
-      <Paper sx={{ p: 3, mb: 3 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-          <BusinessIcon color="primary" />
-          <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
-            System
+            Email Configuration
           </Typography>
         </Box>
 
         <Grid container spacing={3}>
-          <Grid size={{ xs: 12, md: 4 }}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <TextField
               fullWidth
               size="small"
-              label="Company Name"
-              value={settings.company_name}
-              onChange={(e) => setSettings((prev) => ({ ...prev, company_name: e.target.value }))}
+              label="SMTP Host"
+              placeholder="smtp.gmail.com"
+              value={settings.smtp_host}
+              onChange={(e) => setSettings((prev) => ({ ...prev, smtp_host: e.target.value }))}
               disabled={!isAdmin}
+              helperText="SMTP server hostname"
             />
           </Grid>
-          <Grid size={{ xs: 12, md: 4 }}>
-            <FormControl fullWidth size="small">
-              <InputLabel>Date Format</InputLabel>
-              <Select
-                value={settings.date_format}
-                label="Date Format"
-                onChange={(e) => setSettings((prev) => ({ ...prev, date_format: e.target.value }))}
-                disabled={!isAdmin}
-              >
-                <MenuItem value="DD-MM-YYYY">DD-MM-YYYY</MenuItem>
-                <MenuItem value="MM-DD-YYYY">MM-DD-YYYY</MenuItem>
-                <MenuItem value="YYYY-MM-DD">YYYY-MM-DD</MenuItem>
-                <MenuItem value="DD/MM/YYYY">DD/MM/YYYY</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid size={{ xs: 12, md: 4 }}>
-            <TextField
-              fullWidth
-              size="small"
-              label="Currency Symbol"
-              value={settings.currency_symbol}
-              onChange={(e) => setSettings((prev) => ({ ...prev, currency_symbol: e.target.value }))}
-              disabled={!isAdmin}
-            />
-          </Grid>
-          <Grid size={{ xs: 12, md: 4 }}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <TextField
               fullWidth
               size="small"
               type="number"
-              label="Records Per Page"
-              value={settings.pagination_size}
-              onChange={(e) => setSettings((prev) => ({ ...prev, pagination_size: Number(e.target.value) || 20 }))}
+              label="SMTP Port"
+              placeholder="587"
+              value={settings.smtp_port}
+              onChange={(e) => setSettings((prev) => ({ ...prev, smtp_port: Number(e.target.value) || 587 }))}
               disabled={!isAdmin}
-              inputProps={{ min: 5, max: 100 }}
-              helperText="Default pagination size (5-100)"
+              helperText="Usually 587 (TLS) or 465 (SSL)"
             />
           </Grid>
-          <Grid size={{ xs: 12, md: 4 }}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <TextField
               fullWidth
               size="small"
-              type="number"
-              label="Session Timeout (minutes)"
-              value={settings.session_timeout}
-              onChange={(e) => setSettings((prev) => ({ ...prev, session_timeout: Number(e.target.value) || 0 }))}
+              label="SMTP Username"
+              placeholder="your-email@gmail.com"
+              value={settings.smtp_user}
+              onChange={(e) => setSettings((prev) => ({ ...prev, smtp_user: e.target.value }))}
               disabled={!isAdmin}
-              inputProps={{ min: 0 }}
-              helperText="0 = no timeout"
+              helperText="Email address used to authenticate"
             />
+          </Grid>
+          <Grid size={{ xs: 12, md: 6 }}>
+            <TextField
+              fullWidth
+              size="small"
+              type="password"
+              label="SMTP Password"
+              placeholder="••••••••"
+              value={settings.smtp_password}
+              onChange={(e) => setSettings((prev) => ({ ...prev, smtp_password: e.target.value }))}
+              disabled={!isAdmin}
+              helperText="App password or SMTP credentials"
+            />
+          </Grid>
+          <Grid size={{ xs: 12, md: 6 }}>
+            <TextField
+              fullWidth
+              size="small"
+              label="From Email"
+              placeholder="noreply@company.com"
+              value={settings.from_email}
+              onChange={(e) => setSettings((prev) => ({ ...prev, from_email: e.target.value }))}
+              disabled={!isAdmin}
+              helperText="Sender email address shown to recipients"
+            />
+          </Grid>
+          <Grid size={{ xs: 12, md: 6 }}>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={settings.use_tls}
+                  onChange={(e) => setSettings((prev) => ({ ...prev, use_tls: e.target.checked }))}
+                  disabled={!isAdmin}
+                />
+              }
+              label="Use TLS"
+            />
+            <Typography variant="caption" color="text.secondary" display="block" sx={{ ml: 4 }}>
+              Enable TLS encryption for secure email sending
+            </Typography>
           </Grid>
         </Grid>
       </Paper>
-
     </Box>
   );
 };

@@ -115,10 +115,20 @@ export const useAuth = () => {
       navigate('/');
 
       // Initialize Firebase push notifications (non-blocking)
-      import('../utils/firebase').then(({ initFirebase, requestNotificationPermission }) => {
+      import('../utils/firebase').then(({ initFirebase, requestNotificationPermission, onForegroundMessage }) => {
         initFirebase().then((initialized) => {
           if (initialized) {
             requestNotificationPermission();
+            // Show browser notification for foreground messages
+            onForegroundMessage((payload: any) => {
+              const { title, body } = payload.notification || {};
+              if (Notification.permission === 'granted') {
+                new Notification(title || 'Royal Reality Groups', {
+                  body: body || payload.data?.message || '',
+                  icon: '/favicon.ico',
+                });
+              }
+            });
           }
         });
       });
