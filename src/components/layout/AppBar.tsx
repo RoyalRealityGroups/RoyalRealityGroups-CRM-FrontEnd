@@ -344,12 +344,45 @@ const AppBar: React.FC<AppBarProps> = ({ onMenuClick }) => {
 
   // Poll system notifications every 30 seconds
   const queryClient = useQueryClient();
+  const [notifPage, setNotifPage] = React.useState(1);
+  const [allNotifications, setAllNotifications] = React.useState<NotificationItem[]>([]);
+  const [hasMoreNotifs, setHasMoreNotifs] = React.useState(true);
+  const [loadingMore, setLoadingMore] = React.useState(false);
+  const PAGE_SIZE = 20;
+
   const { data: systemNotifications = [] } = useQuery({
-    queryKey: ['system-notifications'],
-    queryFn: () => notificationApi.getNotifications(),
-    refetchInterval: 30 * 1000,
+    queryKey: ['system-notifications', notifPage],
+    queryFn: () => notificationApi.getNotifications(notifPage, PAGE_SIZE),
+    refetchInterval: notifPage === 1 ? 30 * 1000 : false,
     staleTime: 10 * 1000,
   });
+
+  // Append new page data to allNotifications
+  React.useEffect(() => {
+    if (systemNotifications.length > 0) {
+      if (notifPage === 1) {
+        setAllNotifications(systemNotifications);
+      } else {
+        setAllNotifications((prev) => {
+          const existingIds = new Set(prev.map((n) => n.id));
+          const newItems = systemNotifications.filter((n: NotificationItem) => !existingIds.has(n.id));
+          return [...prev, ...newItems];
+        });
+      }
+      setHasMoreNotifs(systemNotifications.length >= PAGE_SIZE);
+    } else if (notifPage > 1) {
+      setHasMoreNotifs(false);
+    }
+    setLoadingMore(false);
+  }, [systemNotifications, notifPage]);
+
+  const handleNotifScroll = React.useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLDivElement;
+    if (target.scrollHeight - target.scrollTop - target.clientHeight < 50 && hasMoreNotifs && !loadingMore) {
+      setLoadingMore(true);
+      setNotifPage((prev) => prev + 1);
+    }
+  }, [hasMoreNotifs, loadingMore]);
 
   const markAsReadMutation = useMutation({
     mutationFn: (id: string | number) => notificationApi.markAsRead(id),
@@ -361,7 +394,7 @@ const AppBar: React.FC<AppBarProps> = ({ onMenuClick }) => {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['system-notifications'] }),
   });
 
-  const systemNotifCount = systemNotifications.length;
+  const systemNotifCount = allNotifications.length;
 
   const allReminders: LeadFollowUp[] = remindersData?.results ?? [];
   // Parse server time; fall back to client time if missing
@@ -485,7 +518,7 @@ const AppBar: React.FC<AppBarProps> = ({ onMenuClick }) => {
           TransitionComponent={Slide}
           transitionDuration={{ enter: 220, exit: 160 }}
           slotProps={{
-            paper: { sx: { width: 390, maxHeight: 560, mt: 0.5, overflow: 'hidden',
+            paper: { sx: { width: 390, maxHeight: '70vh', mt: 0.5, overflow: 'hidden',
               display: 'flex', flexDirection: 'column' } },
           }}
         >
@@ -572,7 +605,7 @@ const AppBar: React.FC<AppBarProps> = ({ onMenuClick }) => {
           <Divider sx={{ flexShrink: 0 }} />
 
           {/* ── Tab body ── */}
-          <Box sx={{ overflowY: 'auto', flexGrow: 1 }}>
+          <Box sx={{ overflowY: 'auto', flexGrow: 1, maxHeight: 400 }} onScroll={activeTab === 0 ? handleNotifScroll : undefined}>
             {activeTab === 0 ? (
               /* System Notifications / Alerts */
               systemNotifCount === 0 ? (
@@ -581,7 +614,8 @@ const AppBar: React.FC<AppBarProps> = ({ onMenuClick }) => {
                   <Typography variant="body2">No alerts</Typography>
                 </Box>
               ) : (
-                systemNotifications.map((notif: NotificationItem) => (
+                <>
+                  {allNotifications.map((notif: NotificationItem) => (
                   <Box
                     key={notif.id}
                     sx={{
@@ -616,7 +650,13 @@ const AppBar: React.FC<AppBarProps> = ({ onMenuClick }) => {
                       </IconButton>
                     </Tooltip>
                   </Box>
-                ))
+                  ))}
+                  {loadingMore && (
+                    <Box sx={{ py: 1, textAlign: 'center' }}>
+                      <Typography variant="caption" color="text.secondary">Loading more...</Typography>
+                    </Box>
+                  )}
+                </>
               )
             ) : activeTab === 1 ? (
               <BucketList

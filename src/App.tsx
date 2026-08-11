@@ -17,6 +17,26 @@ import { theme } from './theme/theme';
 
 const App: React.FC = () => {
   useEffect(() => {
+    // Initialize Firebase push notifications and foreground message listener
+    import('./utils/firebase').then(({ initFirebase, requestNotificationPermission, onForegroundMessage }) => {
+      initFirebase().then((initialized) => {
+        if (initialized) {
+          requestNotificationPermission();
+          onForegroundMessage((payload: any) => {
+            const { title, body } = payload.notification || {};
+            if (Notification.permission === 'granted') {
+              new Notification(title || 'Royal Reality Groups', {
+                body: body || payload.data?.message || '',
+                icon: '/favicon.ico',
+              });
+            }
+          });
+        }
+      });
+    });
+  }, []);
+
+  useEffect(() => {
     // Override MUI's aria-hidden behavior on root element
     const observer = new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {
