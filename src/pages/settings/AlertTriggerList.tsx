@@ -34,11 +34,6 @@ import { useToast } from '../../contexts/ToastContext';
 import { usePageTitle } from '../../hooks';
 import ScreenHeader from '../../components/common/ScreenHeader';
 import type { AlertTrigger } from '../../types/alertTrigger.types';
-import {
-  getPageContainerStyles,
-  getContentSectionStyles,
-  getDataGridStyles,
-} from '../../utils/spacing';
 
 const AlertTriggerList: React.FC = () => {
   const navigate = useNavigate();
@@ -248,7 +243,7 @@ const AlertTriggerList: React.FC = () => {
   ];
 
   return (
-    <Box sx={getPageContainerStyles()}>
+    <Box sx={{ p: 2 }}>
       <ScreenHeader
         title="Alert Triggers"
         showBackButton
@@ -256,48 +251,49 @@ const AlertTriggerList: React.FC = () => {
       />
 
       {/* Toolbar */}
-      <Box
-        sx={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          mb: 2,
-          flexWrap: 'wrap',
-          gap: 1,
-        }}
-      >
-        <TextField
-          size="small"
-          placeholder="Search triggers..."
-          value={searchInput}
-          onChange={(e) => setSearchInput(e.target.value)}
-          sx={{ width: { xs: '100%', sm: 280 } }}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon fontSize="small" />
-              </InputAdornment>
-            ),
-            endAdornment: searchInput ? (
-              <InputAdornment position="end">
-                <IconButton size="small" onClick={() => setSearchInput('')}>
-                  <CloseIcon fontSize="small" />
-                </IconButton>
-              </InputAdornment>
-            ) : null,
+      <Paper sx={{ p: 2, mb: 2 }}>
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: 1,
           }}
-        />
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => navigate('/settings/alert-triggers/create')}
         >
-          Create Trigger
-        </Button>
-      </Box>
+          <TextField
+            size="small"
+            placeholder="Search triggers..."
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            sx={{ width: { xs: '100%', sm: 280 } }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon fontSize="small" />
+                </InputAdornment>
+              ),
+              endAdornment: searchInput ? (
+                <InputAdornment position="end">
+                  <IconButton size="small" onClick={() => setSearchInput('')}>
+                    <CloseIcon fontSize="small" />
+                  </IconButton>
+                </InputAdornment>
+              ) : null,
+            }}
+          />
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => navigate('/settings/alert-triggers/create')}
+          >
+            Create Trigger
+          </Button>
+        </Box>
+      </Paper>
 
       {/* Data Grid */}
-      <Paper sx={{ ...getContentSectionStyles(), p: 0 }}>
+      <Paper sx={{ height: 620 }}>
         <DataGrid
           rows={data?.results || []}
           columns={columns}
@@ -308,12 +304,6 @@ const AlertTriggerList: React.FC = () => {
           paginationMode="server"
           pageSizeOptions={[10, 20, 50]}
           disableRowSelectionOnClick
-          autoHeight
-          getRowHeight={() => 'auto'}
-          sx={{
-            ...getDataGridStyles(),
-            '& .MuiDataGrid-cell': { py: 1 },
-          }}
         />
       </Paper>
 
