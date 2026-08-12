@@ -9,6 +9,7 @@ import { receiptsRoutes, receiptsPrintRoutes } from './receiptsRoutes';
 import { siteVisitRoutes } from './siteVisitRoutes';
 import { inventoryRoutes } from './inventoryRoutes';
 import { bookingRoutes } from './bookingRoutes';
+import { availabilityRoutes } from './availabilityRoutes';
 import ProtectedRoute from '../components/auth/ProtectedRoute';
 import SmartRedirect from '../components/auth/SmartRedirect';
 import { Layout } from '../components/layout';
@@ -87,6 +88,7 @@ export const AppRoutes = () => (
       {siteVisitRoutes}
       {inventoryRoutes}
       {bookingRoutes}
+      {availabilityRoutes}
     </Route>
 
     {/* 404 Route */}
