@@ -12,15 +12,23 @@ import {
   Fade,
 } from '@mui/material';
 import { Visibility, VisibilityOff, PersonOutline, LockOutlined, ShieldOutlined } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
 import { Button, TextField } from '../common';
 import { useAuth } from '../../hooks/useAuth';
 import { ROUTES } from '../../utils/constants';
 import { storage } from '../../utils/storage';
+import { useSelector } from 'react-redux';
+import type { RootState } from '../../store/store';
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
   const { login, isLoading, error } = useAuth();
+  const isAuthenticated = useSelector((state: RootState) => state.auth.isAuthenticated);
+
+  // Already logged in — redirect to dashboard
+  if (isAuthenticated) {
+    return <Navigate to={ROUTES.DASHBOARD} replace />;
+  }
 
   const [formData, setFormData] = useState({
     username: '',
