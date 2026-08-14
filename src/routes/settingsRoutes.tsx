@@ -56,8 +56,8 @@ const SuperuserGuard = ({ children }: { children: React.ReactNode }) => {
 export const settingsRoutes = (
   <>
     <Route path="settings" element={<SettingsGuard>{withSuspense(SettingsHub)}</SettingsGuard>} />
-    <Route path="settings/groups" element={<SuperuserGuard>{withSuspense(GroupList)}</SuperuserGuard>} />
-    <Route path="settings/groups/:id" element={<SuperuserGuard>{withSuspense(GroupForm)}</SuperuserGuard>} />
+    <Route path="settings/groups" element={<UserManagementGuard>{withSuspense(GroupList)}</UserManagementGuard>} />
+    <Route path="settings/groups/:id" element={<UserManagementGuard>{withSuspense(GroupForm)}</UserManagementGuard>} />
     <Route path="settings/users" element={<UserManagementGuard>{withSuspense(UserList)}</UserManagementGuard>} />
     <Route path="settings/users/view/:id" element={<UserManagementGuard>{withSuspense(UserView)}</UserManagementGuard>} />
     <Route path="settings/users/:id" element={<UserManagementGuard>{withSuspense(UserForm)}</UserManagementGuard>} />
