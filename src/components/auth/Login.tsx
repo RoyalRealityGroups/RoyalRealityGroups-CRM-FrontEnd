@@ -25,11 +25,6 @@ const Login: React.FC = () => {
   const { login, isLoading, error } = useAuth();
   const isAuthenticated = useSelector((state: RootState) => state.auth.isAuthenticated);
 
-  // Already logged in — redirect to dashboard
-  if (isAuthenticated) {
-    return <Navigate to={ROUTES.DASHBOARD} replace />;
-  }
-
   const [formData, setFormData] = useState({
     username: '',
     password: '',
@@ -42,6 +37,11 @@ const Login: React.FC = () => {
   });
   const [formError, setFormError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+
+  // Already logged in — redirect to dashboard (after all hooks)
+  if (isAuthenticated) {
+    return <Navigate to={ROUTES.DASHBOARD} replace />;
+  }
 
   const toErrorText = (value: unknown): string => {
     if (Array.isArray(value)) return String(value[0] ?? '');
