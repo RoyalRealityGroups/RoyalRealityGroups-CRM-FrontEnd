@@ -38,6 +38,18 @@ const Login: React.FC = () => {
   const [formError, setFormError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
+  useEffect(() => {
+    const saved = storage.getSavedCredentials();
+    if (saved) {
+      setFormData((prev) => ({
+        ...prev,
+        username: saved.username,
+        password: saved.password,
+        remember_me: true,
+      }));
+    }
+  }, []);
+
   // Already logged in — redirect to dashboard (after all hooks)
   if (isAuthenticated) {
     return <Navigate to={ROUTES.DASHBOARD} replace />;
@@ -83,18 +95,6 @@ const Login: React.FC = () => {
       backendData?.errors && typeof backendData.errors === 'object' ? backendData.errors : backendData;
     return { username: source?.username, password: source?.password };
   };
-
-  useEffect(() => {
-    const saved = storage.getSavedCredentials();
-    if (saved) {
-      setFormData((prev) => ({
-        ...prev,
-        username: saved.username,
-        password: saved.password,
-        remember_me: true,
-      }));
-    }
-  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, checked, type } = e.target;
