@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { authApi } from '../api/auth.api';
 import { useAppSelector } from '../store/hooks';
 
@@ -31,21 +31,28 @@ export interface PermissionContextValue {
 export const PermissionContext = createContext<PermissionContextValue | null>(null);
 
 export const PermissionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Use Redux selector directly (Redux Provider sits above us in the tree).
-  // We can't use useAuth() here because it pulls in react-router hooks, and this
-  // provider renders OUTSIDE <BrowserRouter>.
   const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
   const [permissions, setPermissions] = useState<ScreenPermission[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const fetchedRef = useRef(false);
 
   const fetchPermissions = useCallback(async () => {
+    // Prevent duplicate fetches
+    if (fetchedRef.current) return;
+    fetchedRef.current = true;
+    
     try {
       const data = await authApi.getPermissions();
       if (Array.isArray(data)) {
         setPermissions(data);
+      } else {
+        // Handle unexpected response format
+        console.warn('Permissions API returned non-array:', data);
+        setPermissions([]);
       }
     } catch (error) {
       console.error('Failed to fetch permissions:', error);
+      setPermissions([]);
     } finally {
       setIsLoading(false);
     }
@@ -53,12 +60,17 @@ export const PermissionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   useEffect(() => {
     if (!isAuthenticated) {
-      // No session yet — clear any stale permissions, don't hit a protected endpoint.
+      // No session yet — clear any stale permissions
       setPermissions([]);
       setIsLoading(false);
+      fetchedRef.current = false;
       return;
     }
-    fetchPermissions();
+    
+    // Only fetch if not already fetched
+    if (!fetchedRef.current) {
+      fetchPermissions();
+    }
   }, [fetchPermissions, isAuthenticated]);
 
   const canView = useCallback((screenCode: string) => {
@@ -90,6 +102,11 @@ export const PermissionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     return permissions.find(p => p.screen_code === screenCode);
   }, [permissions]);
 
+  const refreshPermissions = useCallback(async () => {
+    fetchedRef.current = false;
+    await fetchPermissions();
+  }, [fetchPermissions]);
+
   const value: PermissionContextValue = {
     permissions,
     isLoading,
@@ -99,7 +116,7 @@ export const PermissionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     canDelete,
     canExport,
     getScreenPermissions,
-    refreshPermissions: fetchPermissions,
+    refreshPermissions,
   };
 
   return (

@@ -37,6 +37,18 @@ export interface LoginResponse {
   permissions: string[];
 }
 
+export interface ScreenPermission {
+  screen_id?: number;
+  screen_code: string;
+  screen_name?: string;
+  can_view: boolean;
+  can_add: boolean;
+  can_edit: boolean;
+  can_delete: boolean;
+  can_export: boolean;
+  is_view_only?: boolean;
+}
+
 export interface User {
   id: string;
   username: string;
@@ -50,6 +62,7 @@ export interface User {
   is_staff?: boolean;
   groups?: Group[];
   permissions?: string[];
+  screen_permissions?: ScreenPermission[];
   channel_partner_type?: 'STAFF' | 'SUPERSTOCKIST' | 'DISTRIBUTOR' | 'RETAILER';
   superstockist?: string | null;
   distributor?: string | null;
