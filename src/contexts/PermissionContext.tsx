@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { authApi } from '../api/auth.api';
 import { useAppSelector } from '../store/hooks';
 
@@ -30,28 +30,41 @@ export interface PermissionContextValue {
 
 export const PermissionContext = createContext<PermissionContextValue | null>(null);
 
+// Module-level state to survive component remounts
+let globalFetched = false;
+let globalPermissions: ScreenPermission[] = [];
+
+export const resetPermissionState = () => {
+  globalFetched = false;
+  globalPermissions = [];
+};
+
 export const PermissionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
-  const [permissions, setPermissions] = useState<ScreenPermission[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const fetchedRef = useRef(false);
+  const [permissions, setPermissions] = useState<ScreenPermission[]>(globalPermissions);
+  const [isLoading, setIsLoading] = useState(!globalFetched);
 
   const fetchPermissions = useCallback(async () => {
-    // Prevent duplicate fetches
-    if (fetchedRef.current) return;
-    fetchedRef.current = true;
-    
+    if (globalFetched) {
+      setPermissions(globalPermissions);
+      setIsLoading(false);
+      return;
+    }
+
+    globalFetched = true;
+
     try {
       const data = await authApi.getPermissions();
       if (Array.isArray(data)) {
+        globalPermissions = data;
         setPermissions(data);
       } else {
-        // Handle unexpected response format
-        console.warn('Permissions API returned non-array:', data);
+        globalPermissions = [];
         setPermissions([]);
       }
     } catch (error) {
       console.error('Failed to fetch permissions:', error);
+      globalPermissions = [];
       setPermissions([]);
     } finally {
       setIsLoading(false);
@@ -60,16 +73,17 @@ export const PermissionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   useEffect(() => {
     if (!isAuthenticated) {
-      // No session yet — clear any stale permissions
+      resetPermissionState();
       setPermissions([]);
       setIsLoading(false);
-      fetchedRef.current = false;
       return;
     }
-    
-    // Only fetch if not already fetched
-    if (!fetchedRef.current) {
+
+    if (!globalFetched) {
       fetchPermissions();
+    } else {
+      setPermissions(globalPermissions);
+      setIsLoading(false);
     }
   }, [fetchPermissions, isAuthenticated]);
 
@@ -103,7 +117,9 @@ export const PermissionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   }, [permissions]);
 
   const refreshPermissions = useCallback(async () => {
-    fetchedRef.current = false;
+    globalFetched = false;
+    globalPermissions = [];
+    setIsLoading(true);
     await fetchPermissions();
   }, [fetchPermissions]);
 
