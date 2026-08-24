@@ -3,7 +3,6 @@ import {
   Box,
   TextField,
   Typography,
-  Chip,
   Paper,
   Switch,
   FormControlLabel,
@@ -20,7 +19,7 @@ import {
   Close as CloseIcon,
   Shield as ShieldIcon,
 } from '@mui/icons-material';
-import type { ScreenItem, ScreenPermissionInput } from '../../api/users.api';
+import type { MenuItem, MenuPermissionInput } from '../../api/users.api';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -35,11 +34,11 @@ const ACTIONS: Array<{ key: PermissionAction; label: string; color: string }> = 
 ];
 
 interface ScreenPermissionPickerProps {
-  /** All available screens fetched from /api/usermanagement/screens/ */
-  availableScreens: ScreenItem[];
-  /** Current permission state — keyed by screen_code */
-  value: Record<string, ScreenPermissionInput>;
-  onChange: (updated: Record<string, ScreenPermissionInput>) => void;
+  /** All available menu items fetched from /api/system/user_menu/ */
+  availableScreens: MenuItem[];
+  /** Current permission state — keyed by menuitem_id */
+  value: Record<number, MenuPermissionInput>;
+  onChange: (updated: Record<number, MenuPermissionInput>) => void;
   disabled?: boolean;
 }
 
@@ -52,37 +51,37 @@ const ScreenPermissionPicker: React.FC<ScreenPermissionPickerProps> = ({
   disabled = false,
 }) => {
   // Guard against non-array (e.g. paginated response passed accidentally)
-  const availableScreens: ScreenItem[] = Array.isArray(availableScreensProp)
+  const availableMenuItems: MenuItem[] = Array.isArray(availableScreensProp)
     ? availableScreensProp
     : [];
   const [search, setSearch] = useState('');
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
-  // Screens that have been added (have at least one action or appear in value map)
-  const addedCodes = useMemo(() => Object.keys(value), [value]);
+  // Menu items that have been added (have at least one action or appear in value map)
+  const addedIds = useMemo(() => Object.keys(value).map(Number), [value]);
 
-  // Screens available to add — not yet added, match search
+  // Menu items available to add — not yet added, match search
   const filteredSuggestions = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return availableScreens.filter(
-      (s) =>
-        !addedCodes.includes(s.code) &&
-        (q === '' || s.name.toLowerCase().includes(q) || s.code.toLowerCase().includes(q))
+    return availableMenuItems.filter(
+      (m) =>
+        !addedIds.includes(m.id) &&
+        (q === '' || m.name.toLowerCase().includes(q) || m.code.toLowerCase().includes(q))
     );
-  }, [availableScreens, addedCodes, search]);
+  }, [availableMenuItems, addedIds, search]);
 
-  // Screens that are added — shown as editable rows
-  const addedScreens = useMemo(
-    () => availableScreens.filter((s) => addedCodes.includes(s.code)),
-    [availableScreens, addedCodes]
+  // Menu items that are added — shown as editable rows
+  const addedMenuItems = useMemo(
+    () => availableMenuItems.filter((m) => addedIds.includes(m.id)),
+    [availableMenuItems, addedIds]
   );
 
-  // Add a screen with default view=true
-  const handleAdd = (screen: ScreenItem) => {
+  // Add a menu item with default view=true
+  const handleAdd = (menuItem: MenuItem) => {
     onChange({
       ...value,
-      [screen.code]: {
-        screen_code: screen.code,
+      [menuItem.id]: {
+        menuitem_id: menuItem.id,
         can_view: true,
         can_add: false,
         can_edit: false,
@@ -94,17 +93,17 @@ const ScreenPermissionPicker: React.FC<ScreenPermissionPickerProps> = ({
     setDropdownOpen(false);
   };
 
-  // Remove a screen entirely
-  const handleRemove = (code: string) => {
+  // Remove a menu item entirely
+  const handleRemove = (id: number) => {
     const next = { ...value };
-    delete next[code];
+    delete next[id];
     onChange(next);
   };
 
   // Toggle a single action flag
-  const handleToggle = (code: string, action: PermissionAction, checked: boolean) => {
-    const current = value[code] ?? {
-      screen_code: code,
+  const handleToggle = (id: number, action: PermissionAction, checked: boolean) => {
+    const current = value[id] ?? {
+      menuitem_id: id,
       can_view: false, can_add: false, can_edit: false, can_delete: false, can_export: false,
     };
 
@@ -120,15 +119,15 @@ const ScreenPermissionPicker: React.FC<ScreenPermissionPickerProps> = ({
       next = { ...next, can_add: false, can_edit: false, can_delete: false, can_export: false };
     }
 
-    onChange({ ...value, [code]: next });
+    onChange({ ...value, [id]: next });
   };
 
-  // Toggle all actions for a screen
-  const handleToggleAll = (code: string, checked: boolean) => {
+  // Toggle all actions for a menu item
+  const handleToggleAll = (id: number, checked: boolean) => {
     onChange({
       ...value,
-      [code]: {
-        screen_code: code,
+      [id]: {
+        menuitem_id: id,
         can_view: checked,
         can_add: checked,
         can_edit: checked,
@@ -138,8 +137,8 @@ const ScreenPermissionPicker: React.FC<ScreenPermissionPickerProps> = ({
     });
   };
 
-  // Check if all actions are enabled for a screen
-  const isAllSelected = (perm: ScreenPermissionInput | undefined): boolean => {
+  // Check if all actions are enabled for a menu item
+  const isAllSelected = (perm: MenuPermissionInput | undefined): boolean => {
     if (!perm) return false;
     return perm.can_view && perm.can_add && perm.can_edit && perm.can_delete && perm.can_export;
   };
@@ -194,16 +193,16 @@ const ScreenPermissionPicker: React.FC<ScreenPermissionPickerProps> = ({
             }}
           >
             <List dense disablePadding>
-              {filteredSuggestions.map((screen) => (
+              {filteredSuggestions.map((menuItem) => (
                 <ListItemButton
-                  key={screen.code}
-                  onMouseDown={() => handleAdd(screen)}
+                  key={menuItem.id}
+                  onMouseDown={() => handleAdd(menuItem)}
                   sx={{ py: 1 }}
                 >
                   <ShieldIcon fontSize="small" sx={{ mr: 1.5, color: 'primary.main', flexShrink: 0 }} />
                   <ListItemText
-                    primary={screen.name}
-                    secondary={screen.code}
+                    primary={menuItem.name}
+                    secondary={menuItem.code}
                     primaryTypographyProps={{ variant: 'body2', fontWeight: 500 }}
                     secondaryTypographyProps={{ variant: 'caption' }}
                   />
@@ -223,18 +222,18 @@ const ScreenPermissionPicker: React.FC<ScreenPermissionPickerProps> = ({
         </Collapse>
       </Box>
 
-      {/* ── Added screens ── */}
-      {addedScreens.length > 0 && (
+      {/* ── Added menu items ── */}
+      {addedMenuItems.length > 0 && (
         <Box sx={{ mt: 2 }}>
           <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
-            {addedScreens.length} screen{addedScreens.length !== 1 ? 's' : ''} assigned
+            {addedMenuItems.length} screen{addedMenuItems.length !== 1 ? 's' : ''} assigned
           </Typography>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-            {addedScreens.map((screen) => {
-              const perm = value[screen.code];
+            {addedMenuItems.map((menuItem) => {
+              const perm = value[menuItem.id];
               return (
                 <Paper
-                  key={screen.code}
+                  key={menuItem.id}
                   variant="outlined"
                   sx={{
                     p: 1.5,
@@ -247,12 +246,12 @@ const ScreenPermissionPicker: React.FC<ScreenPermissionPickerProps> = ({
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <ShieldIcon fontSize="small" sx={{ color: 'primary.main' }} />
                       <Typography variant="body2" fontWeight={600}>
-                        {screen.name}
+                        {menuItem.name}
                       </Typography>
                     </Box>
                     <IconButton
                       size="small"
-                      onClick={() => handleRemove(screen.code)}
+                      onClick={() => handleRemove(menuItem.id)}
                       disabled={disabled}
                       title="Remove screen"
                       sx={{ color: 'error.main' }}
@@ -268,7 +267,7 @@ const ScreenPermissionPicker: React.FC<ScreenPermissionPickerProps> = ({
                         <Switch
                           size="small"
                           checked={isAllSelected(perm)}
-                          onChange={(e) => handleToggleAll(screen.code, e.target.checked)}
+                          onChange={(e) => handleToggleAll(menuItem.id, e.target.checked)}
                           disabled={disabled}
                           sx={{
                             '& .MuiSwitch-switchBase.Mui-checked': { color: '#424242' },
@@ -293,7 +292,7 @@ const ScreenPermissionPicker: React.FC<ScreenPermissionPickerProps> = ({
                           <Switch
                             size="small"
                             checked={!!perm?.[key]}
-                            onChange={(e) => handleToggle(screen.code, key, e.target.checked)}
+                            onChange={(e) => handleToggle(menuItem.id, key, e.target.checked)}
                             disabled={disabled}
                             sx={{
                               '& .MuiSwitch-switchBase.Mui-checked': { color },
@@ -319,7 +318,7 @@ const ScreenPermissionPicker: React.FC<ScreenPermissionPickerProps> = ({
         </Box>
       )}
 
-      {addedScreens.length === 0 && (
+      {addedMenuItems.length === 0 && (
         <Box sx={{ mt: 2, p: 2, border: '1px dashed', borderColor: 'divider', borderRadius: 1, textAlign: 'center' }}>
           <Typography variant="body2" color="text.secondary">
             No screens assigned yet. Search and add screens above.

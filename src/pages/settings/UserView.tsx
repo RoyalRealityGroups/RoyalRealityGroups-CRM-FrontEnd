@@ -275,8 +275,8 @@ const UserView: React.FC = () => {
                     </TableHead>
                     <TableBody>
                       {grantedScreens.map((p) => (
-                        <TableRow key={p.screen_code}>
-                          <TableCell><Typography variant="body2" fontWeight={500}>{p.screen_name}</Typography></TableCell>
+                        <TableRow key={p.menuitem_code}>
+                          <TableCell><Typography variant="body2" fontWeight={500}>{p.menuitem_name}</Typography></TableCell>
                           <TableCell align="center"><PermIcon value={p.can_view} /></TableCell>
                           <TableCell align="center"><PermIcon value={p.can_add} /></TableCell>
                           <TableCell align="center"><PermIcon value={p.can_edit} /></TableCell>

@@ -36,7 +36,7 @@ import type { RootState } from '../../store/store';
 import { useAppDispatch } from '../../store/hooks';
 import { setUser } from '../../store/slices/authSlice';
 import { authApi } from '../../api/auth.api';
-import { usersApi, type UserFormData, type ScreenPermissionInput, type ScreenItem } from '../../api/users.api';
+import { usersApi, type UserFormData, type MenuPermissionInput, type MenuItem as MenuItemType } from '../../api/users.api';
 import { menuApi } from '../../api/menu.api';
 import { useBreadcrumbs } from '../../contexts/BreadcrumbContext';
 import { useToast } from '../../contexts/ToastContext';
@@ -97,8 +97,8 @@ const UserForm: React.FC = () => {
   const [profilePictureFile, setProfilePictureFile] = useState<File | null>(null);
   const [profilePicturePreview, setProfilePicturePreview] = useState<string | null>(null);
 
-  // Permission state: keyed by screen_code
-  const [permissionsMap, setPermissionsMap] = useState<Record<string, ScreenPermissionInput>>({});
+  // Permission state: keyed by menuitem_id
+  const [permissionsMap, setPermissionsMap] = useState<Record<number, MenuPermissionInput>>({});
 
   const { control, handleSubmit, reset, watch, formState: { errors } } = useForm<UserFormData>({
     defaultValues: {
@@ -180,22 +180,22 @@ const UserForm: React.FC = () => {
     staleTime: 10 * 60 * 1000,
   });
 
-  // Convert menu items to screen format for ScreenPermissionPicker
-  const availableScreens: ScreenItem[] = useMemo(() => {
+  // Convert menu items for ScreenPermissionPicker
+  const availableMenuItems: MenuItemType[] = useMemo(() => {
     if (!menuData || !Array.isArray(menuData)) return [];
-    // Remove duplicates by code and sort by sequence
-    const uniqueByCode = new Map<string, ScreenItem>();
+    // Remove duplicates by id and sort by sequence
+    const uniqueById = new Map<number, MenuItemType>();
     menuData.forEach((item, idx) => {
-      if (!uniqueByCode.has(item.code)) {
-        uniqueByCode.set(item.code, {
+      if (!uniqueById.has(item.id)) {
+        uniqueById.set(item.id, {
           id: item.id,
           code: item.code,
           name: item.name,
-          order: item.sequence ?? idx,
+          sequence: item.sequence ?? idx,
         });
       }
     });
-    return Array.from(uniqueByCode.values()).sort((a, b) => a.order - b.order);
+    return Array.from(uniqueById.values()).sort((a, b) => (a.sequence || 0) - (b.sequence || 0));
   }, [menuData]);
 
   // Fetch user data in edit mode
@@ -239,16 +239,19 @@ const UserForm: React.FC = () => {
 
     // Populate permission map from existing data
     if (userData.screen_permissions?.length) {
-      const map: Record<string, ScreenPermissionInput> = {};
-      userData.screen_permissions.forEach((p) => {
-        map[p.screen_code] = {
-          screen_code: p.screen_code,
-          can_view: p.can_view,
-          can_add: p.can_add,
-          can_edit: p.can_edit,
-          can_delete: p.can_delete,
-          can_export: p.can_export,
-        };
+      const map: Record<number, MenuPermissionInput> = {};
+      userData.screen_permissions.forEach((p: any) => {
+        const menuitemId = p.menuitem_id;
+        if (menuitemId) {
+          map[menuitemId] = {
+            menuitem_id: menuitemId,
+            can_view: p.can_view,
+            can_add: p.can_add,
+            can_edit: p.can_edit,
+            can_delete: p.can_delete,
+            can_export: p.can_export,
+          };
+        }
       });
       setPermissionsMap(map);
     }
@@ -322,8 +325,8 @@ const UserForm: React.FC = () => {
       return;
     }
 
-    // Build screen_permissions_input — only screens with at least one action
-    const screen_permissions_input: ScreenPermissionInput[] = Object.values(permissionsMap).filter(
+    // Build screen_permissions_input — only menu items with at least one action
+    const screen_permissions_input: MenuPermissionInput[] = Object.values(permissionsMap).filter(
       (p) => p.can_view || p.can_add || p.can_edit || p.can_delete || p.can_export
     );
 
@@ -658,7 +661,7 @@ const UserForm: React.FC = () => {
                   Search and add screens this user can access, then set their allowed actions.
                 </Typography>
                 <ScreenPermissionPicker
-                  availableScreens={availableScreens}
+                  availableScreens={availableMenuItems}
                   value={permissionsMap}
                   onChange={setPermissionsMap}
                   disabled={isSubmitting}

@@ -1,15 +1,21 @@
 import apiClient from './axios.config';
 
-// Screen permission types
-export interface ScreenItem {
+// Menu item types for permissions (now uses Menuitem instead of Screen)
+export interface MenuItem {
   id: number;
   code: string;
   name: string;
-  order: number;
+  icon?: string;
+  link?: string;
+  sequence?: number;
+  order?: number;
 }
 
-export interface ScreenPermissionInput {
-  screen_code: string;
+// Alias for backward compatibility
+export type ScreenItem = MenuItem;
+
+export interface MenuPermissionInput {
+  menuitem_id: number;
   can_view: boolean;
   can_add: boolean;
   can_edit: boolean;
@@ -17,11 +23,17 @@ export interface ScreenPermissionInput {
   can_export: boolean;
 }
 
-export interface ScreenPermissionDetail extends ScreenPermissionInput {
-  screen_id: number;
-  screen_name: string;
+// Alias for backward compatibility
+export type ScreenPermissionInput = MenuPermissionInput;
+
+export interface MenuPermissionDetail extends MenuPermissionInput {
+  menuitem_code: string;
+  menuitem_name: string;
   is_view_only: boolean;
 }
+
+// Alias for backward compatibility  
+export type ScreenPermissionDetail = MenuPermissionDetail;
 
 export interface UserFormData {
   username?: string;
@@ -44,8 +56,8 @@ export interface UserFormData {
   followup_data_scope?: 'OWN' | 'TEAM' | 'ALL';
   sitevisit_data_scope?: 'OWN' | 'TEAM' | 'ALL';
   booking_data_scope?: 'OWN' | 'TEAM' | 'ALL';
-  // Screen permissions — sent to backend as screen_permissions_input
-  screen_permissions_input?: ScreenPermissionInput[];
+  // Menu permissions — sent to backend as screen_permissions_input
+  screen_permissions_input?: MenuPermissionInput[];
 }
 
 export interface UserDetail {
