@@ -97,8 +97,8 @@ const UserForm: React.FC = () => {
   const [profilePictureFile, setProfilePictureFile] = useState<File | null>(null);
   const [profilePicturePreview, setProfilePicturePreview] = useState<string | null>(null);
 
-  // Permission state: keyed by menuitem_id
-  const [permissionsMap, setPermissionsMap] = useState<Record<number, MenuPermissionInput>>({});
+  // Permission state: keyed by menuitem_id (string for UUID support)
+  const [permissionsMap, setPermissionsMap] = useState<Record<string, MenuPermissionInput>>({});
 
   const { control, handleSubmit, reset, watch, formState: { errors } } = useForm<UserFormData>({
     defaultValues: {
@@ -132,56 +132,26 @@ const UserForm: React.FC = () => {
     return () => setBreadcrumbs([]);
   }, [setBreadcrumbs, isEditMode, isProfileMode]);
 
-  // Fetch all menu items for permission picker (from sidebar menus API)
+  // Fetch all menu items for permission picker (directly from menuitem API)
   const { data: menuData } = useQuery({
     queryKey: ['allMenuItems'],
     queryFn: async () => {
-      // Use user_menu which returns the full menu tree with submenus and menuitems
-      const userMenu = await menuApi.getUserMenu();
-      // Extract all menuitems from the nested structure
-      const allItems: Array<{ id: number; code: string; name: string; sequence: number }> = [];
-      
-      userMenu.menus.forEach((menu) => {
-        // Get menuitems directly under menu
-        if (menu.menuitems) {
-          menu.menuitems.forEach((item) => {
-            if (item.code && item.name) {
-              allItems.push({ id: item.id, code: item.code, name: item.name, sequence: item.sequence });
-            }
-          });
-        }
-        // Get menuitems from submenus
-        const submenus = menu.submenus || menu.submenu || [];
-        submenus.forEach((submenu) => {
-          if (submenu.menuitems) {
-            submenu.menuitems.forEach((item) => {
-              if (item.code && item.name) {
-                allItems.push({ id: item.id, code: item.code, name: item.name, sequence: item.sequence });
-              }
-            });
-          }
-          // Handle nested submenus if any
-          if (submenu.submenus) {
-            submenu.submenus.forEach((nestedSubmenu) => {
-              if (nestedSubmenu.menuitems) {
-                nestedSubmenu.menuitems.forEach((item) => {
-                  if (item.code && item.name) {
-                    allItems.push({ id: item.id, code: item.code, name: item.name, sequence: item.sequence });
-                  }
-                });
-              }
-            });
-          }
-        });
-      });
-      
-      return allItems;
+      // Use getAllMenuItems which returns flat list of all menuitems
+      const allItems = await menuApi.getAllMenuItems();
+      console.log('DEBUG: getAllMenuItems returned:', allItems);
+      return allItems.map((item) => ({
+        id: item.id,
+        code: item.code,
+        name: item.name,
+        sequence: item.sequence,
+      }));
     },
     staleTime: 10 * 60 * 1000,
   });
 
   // Convert menu items for ScreenPermissionPicker
   const availableMenuItems: MenuItemType[] = useMemo(() => {
+    console.log('DEBUG: menuData in useMemo:', menuData);
     if (!menuData || !Array.isArray(menuData)) return [];
     // Remove duplicates by id and sort by sequence
     const uniqueById = new Map<number, MenuItemType>();
@@ -195,7 +165,9 @@ const UserForm: React.FC = () => {
         });
       }
     });
-    return Array.from(uniqueById.values()).sort((a, b) => (a.sequence || 0) - (b.sequence || 0));
+    const result = Array.from(uniqueById.values()).sort((a, b) => (a.sequence || 0) - (b.sequence || 0));
+    console.log('DEBUG: availableMenuItems result:', result);
+    return result;
   }, [menuData]);
 
   // Fetch user data in edit mode
@@ -239,11 +211,11 @@ const UserForm: React.FC = () => {
 
     // Populate permission map from existing data
     if (userData.screen_permissions?.length) {
-      const map: Record<number, MenuPermissionInput> = {};
+      const map: Record<string, MenuPermissionInput> = {};
       userData.screen_permissions.forEach((p: any) => {
         const menuitemId = p.menuitem_id;
         if (menuitemId) {
-          map[menuitemId] = {
+          map[String(menuitemId)] = {
             menuitem_id: menuitemId,
             can_view: p.can_view,
             can_add: p.can_add,

@@ -2,7 +2,7 @@ import apiClient from './axios.config';
 
 // Menu item types for permissions (now uses Menuitem instead of Screen)
 export interface MenuItem {
-  id: number;
+  id: string | number;
   code: string;
   name: string;
   icon?: string;
@@ -15,7 +15,7 @@ export interface MenuItem {
 export type ScreenItem = MenuItem;
 
 export interface MenuPermissionInput {
-  menuitem_id: number;
+  menuitem_id: string | number;
   can_view: boolean;
   can_add: boolean;
   can_edit: boolean;

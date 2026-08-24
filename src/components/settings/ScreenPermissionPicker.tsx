@@ -19,7 +19,6 @@ import {
   Close as CloseIcon,
   Shield as ShieldIcon,
 } from '@mui/icons-material';
-import type { MenuItem, MenuPermissionInput } from '../../api/users.api';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -33,12 +32,31 @@ const ACTIONS: Array<{ key: PermissionAction; label: string; color: string }> = 
   { key: 'can_export', label: 'Export', color: '#6a1b9a' },
 ];
 
+// Menu item can have string (UUID) or number ID
+export interface MenuItem {
+  id: string | number;
+  code: string;
+  name: string;
+  icon?: string;
+  link?: string;
+  sequence?: number;
+}
+
+export interface MenuPermissionInput {
+  menuitem_id: string | number;
+  can_view: boolean;
+  can_add: boolean;
+  can_edit: boolean;
+  can_delete: boolean;
+  can_export: boolean;
+}
+
 interface ScreenPermissionPickerProps {
-  /** All available menu items fetched from /api/system/user_menu/ */
+  /** All available menu items fetched from API */
   availableScreens: MenuItem[];
-  /** Current permission state — keyed by menuitem_id */
-  value: Record<number, MenuPermissionInput>;
-  onChange: (updated: Record<number, MenuPermissionInput>) => void;
+  /** Current permission state — keyed by menuitem_id (string or number) */
+  value: Record<string | number, MenuPermissionInput>;
+  onChange: (updated: Record<string | number, MenuPermissionInput>) => void;
   disabled?: boolean;
 }
 
@@ -57,30 +75,31 @@ const ScreenPermissionPicker: React.FC<ScreenPermissionPickerProps> = ({
   const [search, setSearch] = useState('');
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
-  // Menu items that have been added (have at least one action or appear in value map)
-  const addedIds = useMemo(() => Object.keys(value).map(Number), [value]);
+  // Menu items that have been added - keep IDs as strings for comparison
+  const addedIds = useMemo(() => Object.keys(value), [value]);
 
   // Menu items available to add — not yet added, match search
   const filteredSuggestions = useMemo(() => {
     const q = search.trim().toLowerCase();
     return availableMenuItems.filter(
       (m) =>
-        !addedIds.includes(m.id) &&
+        !addedIds.includes(String(m.id)) &&
         (q === '' || m.name.toLowerCase().includes(q) || m.code.toLowerCase().includes(q))
     );
   }, [availableMenuItems, addedIds, search]);
 
   // Menu items that are added — shown as editable rows
   const addedMenuItems = useMemo(
-    () => availableMenuItems.filter((m) => addedIds.includes(m.id)),
+    () => availableMenuItems.filter((m) => addedIds.includes(String(m.id))),
     [availableMenuItems, addedIds]
   );
 
   // Add a menu item with default view=true
   const handleAdd = (menuItem: MenuItem) => {
+    const key = String(menuItem.id);
     onChange({
       ...value,
-      [menuItem.id]: {
+      [key]: {
         menuitem_id: menuItem.id,
         can_view: true,
         can_add: false,
@@ -94,15 +113,16 @@ const ScreenPermissionPicker: React.FC<ScreenPermissionPickerProps> = ({
   };
 
   // Remove a menu item entirely
-  const handleRemove = (id: number) => {
+  const handleRemove = (id: string | number) => {
     const next = { ...value };
-    delete next[id];
+    delete next[String(id)];
     onChange(next);
   };
 
   // Toggle a single action flag
-  const handleToggle = (id: number, action: PermissionAction, checked: boolean) => {
-    const current = value[id] ?? {
+  const handleToggle = (id: string | number, action: PermissionAction, checked: boolean) => {
+    const key = String(id);
+    const current = value[key] ?? {
       menuitem_id: id,
       can_view: false, can_add: false, can_edit: false, can_delete: false, can_export: false,
     };
@@ -119,14 +139,15 @@ const ScreenPermissionPicker: React.FC<ScreenPermissionPickerProps> = ({
       next = { ...next, can_add: false, can_edit: false, can_delete: false, can_export: false };
     }
 
-    onChange({ ...value, [id]: next });
+    onChange({ ...value, [key]: next });
   };
 
   // Toggle all actions for a menu item
-  const handleToggleAll = (id: number, checked: boolean) => {
+  const handleToggleAll = (id: string | number, checked: boolean) => {
+    const key = String(id);
     onChange({
       ...value,
-      [id]: {
+      [key]: {
         menuitem_id: id,
         can_view: checked,
         can_add: checked,
@@ -191,12 +212,13 @@ const ScreenPermissionPicker: React.FC<ScreenPermissionPickerProps> = ({
               border: '1px solid',
               borderColor: 'divider',
             }}
+            onMouseDown={(e) => e.preventDefault()}
           >
             <List dense disablePadding>
               {filteredSuggestions.map((menuItem) => (
                 <ListItemButton
-                  key={menuItem.id}
-                  onMouseDown={() => handleAdd(menuItem)}
+                  key={String(menuItem.id)}
+                  onClick={() => handleAdd(menuItem)}
                   sx={{ py: 1 }}
                 >
                   <ShieldIcon fontSize="small" sx={{ mr: 1.5, color: 'primary.main', flexShrink: 0 }} />
@@ -230,10 +252,10 @@ const ScreenPermissionPicker: React.FC<ScreenPermissionPickerProps> = ({
           </Typography>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
             {addedMenuItems.map((menuItem) => {
-              const perm = value[menuItem.id];
+              const perm = value[String(menuItem.id)];
               return (
                 <Paper
-                  key={menuItem.id}
+                  key={String(menuItem.id)}
                   variant="outlined"
                   sx={{
                     p: 1.5,
