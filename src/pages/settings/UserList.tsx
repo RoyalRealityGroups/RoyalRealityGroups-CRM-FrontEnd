@@ -1,6 +1,6 @@
 import { useSelector } from 'react-redux';
 import type { RootState } from '../../store/store';
-import { hasPermission } from '../../utils/permissions';
+import { usePermissions } from '../../contexts/PermissionContext';
 import React, { useState, useEffect } from 'react';
 import {
   Box,
@@ -48,6 +48,7 @@ import {
 const UserList: React.FC = () => {
   const navigate = useNavigate();
   const user = useSelector((state: RootState) => state.auth.user);
+  const { canAdd, canEdit, canDelete } = usePermissions();
   const queryClient = useQueryClient();
   const { setBreadcrumbs } = useBreadcrumbs();
   const { success: toastSuccess, error: toastError } = useToast();
@@ -171,29 +172,18 @@ const UserList: React.FC = () => {
       width: 130,
     },
     {
-      field: 'groups',
-      headerName: 'Groups',
-      flex: 1,
-      minWidth: 150,
-      renderCell: (params) => (
-        <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-          {params.row.groups && params.row.groups.length > 0 ? (
-            params.row.groups.map((group) => (
-              <Chip
-                key={group.id}
-                label={group.name}
-                size="small"
-                color="primary"
-                variant="outlined"
-              />
-            ))
-          ) : (
-            <Typography variant="caption" color="text.secondary">
-              No groups
-            </Typography>
-          )}
-        </Box>
-      ),
+      field: 'screen_permissions',
+      headerName: 'Permissions',
+      width: 130,
+      sortable: false,
+      renderCell: (params) => {
+        const count = params.row.screen_permissions?.filter(
+          (p: any) => p.can_view || p.can_add || p.can_edit || p.can_delete || p.can_export
+        ).length ?? 0;
+        return count > 0
+          ? <Chip label={`${count} screen${count !== 1 ? 's' : ''}`} size="small" color="primary" variant="outlined" />
+          : <Typography variant="caption" color="text.secondary">None</Typography>;
+      },
     },
     {
       field: 'is_active',
@@ -218,7 +208,7 @@ const UserList: React.FC = () => {
       filterable: false,
       renderCell: (params) => (
         <Box>
-          {hasPermission(user, 'change_user') && params.row.id !== user?.id && (
+          {(user?.is_superuser || canEdit('USER_PERMISSION')) && params.row.id !== user?.id && (
             <IconButton
               size="small"
               onClick={() => navigate(`/settings/users/${params.row.id}`)}
@@ -227,7 +217,7 @@ const UserList: React.FC = () => {
               <EditIcon fontSize="small" />
             </IconButton>
           )}
-          {hasPermission(user, 'delete_user') && params.row.id !== user?.id && (
+          {(user?.is_superuser || canDelete('USER_PERMISSION')) && params.row.id !== user?.id && (
             <IconButton
               size="small"
               onClick={() => {
@@ -326,7 +316,7 @@ const UserList: React.FC = () => {
                 ),
               }}
             />
-            {hasPermission(user, 'add_user') && (
+            {(user?.is_superuser || canAdd('USER_PERMISSION')) && (
               <Button
               variant="contained"
               color="primary"

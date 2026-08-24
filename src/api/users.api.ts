@@ -1,22 +1,51 @@
 import apiClient from './axios.config';
 
+// Screen permission types
+export interface ScreenItem {
+  id: number;
+  code: string;
+  name: string;
+  order: number;
+}
+
+export interface ScreenPermissionInput {
+  screen_code: string;
+  can_view: boolean;
+  can_add: boolean;
+  can_edit: boolean;
+  can_delete: boolean;
+  can_export: boolean;
+}
+
+export interface ScreenPermissionDetail extends ScreenPermissionInput {
+  screen_id: number;
+  screen_name: string;
+  is_view_only: boolean;
+}
+
 export interface UserFormData {
   username?: string;
   email?: string;
   phone?: string;
   first_name: string;
+  last_name?: string;
   password?: string;
-  gender?: number;
+  gender?: number | string;
   device_access?: number;
   is_active?: boolean;
-  is_staff?: boolean;
-  group_ids: number[];
   profilepicture?: File | null;
+  remove_profilepicture?: boolean;
   designation?: string;
   joining_date?: string;
-  reporting_manager?: string;
+  reporting_manager?: string | null;
   user_status?: string;
   must_reset_password?: boolean;
+  lead_data_scope?: 'OWN' | 'TEAM' | 'ALL';
+  followup_data_scope?: 'OWN' | 'TEAM' | 'ALL';
+  sitevisit_data_scope?: 'OWN' | 'TEAM' | 'ALL';
+  booking_data_scope?: 'OWN' | 'TEAM' | 'ALL';
+  // Screen permissions — sent to backend as screen_permissions_input
+  screen_permissions_input?: ScreenPermissionInput[];
 }
 
 export interface UserDetail {
@@ -32,13 +61,12 @@ export interface UserDetail {
   device_access?: number;
   device_access_name?: string;
   is_active: boolean;
-  is_staff: boolean;
+  is_staff?: boolean;
   is_email_verified: boolean;
   is_phone_verified: boolean;
   profilepicture?: string | null;
-  groups?: Array<{ id: number; name: string }>;
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
   designation?: string;
   joining_date?: string;
   reporting_manager?: string;
@@ -50,6 +78,11 @@ export interface UserDetail {
   bookings?: number;
   registrations?: number;
   team_count?: number;
+  lead_data_scope?: 'OWN' | 'TEAM' | 'ALL';
+  followup_data_scope?: 'OWN' | 'TEAM' | 'ALL';
+  sitevisit_data_scope?: 'OWN' | 'TEAM' | 'ALL';
+  booking_data_scope?: 'OWN' | 'TEAM' | 'ALL';
+  screen_permissions?: ScreenPermissionDetail[];
 }
 
 export interface UserListParams {
@@ -203,46 +236,55 @@ export const usersApi = {
 
   // Create new user
   create: async (data: UserFormData): Promise<UserDetail> => {
-    const { profilepicture, ...jsonData } = data;
+    const { profilepicture, screen_permissions_input, ...jsonData } = data;
     if (profilepicture) {
       const formData = new FormData();
       Object.entries(jsonData).forEach(([key, value]) => {
         if (value === undefined || value === null) return;
-        if (Array.isArray(value)) {
-          value.forEach((v) => formData.append(key, String(v)));
-        } else {
-          formData.append(key, String(value));
-        }
-      });
-      formData.append('profilepicture', profilepicture);
-      const response = await apiClient.post<UserDetail>(`${BASE_URL}/create/`, formData);
-      return response.data;
-    }
-    const response = await apiClient.post<UserDetail>(`${BASE_URL}/create/`, jsonData);
-    return response.data;
-  },
-
-  // Update existing user
-  update: async (id: string, data: Partial<UserFormData>): Promise<UserDetail> => {
-    const { profilepicture, ...jsonData } = data;
-    if (profilepicture) {
-      const formData = new FormData();
-      Object.entries(jsonData).forEach(([key, value]) => {
-        if (value === undefined || value === null) return;
-        if (Array.isArray(value)) {
-          if (value.length === 0) return; // Don't send empty arrays on update
-          value.forEach((v) => formData.append(key, String(v)));
-        } else if (typeof value === 'boolean') {
+        if (typeof value === 'boolean') {
           formData.append(key, value ? 'true' : 'false');
         } else {
           formData.append(key, String(value));
         }
       });
       formData.append('profilepicture', profilepicture);
+      if (screen_permissions_input) {
+        formData.append('screen_permissions_input', JSON.stringify(screen_permissions_input));
+      }
+      const response = await apiClient.post<UserDetail>(`${BASE_URL}/create/`, formData);
+      return response.data;
+    }
+    const response = await apiClient.post<UserDetail>(`${BASE_URL}/create/`, {
+      ...jsonData,
+      ...(screen_permissions_input ? { screen_permissions_input } : {}),
+    });
+    return response.data;
+  },
+
+  // Update existing user
+  update: async (id: string, data: Partial<UserFormData>): Promise<UserDetail> => {
+    const { profilepicture, screen_permissions_input, ...jsonData } = data;
+    if (profilepicture) {
+      const formData = new FormData();
+      Object.entries(jsonData).forEach(([key, value]) => {
+        if (value === undefined || value === null) return;
+        if (typeof value === 'boolean') {
+          formData.append(key, value ? 'true' : 'false');
+        } else {
+          formData.append(key, String(value));
+        }
+      });
+      formData.append('profilepicture', profilepicture);
+      if (screen_permissions_input) {
+        formData.append('screen_permissions_input', JSON.stringify(screen_permissions_input));
+      }
       const response = await apiClient.patch<UserDetail>(`${BASE_URL}/${id}/`, formData);
       return response.data;
     }
-    const response = await apiClient.patch<UserDetail>(`${BASE_URL}/${id}/`, jsonData);
+    const response = await apiClient.patch<UserDetail>(`${BASE_URL}/${id}/`, {
+      ...jsonData,
+      ...(screen_permissions_input ? { screen_permissions_input } : {}),
+    });
     return response.data;
   },
 
@@ -275,6 +317,39 @@ export const usersApi = {
   // Get mini list (for dropdowns)
   mini: async (): Promise<Array<{ id: string; fullname: string }>> => {
     const response = await apiClient.get(`${BASE_URL}/mini/users/`);
+    return response.data;
+  },
+
+  // Get all available screens for permission picker
+  getScreens: async (): Promise<ScreenItem[]> => {
+    try {
+      const response = await apiClient.get(`${BASE_URL}/screens/`);
+      const data = response.data;
+      if (Array.isArray(data)) return data;
+      if (Array.isArray(data?.results)) return data.results;
+    } catch {
+      // Fall back to hardcoded list if DB not seeded yet
+    }
+    // Hardcoded fallback — matches seed_rrgms_screens
+    return [
+      { id: 1,  code: 'LEAD',            name: 'Lead Management',              order: 1 },
+      { id: 2,  code: 'CROSS_LEAD',      name: 'Cross Lead Check',             order: 2 },
+      { id: 3,  code: 'FOLLOWUP',        name: 'Follow-Up Management',         order: 3 },
+      { id: 4,  code: 'SITE_VISIT',      name: 'Site Visit Management',        order: 4 },
+      { id: 5,  code: 'PROJECT',         name: 'Project Management',           order: 5 },
+      { id: 6,  code: 'INVENTORY',       name: 'Availability List',            order: 6 },
+      { id: 7,  code: 'BOOKING',         name: 'Booking Management',           order: 7 },
+      { id: 8,  code: 'DOCUMENT',        name: 'Document Management',          order: 8 },
+      { id: 9,  code: 'EMPLOYEE',        name: 'Employee Management',          order: 9 },
+      { id: 10, code: 'REPORTS',         name: 'Reports',                      order: 10 },
+      { id: 11, code: 'DASHBOARD',       name: 'Dashboards',                   order: 11 },
+      { id: 12, code: 'USER_PERMISSION', name: 'User & Permission Management', order: 12 },
+    ];
+  },
+
+  // Get a specific user's screen permissions
+  getUserPermissions: async (userId: string): Promise<ScreenPermissionDetail[]> => {
+    const response = await apiClient.get(`${BASE_URL}/permissions/${userId}/`);
     return response.data;
   },
 };
