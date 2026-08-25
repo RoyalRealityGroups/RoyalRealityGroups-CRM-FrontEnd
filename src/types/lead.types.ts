@@ -24,6 +24,7 @@ export interface Lead {
   cross_lead_override_reason?: string;
   created_on: string;
   modified_on: string;
+  created_by_name?: string;
 }
 
 export interface LeadFormData {
