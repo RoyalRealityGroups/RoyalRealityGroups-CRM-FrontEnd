@@ -4,10 +4,10 @@ import {
   Button,
   IconButton,
   Paper,
-  Typography,
   Chip,
   TextField,
   InputAdornment,
+  Tooltip,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -15,16 +15,13 @@ import {
   DialogActions,
 } from '@mui/material';
 import {
-  Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
   Home as HomeIcon,
   Settings as SettingsIcon,
   Security as SecurityIcon,
   Search as SearchIcon,
-  Close as CloseIcon,
-  CheckCircle as ActiveIcon,
-  Cancel as InactiveIcon,
+  Visibility as ViewIcon,
 } from '@mui/icons-material';
 import { DataGrid, type GridColDef, type GridPaginationModel } from '@mui/x-data-grid';
 import { useNavigate } from 'react-router-dom';
@@ -34,12 +31,6 @@ import { useBreadcrumbs } from '../../contexts/BreadcrumbContext';
 import { useToast } from '../../contexts/ToastContext';
 import { usePageTitle } from '../../hooks';
 import ScreenHeader from '../../components/common/ScreenHeader';
-import {
-  getPageContainerStyles,
-  getHeaderSectionStyles,
-  getContentSectionStyles,
-  getDataGridStyles,
-} from '../../utils/spacing';
 
 const PermissionTemplateList: React.FC = () => {
   const navigate = useNavigate();
@@ -51,7 +42,7 @@ const PermissionTemplateList: React.FC = () => {
 
   const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
     page: 0,
-    pageSize: 25,
+    pageSize: 20,
   });
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -105,22 +96,13 @@ const PermissionTemplateList: React.FC = () => {
       headerName: 'Template Name',
       flex: 1,
       minWidth: 200,
-      renderCell: (params) => (
-        <Typography variant="body2" fontWeight={500}>
-          {params.value}
-        </Typography>
-      ),
     },
     {
       field: 'description',
       headerName: 'Description',
       flex: 1.5,
       minWidth: 250,
-      renderCell: (params) => (
-        <Typography variant="body2" color="text.secondary" noWrap>
-          {params.value || '-'}
-        </Typography>
-      ),
+      valueGetter: (value: any) => value || '-',
     },
     {
       field: 'details',
@@ -128,120 +110,85 @@ const PermissionTemplateList: React.FC = () => {
       width: 100,
       align: 'center',
       headerAlign: 'center',
-      renderCell: (params) => (
-        <Chip
-          label={params.value?.length || 0}
-          size="small"
-          color="primary"
-          variant="outlined"
-        />
-      ),
+      valueGetter: (value: any) => value?.length || 0,
     },
     {
       field: 'is_active',
       headerName: 'Status',
-      width: 100,
+      width: 120,
       align: 'center',
       headerAlign: 'center',
       renderCell: (params) => (
         <Chip
-          icon={params.value ? <ActiveIcon /> : <InactiveIcon />}
           label={params.value ? 'Active' : 'Inactive'}
           size="small"
           color={params.value ? 'success' : 'default'}
-          variant="outlined"
         />
       ),
     },
     {
       field: 'actions',
       headerName: 'Actions',
-      width: 120,
-      align: 'center',
-      headerAlign: 'center',
+      width: 140,
       sortable: false,
+      filterable: false,
       renderCell: (params) => (
-        <Box sx={{ display: 'flex', gap: 0.5 }}>
-          <IconButton
-            size="small"
-            onClick={() => navigate(`/settings/permission-templates/${params.row.id}`)}
-            title="Edit"
-          >
-            <EditIcon fontSize="small" />
-          </IconButton>
-          <IconButton
-            size="small"
-            onClick={() => handleDeleteClick(params.row)}
-            title="Delete"
-            color="error"
-          >
-            <DeleteIcon fontSize="small" />
-          </IconButton>
+        <Box>
+          <Tooltip title="View">
+            <IconButton size="small" onClick={() => navigate(`/settings/permission-templates/${params.row.id}`)}>
+              <ViewIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Edit">
+            <IconButton size="small" onClick={() => navigate(`/settings/permission-templates/${params.row.id}`)}>
+              <EditIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Delete">
+            <IconButton size="small" color="error" onClick={() => handleDeleteClick(params.row)}>
+              <DeleteIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
         </Box>
       ),
     },
   ];
 
   return (
-    <Box sx={getPageContainerStyles()}>
-      {/* Header */}
-      <Box sx={getHeaderSectionStyles()}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
-          <ScreenHeader title="Permission Templates" disableBox />
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => navigate('/settings/permission-templates/new')}
-            size="small"
-          >
-            Add Template
-          </Button>
-        </Box>
-      </Box>
+    <Box sx={{ p: 2 }}>
+      <ScreenHeader
+        title="Permission Templates"
+        showAddButton
+        addButtonText="Add Template"
+        onAdd={() => navigate('/settings/permission-templates/new')}
+      />
 
-      {/* Content */}
-      <Box sx={getContentSectionStyles()}>
-        {/* Search */}
-        <Box sx={{ mb: 2, display: 'flex', gap: 2 }}>
+      <Paper sx={{ p: 2, mb: 2 }}>
+        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
           <TextField
             size="small"
             placeholder="Search templates..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => { setSearchQuery(e.target.value); setPaginationModel((p) => ({ ...p, page: 0 })); }}
+            InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon /></InputAdornment> }}
             sx={{ width: 300 }}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon fontSize="small" color="action" />
-                </InputAdornment>
-              ),
-              endAdornment: searchQuery && (
-                <InputAdornment position="end">
-                  <IconButton size="small" onClick={() => setSearchQuery('')}>
-                    <CloseIcon fontSize="small" />
-                  </IconButton>
-                </InputAdornment>
-              ),
-            }}
           />
         </Box>
+      </Paper>
 
-        {/* Data Grid */}
-        <Paper sx={{ height: 'calc(100vh - 280px)', width: '100%' }}>
-          <DataGrid
-            rows={data?.results || []}
-            columns={columns}
-            loading={isLoading}
-            paginationModel={paginationModel}
-            onPaginationModelChange={setPaginationModel}
-            pageSizeOptions={[10, 25, 50, 100]}
-            rowCount={data?.count || 0}
-            paginationMode="server"
-            disableRowSelectionOnClick
-            sx={getDataGridStyles()}
-          />
-        </Paper>
-      </Box>
+      <Paper sx={{ height: 620 }}>
+        <DataGrid
+          rows={data?.results || []}
+          columns={columns}
+          loading={isLoading}
+          rowCount={data?.count || 0}
+          paginationMode="server"
+          paginationModel={paginationModel}
+          onPaginationModelChange={setPaginationModel}
+          pageSizeOptions={[10, 20, 50, 100]}
+          disableRowSelectionOnClick
+        />
+      </Paper>
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
