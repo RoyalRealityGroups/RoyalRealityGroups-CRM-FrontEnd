@@ -107,6 +107,8 @@ const UserForm: React.FC = () => {
   const [permissionType, setPermissionType] = useState<'template' | 'direct'>('direct');
   // Track if permissions were loaded from existing user
   const [permissionsLoaded, setPermissionsLoaded] = useState(false);
+  // Store original permissions from user data (for restore on switch back)
+  const [originalPermissions, setOriginalPermissions] = useState<Record<string, MenuPermissionInput>>({});
 
   const { control, handleSubmit, reset, watch, formState: { errors } } = useForm<UserFormData>({
     defaultValues: {
@@ -269,6 +271,7 @@ const UserForm: React.FC = () => {
         }
       });
       setPermissionsMap(map);
+      setOriginalPermissions(map); // Save original for restore
       // If user has existing permissions, show them in direct mode
       setPermissionType('direct');
       setPermissionsLoaded(true);
@@ -690,17 +693,16 @@ const UserForm: React.FC = () => {
                     value={permissionType}
                     onChange={(e) => {
                       const newType = e.target.value as 'template' | 'direct';
-                      // In edit mode with existing permissions, warn before clearing
-                      if (isEditMode && Object.keys(permissionsMap).length > 0) {
-                        const confirmSwitch = window.confirm(
-                          'Switching will clear current permissions. Continue?'
-                        );
-                        if (!confirmSwitch) return;
-                      }
                       setPermissionType(newType);
-                      // Clear permissions when switching
-                      setPermissionsMap({});
-                      setSelectedTemplateId('');
+                      if (newType === 'direct') {
+                        // Restore original permissions when switching back to direct
+                        setPermissionsMap(originalPermissions);
+                        setSelectedTemplateId('');
+                      } else {
+                        // Clear for template selection
+                        setPermissionsMap({});
+                        setSelectedTemplateId('');
+                      }
                     }}
                   >
                     <FormControlLabel
