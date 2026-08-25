@@ -2,14 +2,83 @@ import type { User } from '../types/auth.types';
 
 // Screen permission object type (from new system)
 interface ScreenPermission {
-  screen_code: string;
+  screen_code?: string;
+  menuitem_code?: string;
   screen_name?: string;
+  menuitem_name?: string;
   can_view: boolean;
   can_add: boolean;
   can_edit: boolean;
   can_delete: boolean;
   can_export: boolean;
 }
+
+// Get screen permission object for a specific screen
+export const getScreenPermission = (user: User | null, screenCode: string): ScreenPermission | null => {
+  if (!user) return null;
+  
+  // Superuser has all permissions
+  if (user.is_superuser) {
+    return {
+      screen_code: screenCode,
+      menuitem_code: screenCode,
+      can_view: true,
+      can_add: true,
+      can_edit: true,
+      can_delete: true,
+      can_export: true,
+    };
+  }
+  
+  // Find screen permission - check both screen_code and menuitem_code
+  if (user.screen_permissions && Array.isArray(user.screen_permissions)) {
+    return user.screen_permissions.find(
+      (p: ScreenPermission) => p.screen_code === screenCode || p.menuitem_code === screenCode
+    ) || null;
+  }
+  
+  return null;
+};
+
+// Check if user can view a screen
+export const canViewScreen = (user: User | null, screenCode: string): boolean => {
+  if (!user) return false;
+  if (user.is_superuser) return true;
+  const perm = getScreenPermission(user, screenCode);
+  return perm?.can_view || false;
+};
+
+// Check if user can add records on a screen
+export const canAddOnScreen = (user: User | null, screenCode: string): boolean => {
+  if (!user) return false;
+  if (user.is_superuser) return true;
+  const perm = getScreenPermission(user, screenCode);
+  return perm?.can_add || false;
+};
+
+// Check if user can edit records on a screen
+export const canEditOnScreen = (user: User | null, screenCode: string): boolean => {
+  if (!user) return false;
+  if (user.is_superuser) return true;
+  const perm = getScreenPermission(user, screenCode);
+  return perm?.can_edit || false;
+};
+
+// Check if user can delete records on a screen
+export const canDeleteOnScreen = (user: User | null, screenCode: string): boolean => {
+  if (!user) return false;
+  if (user.is_superuser) return true;
+  const perm = getScreenPermission(user, screenCode);
+  return perm?.can_delete || false;
+};
+
+// Check if user can export records on a screen
+export const canExportOnScreen = (user: User | null, screenCode: string): boolean => {
+  if (!user) return false;
+  if (user.is_superuser) return true;
+  const perm = getScreenPermission(user, screenCode);
+  return perm?.can_export || false;
+};
 
 // Check if user has specific permission
 // Supports both old format ("Sales.add_salesorder") and new screen-based format ("LEAD")

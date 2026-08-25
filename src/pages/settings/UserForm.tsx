@@ -103,8 +103,10 @@ const UserForm: React.FC = () => {
   const [permissionsMap, setPermissionsMap] = useState<Record<string, MenuPermissionInput>>({});
   // Selected permission template
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
-  // Permission type: 'template' or 'direct'
-  const [permissionType, setPermissionType] = useState<'template' | 'direct'>('template');
+  // Permission type: 'template' or 'direct' - defaults to 'direct' so existing permissions show
+  const [permissionType, setPermissionType] = useState<'template' | 'direct'>('direct');
+  // Track if permissions were loaded from existing user
+  const [permissionsLoaded, setPermissionsLoaded] = useState(false);
 
   const { control, handleSubmit, reset, watch, formState: { errors } } = useForm<UserFormData>({
     defaultValues: {
@@ -267,6 +269,13 @@ const UserForm: React.FC = () => {
         }
       });
       setPermissionsMap(map);
+      // If user has existing permissions, show them in direct mode
+      setPermissionType('direct');
+      setPermissionsLoaded(true);
+    } else {
+      // No permissions - default to template mode for new selection
+      setPermissionType('template');
+      setPermissionsLoaded(true);
     }
   }, [userData, reset]);
 
@@ -680,7 +689,15 @@ const UserForm: React.FC = () => {
                     row
                     value={permissionType}
                     onChange={(e) => {
-                      setPermissionType(e.target.value as 'template' | 'direct');
+                      const newType = e.target.value as 'template' | 'direct';
+                      // In edit mode with existing permissions, warn before clearing
+                      if (isEditMode && Object.keys(permissionsMap).length > 0) {
+                        const confirmSwitch = window.confirm(
+                          'Switching will clear current permissions. Continue?'
+                        );
+                        if (!confirmSwitch) return;
+                      }
+                      setPermissionType(newType);
                       // Clear permissions when switching
                       setPermissionsMap({});
                       setSelectedTemplateId('');

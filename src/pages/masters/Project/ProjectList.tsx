@@ -15,7 +15,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../../../store/store';
-import { hasPermission } from '../../../utils/permissions';
+import { canAddOnScreen, canEditOnScreen, canDeleteOnScreen, canExportOnScreen } from '../../../utils/permissions';
 import { projectsApi } from '../../../api/projects';
 import apiClient from '../../../api/axios.config';
 import type { Project } from '../../../types/project.types';
@@ -27,11 +27,19 @@ import { ConfirmDialog } from '../../../components/common/ConfirmDialog';
 import HomeIcon from '@mui/icons-material/Home';
 import BusinessIcon from '@mui/icons-material/Business';
 
+const SCREEN_CODE = 'PROJ-001';
+
 const ProjectList: React.FC = () => {
   usePageTitle('Projects');
   const { setBreadcrumbs } = useBreadcrumbs();
   const user = useSelector((state: RootState) => state.auth.user);
-  const canExport = hasPermission(user, 'export_project');
+  
+  // Screen-level permissions
+  const canAdd = canAddOnScreen(user, SCREEN_CODE);
+  const canEdit = canEditOnScreen(user, SCREEN_CODE);
+  const canDelete = canDeleteOnScreen(user, SCREEN_CODE);
+  const canExport = canExportOnScreen(user, SCREEN_CODE);
+  
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { success, error: toastError } = useToast();
@@ -135,6 +143,16 @@ const ProjectList: React.FC = () => {
         const statusColors: Record<string, 'default' | 'info' | 'success' | 'warning' | 'error'> = {
           UPCOMING: 'info', ACTIVE: 'success', COMPLETED: 'warning', SOLD_OUT: 'error',
         };
+        // If user can't edit, just show chip without dropdown
+        if (!canEdit) {
+          return (
+            <Chip 
+              label={choices?.project_statuses?.find((c) => c.value === p.row.status)?.label || p.row.status} 
+              color={statusColors[p.row.status as string] || 'default'} 
+              size="small" 
+            />
+          );
+        }
         return (
           <Select
             value={p.row.status || ''}
@@ -172,16 +190,20 @@ const ProjectList: React.FC = () => {
               <VisibilityIcon fontSize="small" />
             </IconButton>
           </Tooltip>
-          <Tooltip title="Edit">
-            <IconButton size="small" onClick={() => handleOpenEdit(p.row)}>
-              <EditIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Delete">
-            <IconButton size="small" color="error" onClick={() => setDeleteId(p.row.id)}>
-              <DeleteIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
+          {canEdit && (
+            <Tooltip title="Edit">
+              <IconButton size="small" onClick={() => handleOpenEdit(p.row)}>
+                <EditIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          )}
+          {canDelete && (
+            <Tooltip title="Delete">
+              <IconButton size="small" color="error" onClick={() => setDeleteId(p.row.id)}>
+                <DeleteIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          )}
         </Box>
       ),
     },
@@ -191,7 +213,7 @@ const ProjectList: React.FC = () => {
     <Box sx={{ p: 2 }}>
       <ScreenHeader
         title="Projects"
-        showAddButton
+        showAddButton={canAdd}
         addButtonText="New Project"
         onAdd={handleOpenCreate}
       />
