@@ -41,6 +41,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth';
+import { usePermissions } from '../../contexts/PermissionContext';
 import { authApi } from '../../api/auth.api';
 import { leadApi } from '../../api/lead.api';
 import { notificationApi, type NotificationItem } from '../../api/notification.api';
@@ -302,6 +303,7 @@ const BucketList: React.FC<BucketListProps> = ({ items, bucket, serverNow, onOpe
 
 const AppBar: React.FC<AppBarProps> = ({ onMenuClick }) => {
   const { user, logout } = useAuth();
+  const { canView } = usePermissions();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const theme = useTheme();
@@ -702,7 +704,7 @@ const AppBar: React.FC<AppBarProps> = ({ onMenuClick }) => {
             <ListItemIcon><LockIcon fontSize="small" /></ListItemIcon>
             Change Password
           </MenuItem>
-          {(user?.is_superuser || user?.permissions?.some((p: string) => p.includes('user') || p.includes('Users'))) && (
+          {(user?.is_superuser || user?.is_admin || canView('MIM-018')) && (
             <MenuItem onClick={() => { handleClose(); navigate('/settings'); }}>
               <ListItemIcon><SettingsIcon fontSize="small" /></ListItemIcon>
               Settings

@@ -113,9 +113,8 @@ const Sidebar: React.FC<SidebarProps> = ({
   };
 
   const checkMenuItemAccess = (menuitem: MenuItemDetail): boolean => {
-    if (menuitem.permissions && menuitem.permissions.length > 0) {
-      return menuitem.permissions.some(p => checkPermission(userPermissions, p, user));
-    }
+    // Backend already filters menuitems based on user's permissions (both legacy and new system).
+    // Trust the backend filtering - if a menuitem is returned, the user has access.
     return true;
   };
 
@@ -210,22 +209,12 @@ const Sidebar: React.FC<SidebarProps> = ({
             return;
           }
           
-          const hasAccess = submenu.menuitems.some((menuitem) => {
-            // Handle permissions as string array
-            if (menuitem.permissions && menuitem.permissions.length > 0) {
-              return menuitem.permissions.some(p => checkPermission(userPermissions, p, user));
-            }
-            // Handle permission as object { id, name, codename } or number
-            if (menuitem.permission) {
-              if (typeof menuitem.permission === 'object' && menuitem.permission.codename) {
-                return checkPermission(userPermissions, menuitem.permission.codename, user);
-              }
-            }
-            // No permissions defined — allow access
-            return true;
-          });
+          // Backend already filters menuitems based on user's permissions (both legacy and new system).
+          // We only need to verify the submenu has at least one menuitem to display.
+          // The old frontend-side permission check is no longer needed since BE handles it.
+          const hasVisibleMenuitems = submenu.menuitems && submenu.menuitems.length > 0;
           
-          if (hasAccess) {
+          if (hasVisibleMenuitems) {
             submenus.push(submenu);
           }
         });

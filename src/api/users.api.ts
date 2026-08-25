@@ -1,22 +1,74 @@
 import apiClient from './axios.config';
 
+// Menu item types for permissions (now uses Menuitem instead of Screen)
+export interface MenuItem {
+  id: string | number;
+  code: string;
+  name: string;
+  icon?: string;
+  link?: string;
+  sequence?: number;
+  order?: number;
+  menu?: {
+    id: number | string;
+    name: string;
+    code?: string;
+  } | null;
+  submenu?: {
+    id: number | string;
+    name: string;
+    code?: string;
+  } | null;
+}
+
+// Alias for backward compatibility
+export type ScreenItem = MenuItem;
+
+export interface MenuPermissionInput {
+  menuitem_id: string | number;
+  can_view: boolean;
+  can_add: boolean;
+  can_edit: boolean;
+  can_delete: boolean;
+  can_export: boolean;
+}
+
+// Alias for backward compatibility
+export type ScreenPermissionInput = MenuPermissionInput;
+
+export interface MenuPermissionDetail extends MenuPermissionInput {
+  menuitem_code: string;
+  menuitem_name: string;
+  is_view_only: boolean;
+}
+
+// Alias for backward compatibility  
+export type ScreenPermissionDetail = MenuPermissionDetail;
+
 export interface UserFormData {
   username?: string;
   email?: string;
   phone?: string;
   first_name: string;
+  last_name?: string;
   password?: string;
-  gender?: number;
+  gender?: number | string;
   device_access?: number;
   is_active?: boolean;
-  is_staff?: boolean;
-  group_ids: number[];
+  is_admin?: boolean;
   profilepicture?: File | null;
+  remove_profilepicture?: boolean;
   designation?: string;
   joining_date?: string;
-  reporting_manager?: string;
+  reporting_manager?: string | null;
   user_status?: string;
   must_reset_password?: boolean;
+  lead_data_scope?: 'OWN' | 'TEAM' | 'ALL';
+  followup_data_scope?: 'OWN' | 'TEAM' | 'ALL';
+  sitevisit_data_scope?: 'OWN' | 'TEAM' | 'ALL';
+  booking_data_scope?: 'OWN' | 'TEAM' | 'ALL';
+  // Menu permissions — sent to backend as screen_permissions_input
+  screen_permissions_input?: MenuPermissionInput[];
 }
 
 export interface UserDetail {
@@ -32,13 +84,13 @@ export interface UserDetail {
   device_access?: number;
   device_access_name?: string;
   is_active: boolean;
-  is_staff: boolean;
+  is_admin?: boolean;
+  is_staff?: boolean;
   is_email_verified: boolean;
   is_phone_verified: boolean;
   profilepicture?: string | null;
-  groups?: Array<{ id: number; name: string }>;
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
   designation?: string;
   joining_date?: string;
   reporting_manager?: string;
@@ -50,6 +102,11 @@ export interface UserDetail {
   bookings?: number;
   registrations?: number;
   team_count?: number;
+  lead_data_scope?: 'OWN' | 'TEAM' | 'ALL';
+  followup_data_scope?: 'OWN' | 'TEAM' | 'ALL';
+  sitevisit_data_scope?: 'OWN' | 'TEAM' | 'ALL';
+  booking_data_scope?: 'OWN' | 'TEAM' | 'ALL';
+  screen_permissions?: ScreenPermissionDetail[];
 }
 
 export interface UserListParams {
@@ -203,46 +260,55 @@ export const usersApi = {
 
   // Create new user
   create: async (data: UserFormData): Promise<UserDetail> => {
-    const { profilepicture, ...jsonData } = data;
+    const { profilepicture, screen_permissions_input, ...jsonData } = data;
     if (profilepicture) {
       const formData = new FormData();
       Object.entries(jsonData).forEach(([key, value]) => {
         if (value === undefined || value === null) return;
-        if (Array.isArray(value)) {
-          value.forEach((v) => formData.append(key, String(v)));
-        } else {
-          formData.append(key, String(value));
-        }
-      });
-      formData.append('profilepicture', profilepicture);
-      const response = await apiClient.post<UserDetail>(`${BASE_URL}/create/`, formData);
-      return response.data;
-    }
-    const response = await apiClient.post<UserDetail>(`${BASE_URL}/create/`, jsonData);
-    return response.data;
-  },
-
-  // Update existing user
-  update: async (id: string, data: Partial<UserFormData>): Promise<UserDetail> => {
-    const { profilepicture, ...jsonData } = data;
-    if (profilepicture) {
-      const formData = new FormData();
-      Object.entries(jsonData).forEach(([key, value]) => {
-        if (value === undefined || value === null) return;
-        if (Array.isArray(value)) {
-          if (value.length === 0) return; // Don't send empty arrays on update
-          value.forEach((v) => formData.append(key, String(v)));
-        } else if (typeof value === 'boolean') {
+        if (typeof value === 'boolean') {
           formData.append(key, value ? 'true' : 'false');
         } else {
           formData.append(key, String(value));
         }
       });
       formData.append('profilepicture', profilepicture);
+      if (screen_permissions_input) {
+        formData.append('screen_permissions_input', JSON.stringify(screen_permissions_input));
+      }
+      const response = await apiClient.post<UserDetail>(`${BASE_URL}/create/`, formData);
+      return response.data;
+    }
+    const response = await apiClient.post<UserDetail>(`${BASE_URL}/create/`, {
+      ...jsonData,
+      ...(screen_permissions_input ? { screen_permissions_input } : {}),
+    });
+    return response.data;
+  },
+
+  // Update existing user
+  update: async (id: string, data: Partial<UserFormData>): Promise<UserDetail> => {
+    const { profilepicture, screen_permissions_input, ...jsonData } = data;
+    if (profilepicture) {
+      const formData = new FormData();
+      Object.entries(jsonData).forEach(([key, value]) => {
+        if (value === undefined || value === null) return;
+        if (typeof value === 'boolean') {
+          formData.append(key, value ? 'true' : 'false');
+        } else {
+          formData.append(key, String(value));
+        }
+      });
+      formData.append('profilepicture', profilepicture);
+      if (screen_permissions_input) {
+        formData.append('screen_permissions_input', JSON.stringify(screen_permissions_input));
+      }
       const response = await apiClient.patch<UserDetail>(`${BASE_URL}/${id}/`, formData);
       return response.data;
     }
-    const response = await apiClient.patch<UserDetail>(`${BASE_URL}/${id}/`, jsonData);
+    const response = await apiClient.patch<UserDetail>(`${BASE_URL}/${id}/`, {
+      ...jsonData,
+      ...(screen_permissions_input ? { screen_permissions_input } : {}),
+    });
     return response.data;
   },
 
@@ -275,6 +341,39 @@ export const usersApi = {
   // Get mini list (for dropdowns)
   mini: async (): Promise<Array<{ id: string; fullname: string }>> => {
     const response = await apiClient.get(`${BASE_URL}/mini/users/`);
+    return response.data;
+  },
+
+  // Get all available screens for permission picker
+  getScreens: async (): Promise<ScreenItem[]> => {
+    try {
+      const response = await apiClient.get(`${BASE_URL}/screens/`);
+      const data = response.data;
+      if (Array.isArray(data)) return data;
+      if (Array.isArray(data?.results)) return data.results;
+    } catch {
+      // Fall back to hardcoded list if DB not seeded yet
+    }
+    // Hardcoded fallback — matches seed_rrgms_screens
+    return [
+      { id: 1,  code: 'LEAD',            name: 'Lead Management',              order: 1 },
+      { id: 2,  code: 'CROSS_LEAD',      name: 'Cross Lead Check',             order: 2 },
+      { id: 3,  code: 'FOLLOWUP',        name: 'Follow-Up Management',         order: 3 },
+      { id: 4,  code: 'SITE_VISIT',      name: 'Site Visit Management',        order: 4 },
+      { id: 5,  code: 'PROJECT',         name: 'Project Management',           order: 5 },
+      { id: 6,  code: 'INVENTORY',       name: 'Availability List',            order: 6 },
+      { id: 7,  code: 'BOOKING',         name: 'Booking Management',           order: 7 },
+      { id: 8,  code: 'DOCUMENT',        name: 'Document Management',          order: 8 },
+      { id: 9,  code: 'EMPLOYEE',        name: 'Employee Management',          order: 9 },
+      { id: 10, code: 'REPORTS',         name: 'Reports',                      order: 10 },
+      { id: 11, code: 'DASHBOARD',       name: 'Dashboards',                   order: 11 },
+      { id: 12, code: 'USER_PERMISSION', name: 'User & Permission Management', order: 12 },
+    ];
+  },
+
+  // Get a specific user's screen permissions
+  getUserPermissions: async (userId: string): Promise<ScreenPermissionDetail[]> => {
+    const response = await apiClient.get(`${BASE_URL}/permissions/${userId}/`);
     return response.data;
   },
 };
@@ -372,6 +471,118 @@ export const companyLocationApi = {
       });
     }
     const response = await apiClient.get<LocationOption[]>(`${BASE_URL}/dropdowns/locations/`, { params });
+    return response.data;
+  },
+};
+
+// =============================================================================
+// Permission Template Types and API
+// =============================================================================
+
+export interface PermissionTemplateDetail {
+  menuitem_id: string;
+  menuitem_name: string;
+  menuitem_code: string;
+  can_view: boolean;
+  can_add: boolean;
+  can_edit: boolean;
+  can_delete: boolean;
+  can_export: boolean;
+}
+
+export interface PermissionTemplate {
+  id: string;
+  name: string;
+  description: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at?: string;
+  details: PermissionTemplateDetail[];
+}
+
+export interface PermissionTemplateMini {
+  id: string;
+  name: string;
+  description: string;
+  is_active: boolean;
+}
+
+export interface PermissionTemplateFormData {
+  name: string;
+  description?: string;
+  is_active?: boolean;
+  details_input: Array<{
+    menuitem_id: string;
+    can_view: boolean;
+    can_add: boolean;
+    can_edit: boolean;
+    can_delete: boolean;
+    can_export: boolean;
+  }>;
+}
+
+export interface PermissionTemplateListResponse {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: PermissionTemplate[];
+}
+
+const TEMPLATE_BASE_URL = '/api/usermanagement/permission-templates';
+
+export const permissionTemplateApi = {
+  // List all permission templates
+  list: async (params?: { page?: number; page_size?: number; search?: string; is_active?: boolean }): Promise<PermissionTemplateListResponse> => {
+    const response = await apiClient.get<PermissionTemplateListResponse>(TEMPLATE_BASE_URL + '/', { params });
+    // Handle both paginated and non-paginated responses
+    if (Array.isArray(response.data)) {
+      return { count: response.data.length, next: null, previous: null, results: response.data };
+    }
+    return response.data;
+  },
+
+  // Get mini list for dropdowns
+  mini: async (): Promise<PermissionTemplateMini[]> => {
+    const response = await apiClient.get(`${TEMPLATE_BASE_URL}/mini/`);
+    // Handle both array and paginated response
+    if (Array.isArray(response.data)) {
+      return response.data;
+    }
+    if (response.data?.results && Array.isArray(response.data.results)) {
+      return response.data.results;
+    }
+    return [];
+  },
+
+  // Get single template
+  get: async (id: string): Promise<PermissionTemplate> => {
+    const response = await apiClient.get<PermissionTemplate>(`${TEMPLATE_BASE_URL}/${id}/`);
+    return response.data;
+  },
+
+  // Create new template
+  create: async (data: PermissionTemplateFormData): Promise<PermissionTemplate> => {
+    const response = await apiClient.post<PermissionTemplate>(`${TEMPLATE_BASE_URL}/`, data);
+    return response.data;
+  },
+
+  // Update template
+  update: async (id: string, data: Partial<PermissionTemplateFormData>): Promise<PermissionTemplate> => {
+    const response = await apiClient.patch<PermissionTemplate>(`${TEMPLATE_BASE_URL}/${id}/`, data);
+    return response.data;
+  },
+
+  // Delete template
+  delete: async (id: string): Promise<void> => {
+    await apiClient.delete(`${TEMPLATE_BASE_URL}/${id}/`);
+  },
+
+  // Apply template to user
+  applyToUser: async (templateId: string, userId: string, merge: boolean = false): Promise<{ message: string; applied_count: number }> => {
+    const response = await apiClient.post<{ message: string; applied_count: number }>(
+      `${TEMPLATE_BASE_URL}/${templateId}/apply/${userId}/`,
+      { merge }
+    );
     return response.data;
   },
 };

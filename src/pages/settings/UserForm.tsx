@@ -1,5 +1,4 @@
-// @ts-nocheck
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Box,
   Button,
@@ -9,22 +8,20 @@ import {
   CircularProgress,
   Typography,
   FormControl,
-  InputLabel,
   Select,
   MenuItem,
   FormControlLabel,
-  Radio,
   Switch,
   Divider,
   InputAdornment,
   IconButton,
-  Alert,
+  Radio,
+  RadioGroup,
 } from '@mui/material';
 import SearchableDropdown from '../../components/common/SearchableDropdown';
-import type { DropdownOption } from '../../types/common.types';
+import ScreenPermissionPicker from '../../components/settings/ScreenPermissionPicker';
 import {
   Save as SaveIcon,
-  Cancel as CancelIcon,
   Home as HomeIcon,
   Settings as SettingsIcon,
   People as PeopleIcon,
@@ -41,18 +38,13 @@ import type { RootState } from '../../store/store';
 import { useAppDispatch } from '../../store/hooks';
 import { setUser } from '../../store/slices/authSlice';
 import { authApi } from '../../api/auth.api';
-import { usersApi, type UserFormData } from '../../api/users.api';
-import { groupsApi } from '../../api/groups.api';
+import { usersApi, type UserFormData, type MenuPermissionInput, type MenuItem as MenuItemType, permissionTemplateApi, type PermissionTemplateMini } from '../../api/users.api';
+import { menuApi } from '../../api/menu.api';
 import { useBreadcrumbs } from '../../contexts/BreadcrumbContext';
 import { useToast } from '../../contexts/ToastContext';
 import { usePageTitle } from '../../hooks';
-import type { Group } from '../../types/auth.types';
 import ScreenHeader from '../../components/common/ScreenHeader';
-import {
-  getPageContainerStyles,
-  getHeaderSectionStyles,
-  getContentSectionStyles,
-} from '../../utils/spacing';
+import { getPageContainerStyles, getHeaderSectionStyles, getContentSectionStyles } from '../../utils/spacing';
 import {
   CONTACT_EMAIL_REGEX,
   CONTACT_PHONE_MAX_LENGTH,
@@ -62,6 +54,8 @@ import {
   sanitizePhoneInput,
 } from '../../utils/validation';
 import { PASSWORD_RULES, isPasswordValid } from '../../utils/passwordValidation';
+
+// ─── Constants ────────────────────────────────────────────────────────────────
 
 const GENDER_CHOICES = [
   { value: 1, label: 'Male' },
@@ -75,6 +69,14 @@ const DEVICE_ACCESS_CHOICES = [
   { value: 3, label: 'Both' },
   { value: 4, label: 'None' },
 ];
+
+const USER_STATUS_CHOICES = [
+  { value: 'ACTIVE',    label: 'Active' },
+  { value: 'INACTIVE',  label: 'Inactive' },
+  { value: 'SUSPENDED', label: 'Suspended' },
+];
+
+// ─── Main Form ────────────────────────────────────────────────────────────────
 
 const UserForm: React.FC = () => {
   const { id: paramId } = useParams<{ id: string }>();
@@ -91,233 +93,284 @@ const UserForm: React.FC = () => {
   usePageTitle(isProfileMode ? 'Edit Profile' : id === 'new' ? 'Create User' : 'Edit User');
   const isEditMode = id !== 'new';
 
-  const [selectedGroups, setSelectedGroups] = useState<Group[]>([]);
   const [showPassword, setShowPassword] = useState(false);
   const [selectedReportingManager, setSelectedReportingManager] = useState<any>(null);
   const [apiErrors, setApiErrors] = useState<Record<string, string>>({});
-  
-  // Profile picture state
   const [profilePictureFile, setProfilePictureFile] = useState<File | null>(null);
   const [profilePicturePreview, setProfilePicturePreview] = useState<string | null>(null);
 
-  const {
-    control,
-    handleSubmit,
-    reset,
-    watch,
-    formState: { errors },
-  } = useForm<UserFormData>({
+  // Permission state: keyed by menuitem_id (string for UUID support)
+  const [permissionsMap, setPermissionsMap] = useState<Record<string, MenuPermissionInput>>({});
+  // Selected permission template
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
+  // Permission type: 'template' or 'direct' - defaults to 'direct' so existing permissions show
+  const [permissionType, setPermissionType] = useState<'template' | 'direct'>('direct');
+  // Track if permissions were loaded from existing user
+  const [permissionsLoaded, setPermissionsLoaded] = useState(false);
+  // Store original permissions from user data (for restore on switch back)
+  const [originalPermissions, setOriginalPermissions] = useState<Record<string, MenuPermissionInput>>({});
+
+  const { control, handleSubmit, reset, watch, formState: { errors } } = useForm<UserFormData>({
     defaultValues: {
-      username: '',
-      email: '',
-      phone: '',
-      first_name: '',
-      password: '',
-      gender: '',
-      device_access: 3,
-      is_active: true,
-      group_ids: [],
-      designation: '',
-      joining_date: '',
-      reporting_manager: '',
+      username: '', email: '', phone: '',
+      first_name: '', last_name: '',
+      password: '', gender: '', device_access: 3,
+      is_active: true, is_admin: false, user_status: 'ACTIVE',
+      must_reset_password: true,
+      designation: '', joining_date: '', reporting_manager: null,
+      lead_data_scope: 'OWN', followup_data_scope: 'OWN',
+      sitevisit_data_scope: 'OWN', booking_data_scope: 'OWN',
     },
   });
 
   const isActive = watch('is_active');
+  const isAdmin = watch('is_admin');
 
   useEffect(() => {
-    setBreadcrumbs([
-      { label: 'Home', path: '/', icon: <HomeIcon fontSize="small" /> },
-      { label: 'Settings', path: '/settings', icon: <SettingsIcon fontSize="small" /> },
-      { label: 'Users', path: '/settings/users', icon: <PeopleIcon fontSize="small" /> },
-      { label: isEditMode ? 'Edit User' : 'Add User' },
-    ]);
+    if (isProfileMode) {
+      setBreadcrumbs([
+        { label: 'Home', path: '/', icon: <HomeIcon fontSize="small" /> },
+        { label: 'Profile', icon: <PeopleIcon fontSize="small" /> },
+      ]);
+    } else {
+      setBreadcrumbs([
+        { label: 'Home', path: '/', icon: <HomeIcon fontSize="small" /> },
+        { label: 'Settings', path: '/settings', icon: <SettingsIcon fontSize="small" /> },
+        { label: 'Users', path: '/settings/users', icon: <PeopleIcon fontSize="small" /> },
+        { label: isEditMode ? 'Edit User' : 'Add User' },
+      ]);
+    }
     return () => setBreadcrumbs([]);
-  }, [setBreadcrumbs, isEditMode]);
+  }, [setBreadcrumbs, isEditMode, isProfileMode]);
 
-  // Fetch user data if editing
+  // Fetch all menu items for permission picker (directly from menuitem API)
+  const { data: menuData } = useQuery({
+    queryKey: ['allMenuItems'],
+    queryFn: async () => {
+      // Use getAllMenuItems which returns flat list of all menuitems
+      const allItems = await menuApi.getAllMenuItems();
+      return allItems.map((item) => ({
+        id: item.id,
+        code: item.code,
+        name: item.name,
+        sequence: item.sequence,
+        menu: typeof item.menu === 'object' ? item.menu : null,
+        submenu: typeof item.submenu === 'object' ? item.submenu : null,
+      }));
+    },
+    staleTime: 10 * 60 * 1000,
+  });
+
+  // Fetch permission templates for dropdown
+  const { data: permissionTemplates } = useQuery({
+    queryKey: ['permissionTemplatesMini'],
+    queryFn: () => permissionTemplateApi.mini(),
+    staleTime: 0, // Always refetch to get latest templates
+  });
+
+  // Handle template selection - load template details and merge with permissions
+  const handleTemplateSelect = async (templateId: string) => {
+    setSelectedTemplateId(templateId);
+    if (!templateId) return;
+
+    try {
+      const template = await permissionTemplateApi.get(templateId);
+      if (template.details?.length) {
+        const templatePermissions: Record<string, MenuPermissionInput> = {};
+        template.details.forEach((d) => {
+          templatePermissions[String(d.menuitem_id)] = {
+            menuitem_id: d.menuitem_id,
+            can_view: d.can_view,
+            can_add: d.can_add,
+            can_edit: d.can_edit,
+            can_delete: d.can_delete,
+            can_export: d.can_export,
+          };
+        });
+        // Merge: template permissions + existing direct permissions (direct takes precedence)
+        setPermissionsMap((prev) => ({ ...templatePermissions, ...prev }));
+      }
+    } catch (error) {
+      console.error('Failed to load template:', error);
+    }
+  };
+
+  // Convert menu items for ScreenPermissionPicker
+  const availableMenuItems: MenuItemType[] = useMemo(() => {
+    if (!menuData || !Array.isArray(menuData)) return [];
+    // Remove duplicates by id and sort by sequence
+    const uniqueById = new Map<string, MenuItemType>();
+    menuData.forEach((item, idx) => {
+      const key = String(item.id);
+      if (!uniqueById.has(key)) {
+        uniqueById.set(key, {
+          id: item.id,
+          code: item.code,
+          name: item.name,
+          sequence: item.sequence ?? idx,
+          menu: item.menu,
+          submenu: item.submenu,
+        });
+      }
+    });
+    return Array.from(uniqueById.values()).sort((a, b) => (a.sequence || 0) - (b.sequence || 0));
+  }, [menuData]);
+
+  // Fetch user data in edit mode
   const { data: userData, isLoading: userLoading } = useQuery({
     queryKey: ['user', id],
     queryFn: () => usersApi.get(id!),
     enabled: isEditMode,
   });
 
-  // Populate form when user data is loaded
+  // Populate form when data loads
   useEffect(() => {
-    if (userData) {
-      // Set profile picture preview from existing data
-      if (userData.profilepicture) {
-        setProfilePicturePreview(userData.profilepicture);
-      }
-      
-      reset({
-        username: userData.username,
-        email: userData.email || '',
-        phone: userData.phone || '',
-        first_name: userData.first_name || '',
-        gender: userData.gender,
-        device_access: userData.device_access || 3,
-        is_active: userData.is_active,
-        group_ids: userData.groups?.map((g) => g.id) || [],
-        designation: userData.designation || '',
-        joining_date: userData.joining_date || '',
-        reporting_manager: userData.reporting_manager || '',
-      });
+    if (!userData) return;
+    if (userData.profilepicture) setProfilePicturePreview(userData.profilepicture);
 
-      if (userData.reporting_manager) {
-        setSelectedReportingManager({
-          id: userData.reporting_manager,
-          fullname: userData.reporting_manager_name || '',
-        });
-      } else {
-        setSelectedReportingManager(null);
-      }
-      
-      if (userData.groups) {
-        setSelectedGroups(userData.groups);
-      }
+    reset({
+      username: userData.username || '',
+      email: userData.email || '',
+      phone: userData.phone || '',
+      first_name: userData.first_name || '',
+      last_name: userData.last_name || '',
+      gender: userData.gender || '',
+      device_access: userData.device_access || 3,
+      is_active: userData.is_active,
+      is_admin: userData.is_admin || false,
+      user_status: userData.user_status || 'ACTIVE',
+      must_reset_password: userData.must_reset_password ?? true,
+      designation: userData.designation || '',
+      joining_date: userData.joining_date || '',
+      reporting_manager: userData.reporting_manager || null,
+      lead_data_scope: userData.lead_data_scope || 'OWN',
+      followup_data_scope: userData.followup_data_scope || 'OWN',
+      sitevisit_data_scope: userData.sitevisit_data_scope || 'OWN',
+      booking_data_scope: userData.booking_data_scope || 'OWN',
+    });
+
+    if (userData.reporting_manager) {
+      setSelectedReportingManager({
+        id: userData.reporting_manager,
+        fullname: userData.reporting_manager_name || '',
+      });
+    }
+
+    // Populate permission map from existing data
+    if (userData.screen_permissions?.length) {
+      const map: Record<string, MenuPermissionInput> = {};
+      userData.screen_permissions.forEach((p: any) => {
+        const menuitemId = p.menuitem_id;
+        if (menuitemId) {
+          map[String(menuitemId)] = {
+            menuitem_id: menuitemId,
+            can_view: p.can_view,
+            can_add: p.can_add,
+            can_edit: p.can_edit,
+            can_delete: p.can_delete,
+            can_export: p.can_export,
+          };
+        }
+      });
+      setPermissionsMap(map);
+      setOriginalPermissions(map); // Save original for restore
+      // If user has existing permissions, show them in direct mode
+      setPermissionType('direct');
+      setPermissionsLoaded(true);
+    } else {
+      // No permissions - default to template mode for new selection
+      setPermissionType('template');
+      setPermissionsLoaded(true);
     }
   }, [userData, reset]);
 
+  const parseApiErrors = (data: any) => {
+    const errs: Record<string, string> = {};
+    const src = data?.errors || data;
+    if (src && typeof src === 'object') {
+      Object.keys(src).forEach((k) => {
+        if (k === 'detail' || k === 'error') return;
+        const v = src[k];
+        errs[k] = Array.isArray(v) ? v.join(' ') : String(v);
+      });
+    }
+    return errs;
+  };
+
   const createMutation = useMutation({
     mutationFn: (data: UserFormData) => usersApi.create(data),
-    onSuccess: (data) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
       toastSuccess('User created successfully');
       setApiErrors({});
-      setTimeout(() => navigate('/settings/users'), 1000);
+      setTimeout(() => navigate('/settings/users'), 800);
     },
-    onError: (error: any) => {
-      // Parse field-specific errors from Django REST Framework
-      const responseData = error.response?.data;
-      if (responseData && typeof responseData === 'object') {
-        const fieldErrors: Record<string, string> = {};
-        
-        // Check if errors are wrapped in 'errors' key (custom exception handler format)
-        const errorsObj = responseData.errors || responseData;
-        
-        Object.keys(errorsObj).forEach(key => {
-          if (key === 'detail' || key === 'error') return; // Skip meta fields
-          const value = errorsObj[key];
-          if (Array.isArray(value)) {
-            fieldErrors[key] = value.join(' ');
-          } else if (typeof value === 'string') {
-            fieldErrors[key] = value;
-          }
-        });
-        
-        setApiErrors(fieldErrors);
-        
-        // Show toast for detail message if no field-specific errors shown
-        if (responseData.detail && Object.keys(fieldErrors).length === 0) {
-          toastError(responseData.detail);
-        }
-      } else {
-        toastError('Failed to create user');
+    onError: (err: any) => {
+      const errs = parseApiErrors(err.response?.data);
+      setApiErrors(errs);
+      if (!Object.keys(errs).length) {
+        toastError(err.response?.data?.detail || 'Failed to create user');
       }
     },
   });
 
   const updateMutation = useMutation({
     mutationFn: (data: UserFormData) => usersApi.update(id!, data),
-    onSuccess: (data) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
       queryClient.invalidateQueries({ queryKey: ['user', id] });
       toastSuccess('User updated successfully');
       setApiErrors({});
-      // Refresh auth user data to update AppBar avatar
       if (isProfileMode) {
-        authApi.getCurrentUser().then((userData) => {
-          dispatch(setUser({ ...currentUser, ...userData }));
-        }).catch(() => {});
+        authApi.getCurrentUser().then((u) => dispatch(setUser({ ...currentUser, ...u }))).catch(() => {});
       }
-      setTimeout(() => navigate(backPath), 1000);
+      setTimeout(() => navigate(backPath), 800);
     },
-    onError: (error: any) => {
-      // Parse field-specific errors from Django REST Framework
-      const responseData = error.response?.data;
-      if (responseData && typeof responseData === 'object') {
-        const fieldErrors: Record<string, string> = {};
-        
-        // Check if errors are wrapped in 'errors' key (custom exception handler format)
-        const errorsObj = responseData.errors || responseData;
-        
-        Object.keys(errorsObj).forEach(key => {
-          if (key === 'detail' || key === 'error') return; // Skip meta fields
-          const value = errorsObj[key];
-          if (Array.isArray(value)) {
-            fieldErrors[key] = value.join(' ');
-          } else if (typeof value === 'string') {
-            fieldErrors[key] = value;
-          }
-        });
-        
-        setApiErrors(fieldErrors);
-        
-        // Show toast for detail message if no field-specific errors shown
-        if (responseData.detail && Object.keys(fieldErrors).length === 0) {
-          toastError(responseData.detail);
-        }
-      } else {
-        toastError('Failed to update user');
+    onError: (err: any) => {
+      const errs = parseApiErrors(err.response?.data);
+      setApiErrors(errs);
+      if (!Object.keys(errs).length) {
+        toastError(err.response?.data?.detail || 'Failed to update user');
       }
     },
   });
 
   const onSubmit = (data: UserFormData) => {
-    if (!isProfileMode) {
-      // Validate that at least one group is selected
-      if (selectedGroups.length === 0) {
-        toastError('At least one group must be selected');
-        return;
-      }
-    }
-
-    const safeData = { ...data } as UserFormData & { is_staff?: boolean };
-    delete safeData.is_staff;
-
-    let submitData: any;
+    if (isEditMode && !data.password) delete (data as any).password;
+    if ((data.gender as any) === '') delete (data as any).gender;
 
     if (isProfileMode) {
-      // Profile mode: only send basic info fields
-      submitData = {
+      updateMutation.mutate({
         first_name: data.first_name,
         last_name: data.last_name,
         email: data.email,
         phone: data.phone,
-        gender: data.gender === '' ? undefined : data.gender,
-        ...(profilePictureFile && { profilepicture: profilePictureFile }),
-        ...(!profilePictureFile && !profilePicturePreview && isEditMode && { remove_profilepicture: true }),
-      };
-    } else {
-      submitData = {
-        ...safeData,
-        group_ids: selectedGroups.map((g) => g.id),
-        gender: data.gender === '' ? undefined : data.gender,
-        ...(isEditMode && !data.password && { password: undefined }),
-        ...(profilePictureFile && { profilepicture: profilePictureFile }),
-        ...(!profilePictureFile && !profilePicturePreview && isEditMode && { remove_profilepicture: true }),
-      };
+        gender: data.gender || undefined,
+        ...(profilePictureFile ? { profilepicture: profilePictureFile } : {}),
+        ...(!profilePictureFile && !profilePicturePreview && isEditMode ? { remove_profilepicture: true } : {}),
+      } as UserFormData);
+      return;
     }
 
+    // Build screen_permissions_input — only menu items with at least one action
+    const screen_permissions_input: MenuPermissionInput[] = Object.values(permissionsMap).filter(
+      (p) => p.can_view || p.can_add || p.can_edit || p.can_delete || p.can_export
+    );
 
-    if (isEditMode) {
-      updateMutation.mutate(submitData);
-    } else {
-      createMutation.mutate(submitData);
-    }
+    const submitData: UserFormData = {
+      ...data,
+      screen_permissions_input,
+      ...(profilePictureFile ? { profilepicture: profilePictureFile } : {}),
+      ...(!profilePictureFile && !profilePicturePreview && isEditMode ? { remove_profilepicture: true } : {}),
+    };
+
+    isEditMode ? updateMutation.mutate(submitData) : createMutation.mutate(submitData);
   };
 
   const backPath = isProfileMode ? '/profile' : '/settings/users';
-
-  const handleCancel = () => {
-    navigate(backPath);
-  };
-
   const isSubmitting = createMutation.isPending || updateMutation.isPending;
-  const isLoading = userLoading;
 
-  if (isLoading) {
+  if (userLoading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
         <CircularProgress />
@@ -325,572 +378,437 @@ const UserForm: React.FC = () => {
     );
   }
 
+  const SectionTitle = ({ title }: { title: string }) => (
+    <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: 'primary.main' }}>{title}</Typography>
+  );
+
+  const FieldLabel = ({ label, required }: { label: string; required?: boolean }) => (
+    <Typography variant="subtitle2" sx={{ mb: 0.5, fontWeight: 600, color: 'text.primary' }}>
+      {label}
+      {required && <Box component="span" sx={{ color: 'error.main', ml: 0.3 }}>*</Box>}
+    </Typography>
+  );
+
   return (
     <Box sx={getPageContainerStyles()}>
-      {/* Fixed Header with Title and Actions */}
+      {/* Header */}
       <Box sx={getHeaderSectionStyles()}>
-        <Box sx={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: 2,
-        }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
           <ScreenHeader
             title={isProfileMode ? 'Edit Profile' : isEditMode ? 'Edit User' : 'Add User'}
-            showBackButton
-            onBack={() => navigate(backPath)}
-            disableBox
+            showBackButton onBack={() => navigate(backPath)} disableBox
           />
-          
-          {/* Action Buttons */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Button
-              variant="outlined"
-              color="secondary"
-              size="small"
-              onClick={handleCancel}
-              disabled={isSubmitting}
-            >
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button variant="outlined" color="secondary" size="small" onClick={() => navigate(backPath)} disabled={isSubmitting}>
               Cancel
             </Button>
             <Button
-              type="submit"
-              form="user-form"
-              variant="contained"
-              color="primary"
-              size="small"
+              type="submit" form="user-form" variant="contained" size="small"
               startIcon={isSubmitting ? <CircularProgress size={16} color="inherit" /> : <SaveIcon fontSize="small" />}
               disabled={isSubmitting}
             >
-              {isSubmitting ? 'Saving...' : isEditMode ? 'Update User' : 'Create User'}
+              {isSubmitting ? 'Saving…' : isEditMode ? 'Update User' : 'Create User'}
             </Button>
           </Box>
         </Box>
       </Box>
 
-      {/* Scrollable Content Area */}
+      {/* Content */}
       <Box sx={getContentSectionStyles()}>
         <Paper sx={{ p: 3, borderRadius: 0 }}>
           <form id="user-form" onSubmit={handleSubmit(onSubmit)}>
-            {/* Profile Picture Section */}
+
+            {/* Profile Picture */}
             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 3 }}>
-              <Box
-                sx={{
-                  width: 120,
-                  height: 120,
-                  borderRadius: '50%',
-                  overflow: 'hidden',
-                  border: '3px solid',
-                  borderColor: 'primary.main',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  bgcolor: '#f0f0f0',
-                  mb: 1.5,
-                  position: 'relative',
-                }}
-              >
-                {profilePicturePreview ? (
-                  <Box
-                    component="img"
-                    src={profilePicturePreview}
-                    alt="Profile"
-                    sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                  />
-                ) : (
-                  <Typography variant="h3" sx={{ color: '#bdbdbd' }}>
-                    {watch('first_name')?.[0]?.toUpperCase() || '?'}
-                  </Typography>
-                )}
+              <Box sx={{
+                width: 110, height: 110, borderRadius: '50%',
+                overflow: 'hidden', border: '3px solid', borderColor: 'primary.main',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                bgcolor: 'grey.100', mb: 1.5,
+              }}>
+                {profilePicturePreview
+                  ? <Box component="img" src={profilePicturePreview} alt="Profile" sx={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  : <Typography variant="h3" sx={{ color: 'grey.400' }}>{watch('first_name')?.[0]?.toUpperCase() || '?'}</Typography>
+                }
               </Box>
               <Box sx={{ display: 'flex', gap: 1 }}>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  component="label"
-                  disabled={isSubmitting}
-                >
+                <Button variant="outlined" size="small" component="label" disabled={isSubmitting}>
                   {profilePicturePreview ? 'Change Photo' : 'Upload Photo'}
-                  <input
-                    type="file"
-                    hidden
-                    accept="image/jpeg,image/png,image/webp"
+                  <input type="file" hidden accept="image/jpeg,image/png,image/webp"
                     onChange={(e) => {
                       const file = e.target.files?.[0];
-                      if (file) {
-                        if (file.size > 5 * 1024 * 1024) {
-                          toastError('Image size must be less than 5MB');
-                          return;
-                        }
-                        setProfilePictureFile(file);
-                        setProfilePicturePreview(URL.createObjectURL(file));
-                      }
-                    }}
-                  />
+                      if (!file) return;
+                      if (file.size > 5 * 1024 * 1024) { toastError('Max 5MB'); return; }
+                      setProfilePictureFile(file);
+                      setProfilePicturePreview(URL.createObjectURL(file));
+                    }} />
                 </Button>
                 {profilePicturePreview && (
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    color="error"
-                    disabled={isSubmitting}
-                    onClick={() => {
-                      setProfilePictureFile(null);
-                      setProfilePicturePreview(null);
-                    }}
-                  >
+                  <Button variant="outlined" size="small" color="error" disabled={isSubmitting}
+                    onClick={() => { setProfilePictureFile(null); setProfilePicturePreview(null); }}>
                     Remove
                   </Button>
                 )}
               </Box>
-              <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5 }}>
-                JPG, PNG or WebP. Max 5MB.
-              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5 }}>JPG, PNG or WebP. Max 5MB.</Typography>
             </Box>
 
             <Divider sx={{ mb: 3 }} />
 
-            {/* Basic Information Section */}
-            <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: 'primary.main' }}>
-              Basic Information
-            </Typography>
+            {/* ── Basic Information ── */}
+            <SectionTitle title="Basic Information" />
             <Grid container spacing={3}>
-              {/* Name */}
               <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                <Typography 
-                  variant="subtitle2" 
-                  sx={{ mb: 0.5, fontWeight: 600, color: 'text.primary' }}
-                >
-                  Name <Box component="span" sx={{ color: '#f44336', fontWeight: 600 }}>*</Box>
-                </Typography>
-                <Controller
-                  name="first_name"
-                  control={control}
-                  rules={{ required: 'Name is required' }}
+                <FieldLabel label="First Name" required />
+                <Controller name="first_name" control={control} rules={{ required: 'First name is required' }}
                   render={({ field }) => (
-                    <TextField
-                      {...field}
-                      placeholder="e.g., John Doe"
-                      fullWidth
-                      size="small"
-                      error={!!errors.first_name}
-                      helperText={errors.first_name?.message}
-                      disabled={isSubmitting}
-                    />
-                  )}
-                />
+                    <TextField {...field} placeholder="John" fullWidth size="small"
+                      error={!!errors.first_name || !!apiErrors.first_name}
+                      helperText={errors.first_name?.message || apiErrors.first_name}
+                      disabled={isSubmitting} />
+                  )} />
               </Grid>
 
               <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                <Typography 
-                  variant="subtitle2" 
-                  sx={{ mb: 0.5, fontWeight: 600, color: 'text.primary' }}
-                >
-                  Username
-                </Typography>
-                <Controller
-                  name="username"
-                  control={control}
-                  rules={{
-                    pattern: {
-                      value: /^[a-zA-Z0-9]+$/,
-                      message: 'Username should only contain alphanumeric characters',
-                    },
-                  }}
+                <FieldLabel label="Last Name" />
+                <Controller name="last_name" control={control}
                   render={({ field }) => (
-                    <TextField
-                      {...field}
-                      placeholder="Auto-generated if left blank"
-                      fullWidth
-                      size="small"
-                      error={!!errors.username}
-                      disabled={isSubmitting}
-                    />
-                  )}
-                />
+                    <TextField {...field} placeholder="Doe" fullWidth size="small" disabled={isSubmitting} />
+                  )} />
               </Grid>
 
-              {/* Email */}
               <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                <Typography 
-                  variant="subtitle2" 
-                  sx={{ mb: 0.5, fontWeight: 600, color: 'text.primary' }}
-                >
-                  Email <Box component="span" sx={{ color: '#f44336', fontWeight: 600 }}>*</Box>
-                </Typography>
-                <Controller
-                  name="email"
-                  control={control}
+                <FieldLabel label="Username" />
+                <Controller name="username" control={control}
+                  rules={{ pattern: { value: /^[a-zA-Z0-9]*$/, message: 'Alphanumeric only' } }}
+                  render={({ field }) => (
+                    <TextField {...field} placeholder="Auto-generated if blank" fullWidth size="small"
+                      error={!!errors.username || !!apiErrors.username}
+                      helperText={errors.username?.message || apiErrors.username || 'Leave blank to auto-generate'}
+                      disabled={isSubmitting || isEditMode} />
+                  )} />
+              </Grid>
+
+              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                <FieldLabel label="Email" required={!isProfileMode} />
+                <Controller name="email" control={control}
                   rules={{
-                    required: 'Email is required',
-                    pattern: {
-                      value: CONTACT_EMAIL_REGEX,
-                      message: 'Please enter a valid email address (e.g., john@company.com)',
-                    },
+                    required: !isProfileMode ? 'Email is required' : false,
+                    pattern: { value: CONTACT_EMAIL_REGEX, message: 'Enter a valid email' },
                   }}
                   render={({ field }) => (
-                    <TextField
-                      {...field}
-                      placeholder="e.g., user@royalrealitygroup.com"
-                      type="email"
-                      fullWidth
-                      size="small"
+                    <TextField {...field} type="email" placeholder="user@company.com" fullWidth size="small"
                       error={!!errors.email || !!apiErrors.email}
                       helperText={errors.email?.message || apiErrors.email}
                       disabled={isSubmitting}
-                      onChange={(e) => {
-                        const value = e.target.value.replace(/\s/g, '');
-                        field.onChange(value);
-                        // Clear API error when user starts typing
-                        if (apiErrors.email) {
-                          setApiErrors(prev => ({ ...prev, email: '' }));
-                        }
-                      }}
-                    />
-                  )}
-                />
+                      onChange={(e) => { field.onChange(e.target.value.replace(/\s/g, '')); setApiErrors((p) => ({ ...p, email: '' })); }} />
+                  )} />
               </Grid>
 
-              {/* Phone */}
               <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                <Typography 
-                  variant="subtitle2" 
-                  sx={{ mb: 0.5, fontWeight: 600, color: 'text.primary' }}
-                >
-                  Phone
-                </Typography>
-                <Controller
-                  name="phone"
-                  control={control}
+                <FieldLabel label="Phone" />
+                <Controller name="phone" control={control}
                   rules={{
-                    pattern: {
-                      value: CONTACT_PHONE_REGEX,
-                      message: 'Please enter a valid phone number (e.g., +91 9876543210 or 040-12345678)',
-                    },
-                    minLength: {
-                      value: CONTACT_PHONE_MIN_LENGTH,
-                      message: 'Phone number must be at least 10 digits',
-                    },
-                    maxLength: {
-                      value: CONTACT_PHONE_MAX_LENGTH,
-                      message: 'Phone number cannot exceed 15 characters',
-                    },
+                    pattern: { value: CONTACT_PHONE_REGEX, message: 'Enter a valid phone number' },
+                    minLength: { value: CONTACT_PHONE_MIN_LENGTH, message: 'Minimum 10 digits' },
+                    maxLength: { value: CONTACT_PHONE_MAX_LENGTH, message: 'Maximum 15 characters' },
                   }}
                   render={({ field }) => (
-                    <TextField
-                      {...field}
-                      placeholder="e.g., +91 9876543210"
-                      fullWidth
-                      size="small"
-                      error={!!errors.phone}
-                      helperText={errors.phone?.message || PHONE_FIELD_HELPER_TEXT}
-                      disabled={isSubmitting}
-                      inputProps={{ maxLength: CONTACT_PHONE_MAX_LENGTH }}
-                      onChange={(e) => {
-                        const value = sanitizePhoneInput(e.target.value);
-                        field.onChange(value);
-                      }}
-                    />
-                  )}
-                />
+                    <TextField {...field} placeholder="+91 9876543210" fullWidth size="small"
+                      error={!!errors.phone || !!apiErrors.phone}
+                      helperText={errors.phone?.message || apiErrors.phone || PHONE_FIELD_HELPER_TEXT}
+                      disabled={isSubmitting} inputProps={{ maxLength: CONTACT_PHONE_MAX_LENGTH }}
+                      onChange={(e) => field.onChange(sanitizePhoneInput(e.target.value))} />
+                  )} />
               </Grid>
 
-              {/* Gender */}
               <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                <Typography 
-                  variant="subtitle2" 
-                  sx={{ mb: 0.5, fontWeight: 600, color: 'text.primary' }}
-                >
-                  Gender
-                </Typography>
-                <Controller
-                  name="gender"
-                  control={control}
+                <FieldLabel label="Gender" />
+                <Controller name="gender" control={control}
                   render={({ field }) => (
                     <FormControl fullWidth size="small">
-                      <Select {...field} disabled={isSubmitting} displayEmpty>
-                        <MenuItem value="">
-                          <em>Select gender</em>
-                        </MenuItem>
-                        {GENDER_CHOICES.map((option) => (
-                          <MenuItem key={option.value} value={option.value}>
-                            {option.label}
-                          </MenuItem>
-                        ))}
+                      <Select {...field} value={field.value ?? ''} disabled={isSubmitting} displayEmpty>
+                        <MenuItem value=""><em>Select gender</em></MenuItem>
+                        {GENDER_CHOICES.map((o) => <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>)}
                       </Select>
                     </FormControl>
-                  )}
-                />
+                  )} />
               </Grid>
             </Grid>
 
-            <Divider sx={{ my: 3 }} />
+            {!isProfileMode && (
+              <>
+                <Divider sx={{ my: 3 }} />
 
-            {!isProfileMode && (<>
-            {/* Employee Information Section */}
-            <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: 'primary.main' }}>
-              Employee Information
-            </Typography>
-            <Grid container spacing={3}>
-              {/* Designation */}
-              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                <Typography variant="subtitle2" sx={{ mb: 0.5, fontWeight: 600, color: 'text.primary' }}>
-                  Designation
-                </Typography>
-                <Controller
-                  name="designation"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      placeholder="e.g., Team Leader, Director"
-                      fullWidth
-                      size="small"
-                      value={field.value || ''}
-                      disabled={isSubmitting}
-                    />
-                  )}
-                />
-              </Grid>
+                {/* ── Employee Information ── */}
+                <SectionTitle title="Employee Information" />
+                <Grid container spacing={3}>
+                  <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                    <FieldLabel label="Designation" />
+                    <Controller name="designation" control={control}
+                      render={({ field }) => (
+                        <TextField {...field} value={field.value || ''} placeholder="e.g., Team Leader"
+                          fullWidth size="small" disabled={isSubmitting} />
+                      )} />
+                  </Grid>
 
-              {/* Joining Date */}
-              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                <Typography variant="subtitle2" sx={{ mb: 0.5, fontWeight: 600, color: 'text.primary' }}>
-                  Joining Date
-                </Typography>
-                <Controller
-                  name="joining_date"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      type="date"
-                      fullWidth
-                      size="small"
-                      value={field.value || ''}
-                      disabled={isSubmitting}
-                      InputLabelProps={{ shrink: true }}
-                    />
-                  )}
-                />
-              </Grid>
+                  <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                    <FieldLabel label="Joining Date" />
+                    <Controller name="joining_date" control={control}
+                      render={({ field }) => (
+                        <TextField {...field} value={field.value || ''} type="date"
+                          fullWidth size="small" disabled={isSubmitting} InputLabelProps={{ shrink: true }} />
+                      )} />
+                  </Grid>
 
-              {/* Reporting Manager */}
-              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                <Typography variant="subtitle2" sx={{ mb: 0.5, fontWeight: 600, color: 'text.primary' }}>
-                  Reporting Manager
-                </Typography>
-                <Controller
-                  name="reporting_manager"
-                  control={control}
-                  render={({ field }) => (
-                    <SearchableDropdown
-                      label=""
-                      apiEndpoint="/api/usermanagement/dropdowns/reporting-managers/"
-                      value={selectedReportingManager}
-                      onChange={(newValue: any) => {
-                        setSelectedReportingManager(newValue || null);
-                        field.onChange(newValue?.id || null);
-                      }}
-                      disabled={isSubmitting}
-                      placeholder="Select reporting manager"
-                      size="small"
-                    />
-                  )}
-                />
-              </Grid>
-            </Grid>
-
-            <Divider sx={{ my: 3 }} />
-
-            {/* Security Section */}
-            <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: 'primary.main' }}>
-              Security
-            </Typography>
-            <Grid container spacing={3}>
-              {/* Password */}
-              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                <Typography 
-                  variant="subtitle2" 
-                  sx={{ mb: 0.5, fontWeight: 600, color: 'text.primary' }}
-                >
-                  Password {!isEditMode && <Box component="span" sx={{ color: '#f44336', fontWeight: 600 }}>*</Box>}
-                </Typography>
-                <Controller
-                  name="password"
-                  control={control}
-                  rules={
-                    !isEditMode
-                      ? {
-                          required: 'Password is required',
-                          validate: (value: string) => {
-                            if (!value) return 'Password is required';
-                            if (!isPasswordValid(value)) return 'Password does not meet all requirements';
-                            return true;
-                          },
-                        }
-                      : {
-                          validate: (value: string) => {
-                            if (value && !isPasswordValid(value)) return 'Password does not meet all requirements';
-                            return true;
-                          },
-                        }
-                  }
-                  render={({ field }) => (
-                    <>
-                      <TextField
-                        {...field}
-                        placeholder={isEditMode ? "Leave blank to keep current" : "Enter password"}
-                        type={showPassword ? 'text' : 'password'}
-                        fullWidth
-                        size="small"
-                        error={!!errors.password}
-                        helperText={errors.password?.message || (isEditMode ? 'Leave blank to keep current password' : '')}
-                        disabled={isSubmitting}
-                        InputProps={{
-                          endAdornment: (
-                            <InputAdornment position="end">
-                              <IconButton
-                                onClick={() => setShowPassword(!showPassword)}
-                                edge="end"
-                                size="small"
-                              >
-                                {showPassword ? <VisibilityOff /> : <Visibility />}
-                              </IconButton>
-                            </InputAdornment>
-                          ),
-                        }}
-                      />
-                      {/* Password requirements checklist */}
-                      {field.value && (
-                        <Box sx={{ mt: 1 }}>
-                          {PASSWORD_RULES.map((rule, index) => {
-                            const passed = rule.test(field.value || '');
-                            return (
-                              <Box
-                                key={index}
-                                sx={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: 0.5,
-                                  mb: 0.25,
-                                }}
-                              >
-                                {passed ? (
-                                  <CheckCircleIcon sx={{ fontSize: 16, color: 'success.main' }} />
-                                ) : (
-                                  <CancelRuleIcon sx={{ fontSize: 16, color: 'error.main' }} />
-                                )}
-                                <Typography
-                                  variant="caption"
-                                  sx={{ color: passed ? 'success.main' : 'error.main' }}
-                                >
-                                  {rule.label}
-                                </Typography>
-                              </Box>
-                            );
-                          })}
-                        </Box>
-                      )}
-                    </>
-                  )}
-                />
-              </Grid>
-
-              {/* Device Access */}
-              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                <Typography 
-                  variant="subtitle2" 
-                  sx={{ mb: 0.5, fontWeight: 600, color: 'text.primary' }}
-                >
-                  Device Access
-                </Typography>
-                <Controller
-                  name="device_access"
-                  control={control}
-                  render={({ field }) => (
-                    <FormControl fullWidth size="small">
-                      <Select {...field} disabled={isSubmitting}>
-                        {DEVICE_ACCESS_CHOICES.map((option) => (
-                          <MenuItem key={option.value} value={option.value}>
-                            {option.label}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                  )}
-                />
-              </Grid>
-            </Grid>
-
-            <Divider sx={{ my: 3 }} />
-
-            {/* Groups & Permissions Section */}
-            <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: 'primary.main' }}>
-              Groups & Permissions
-            </Typography>
-            <Grid container spacing={3}>
-              {/* Groups */}
-              <Grid size={{ xs: 12 }}>
-                <Typography 
-                  variant="subtitle2" 
-                  sx={{ mb: 0.5, fontWeight: 600, color: 'text.primary' }}
-                >
-                  Groups <Box component="span" sx={{ color: '#f44336', fontWeight: 600 }}>*</Box>
-                </Typography>
-                <SearchableDropdown
-                  label=""
-                  apiEndpoint="/api/users/groups/"
-                  value={selectedGroups}
-                  onChange={(newValue) => setSelectedGroups(Array.isArray(newValue) ? newValue : [])}
-                  disabled={isSubmitting}
-                  placeholder="Select groups (at least 1 required)"
-                  helperText={`${selectedGroups.length} group(s) selected`}
-                  error={selectedGroups.length === 0}
-                  multiple
-                  size="small"
-                />
-              </Grid>
-            </Grid>
-
-            <Divider sx={{ my: 3 }} />
-
-            {/* Status Section */}
-            <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: 'primary.main' }}>
-              Status
-            </Typography>
-            <Grid container spacing={3}>
-              {/* Active Status */}
-              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                <Controller
-                  name="is_active"
-                  control={control}
-                  render={({ field }) => (
-                    <FormControlLabel
-                      control={
-                        <Switch
-                          {...field}
-                          checked={field.value}
-                          disabled={isSubmitting}
+                  <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                    <FieldLabel label="Reporting Manager" />
+                    <Controller name="reporting_manager" control={control}
+                      render={({ field }) => (
+                        <SearchableDropdown
+                          label="" apiEndpoint="/api/usermanagement/dropdowns/reporting-managers/"
+                          value={selectedReportingManager}
+                          onChange={(v: any) => { setSelectedReportingManager(v || null); field.onChange(v?.id || null); }}
+                          disabled={isSubmitting} placeholder="Select reporting manager" size="small"
                         />
+                      )} />
+                  </Grid>
+                </Grid>
+
+                <Divider sx={{ my: 3 }} />
+
+                {/* ── Security ── */}
+                <SectionTitle title="Security" />
+                <Grid container spacing={3}>
+                  <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                    <FieldLabel label="Password" required={!isEditMode} />
+                    <Controller name="password" control={control}
+                      rules={!isEditMode
+                        ? { required: 'Password is required', validate: (v) => !v || isPasswordValid(v) || 'Does not meet requirements' }
+                        : { validate: (v) => !v || isPasswordValid(v) || 'Does not meet requirements' }}
+                      render={({ field }) => (
+                        <>
+                          <TextField {...field} type={showPassword ? 'text' : 'password'}
+                            placeholder={isEditMode ? 'Leave blank to keep current' : 'Enter password'}
+                            fullWidth size="small" error={!!errors.password}
+                            helperText={errors.password?.message || (isEditMode ? 'Leave blank to keep current' : '')}
+                            disabled={isSubmitting}
+                            InputProps={{
+                              endAdornment: (
+                                <InputAdornment position="end">
+                                  <IconButton onClick={() => setShowPassword(!showPassword)} size="small" edge="end">
+                                    {showPassword ? <VisibilityOff /> : <Visibility />}
+                                  </IconButton>
+                                </InputAdornment>
+                              ),
+                            }} />
+                          {field.value && (
+                            <Box sx={{ mt: 1 }}>
+                              {PASSWORD_RULES.map((rule, i) => {
+                                const ok = rule.test(field.value || '');
+                                return (
+                                  <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.25 }}>
+                                    {ok
+                                      ? <CheckCircleIcon sx={{ fontSize: 14, color: 'success.main' }} />
+                                      : <CancelRuleIcon sx={{ fontSize: 14, color: 'error.main' }} />}
+                                    <Typography variant="caption" sx={{ color: ok ? 'success.main' : 'error.main' }}>
+                                      {rule.label}
+                                    </Typography>
+                                  </Box>
+                                );
+                              })}
+                            </Box>
+                          )}
+                        </>
+                      )} />
+                  </Grid>
+
+                  <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                    <FieldLabel label="Device Access" />
+                    <Controller name="device_access" control={control}
+                      render={({ field }) => (
+                        <FormControl fullWidth size="small">
+                          <Select {...field} disabled={isSubmitting}>
+                            {DEVICE_ACCESS_CHOICES.map((o) => <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>)}
+                          </Select>
+                        </FormControl>
+                      )} />
+                  </Grid>
+
+                  <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                    <FieldLabel label="User Status" />
+                    <Controller name="user_status" control={control}
+                      render={({ field }) => (
+                        <FormControl fullWidth size="small">
+                          <Select {...field} disabled={isSubmitting}>
+                            {USER_STATUS_CHOICES.map((o) => <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>)}
+                          </Select>
+                        </FormControl>
+                      )} />
+                  </Grid>
+
+                  <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                    <Controller name="is_active" control={control}
+                      render={({ field }) => (
+                        <FormControlLabel
+                          control={<Switch {...field} checked={!!field.value} disabled={isSubmitting} />}
+                          label={
+                            <Box>
+                              <Typography variant="body2" fontWeight={600}>Active Account</Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                {isActive ? 'User can log in' : 'User cannot log in'}
+                              </Typography>
+                            </Box>
+                          }
+                        />
+                      )} />
+                  </Grid>
+
+                  <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                    <Controller name="must_reset_password" control={control}
+                      render={({ field }) => (
+                        <FormControlLabel
+                          control={<Switch {...field} checked={!!field.value} disabled={isSubmitting} />}
+                          label={
+                            <Box>
+                              <Typography variant="body2" fontWeight={600}>Force Password Reset</Typography>
+                              <Typography variant="caption" color="text.secondary">On first login</Typography>
+                            </Box>
+                          }
+                        />
+                      )} />
+                  </Grid>
+
+                  <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                    <Controller name="is_admin" control={control}
+                      render={({ field }) => (
+                        <FormControlLabel
+                          control={<Switch {...field} checked={!!field.value} disabled={isSubmitting} color="warning" />}
+                          label={
+                            <Box>
+                              <Typography variant="body2" fontWeight={600}>Admin User</Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                {field.value ? 'Has all permissions (no restrictions)' : 'Needs specific permissions'}
+                              </Typography>
+                            </Box>
+                          }
+                        />
+                      )} />
+                  </Grid>
+                </Grid>
+
+                <Divider sx={{ my: 3 }} />
+
+                {/* ── Screen Permissions ── */}
+                {!isAdmin && (
+                  <>
+                    <SectionTitle title="Screen Permissions" />
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                      Choose how to assign permissions to this user.
+                    </Typography>
+
+                {/* Permission Type Selection */}
+                <FormControl component="fieldset" sx={{ mb: 2 }}>
+                  <RadioGroup
+                    row
+                    value={permissionType}
+                    onChange={(e) => {
+                      const newType = e.target.value as 'template' | 'direct';
+                      setPermissionType(newType);
+                      if (newType === 'direct') {
+                        // Restore original permissions when switching back to direct
+                        setPermissionsMap(originalPermissions);
+                        setSelectedTemplateId('');
+                      } else {
+                        // Clear for template selection
+                        setPermissionsMap({});
+                        setSelectedTemplateId('');
                       }
+                    }}
+                  >
+                    <FormControlLabel
+                      value="template"
+                      control={<Radio />}
                       label={
                         <Box>
-                          <Typography variant="body2">
-                            Active Status
-                          </Typography>
+                          <Typography variant="body2" fontWeight={600}>Use Permission Template</Typography>
                           <Typography variant="caption" color="text.secondary">
-                              {isActive ? 'User can login' : 'User cannot login'}
-                            </Typography>
-                          </Box>
-                        }
-                      />
+                            Apply a predefined set of permissions
+                          </Typography>
+                        </Box>
+                      }
+                      disabled={isSubmitting}
+                    />
+                    <FormControlLabel
+                      value="direct"
+                      control={<Radio />}
+                      label={
+                        <Box>
+                          <Typography variant="body2" fontWeight={600}>Custom Permissions</Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            Manually select individual screens
+                          </Typography>
+                        </Box>
+                      }
+                      disabled={isSubmitting}
+                      sx={{ ml: 4 }}
+                    />
+                  </RadioGroup>
+                </FormControl>
+
+                {/* Show Template Dropdown OR Direct Permissions based on selection */}
+                {permissionType === 'template' ? (
+                  <Box sx={{ mt: 2 }}>
+                    <Typography variant="subtitle2" sx={{ mb: 0.5, fontWeight: 600 }}>
+                      Select Permission Template
+                    </Typography>
+                    <FormControl fullWidth size="small">
+                      <Select
+                        value={selectedTemplateId}
+                        onChange={(e) => handleTemplateSelect(e.target.value as string)}
+                        disabled={isSubmitting}
+                        displayEmpty
+                      >
+                        <MenuItem value="">
+                          <em>Select a template...</em>
+                        </MenuItem>
+                        {Array.isArray(permissionTemplates) && permissionTemplates.map((template) => (
+                          <MenuItem key={template.id} value={template.id}>
+                            {template.name}
+                            {template.description && (
+                              <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+                                — {template.description}
+                              </Typography>
+                            )}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                    {selectedTemplateId && Object.keys(permissionsMap).length > 0 && (
+                      <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+                        <Typography variant="caption" color="text.secondary">
+                          Template includes {Object.keys(permissionsMap).length} screen(s)
+                        </Typography>
+                      </Box>
                     )}
-                  />
-                </Grid>
-            </Grid>
-          </>)}
+                  </Box>
+                ) : (
+                  <Box sx={{ mt: 2 }}>
+                    <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
+                      Select Screens & Permissions
+                    </Typography>
+                    <ScreenPermissionPicker
+                      availableScreens={availableMenuItems}
+                      value={permissionsMap}
+                      onChange={setPermissionsMap}
+                      disabled={isSubmitting}
+                    />
+                  </Box>
+                )}
+                  </>
+                )}
+              </>
+            )}
           </form>
         </Paper>
       </Box>

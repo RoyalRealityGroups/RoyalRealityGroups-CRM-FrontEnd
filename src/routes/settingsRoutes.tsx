@@ -3,71 +3,71 @@ import { Suspense, lazy } from 'react';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../store/store';
 import { PageLoader } from '../components/common/PageLoader';
-import { isSuperuser } from '../utils/permissions';
+import { usePermissions } from '../contexts/PermissionContext';
+import { hasAdminAccess } from '../utils/permissions';
 
-const SettingsHub = lazy(() => import('../pages/SettingsHub'));
-const GroupList = lazy(() => import('../pages/settings/GroupList'));
-const GroupForm = lazy(() => import('../pages/settings/GroupForm'));
-const UserList = lazy(() => import('../pages/settings/UserList'));
-const UserForm = lazy(() => import('../pages/settings/UserForm'));
-const UserView = lazy(() => import('../pages/settings/UserView'));
-const GeneralSettings = lazy(() => import('../pages/settings/GeneralSettings'));
+const SettingsHub         = lazy(() => import('../pages/SettingsHub'));
+const UserList            = lazy(() => import('../pages/settings/UserList'));
+const UserForm            = lazy(() => import('../pages/settings/UserForm'));
+const UserView            = lazy(() => import('../pages/settings/UserView'));
+const GeneralSettings     = lazy(() => import('../pages/settings/GeneralSettings'));
 const NotificationSettings = lazy(() => import('../pages/settings/NotificationSettings'));
-const AlertTriggerList = lazy(() => import('../pages/settings/AlertTriggerList'));
-const AlertTriggerForm = lazy(() => import('../pages/settings/AlertTriggerForm'));
-const TemplateList = lazy(() => import('../pages/settings/TemplateList'));
+const AlertTriggerList    = lazy(() => import('../pages/settings/AlertTriggerList'));
+const AlertTriggerForm    = lazy(() => import('../pages/settings/AlertTriggerForm'));
+const TemplateList        = lazy(() => import('../pages/settings/TemplateList'));
+const PermissionTemplateList = lazy(() => import('../pages/settings/PermissionTemplateList'));
+const PermissionTemplateForm = lazy(() => import('../pages/settings/PermissionTemplateForm'));
 
-const withSuspense = (Component: React.LazyExoticComponent<any>) => (
-  <Suspense fallback={<PageLoader />}>
-    <Component />
-  </Suspense>
+const withSuspense = (C: React.LazyExoticComponent<any>) => (
+  <Suspense fallback={<PageLoader />}><C /></Suspense>
 );
 
-// Allows superusers and users with USER_PERMISSION screen access
+/** Superuser OR Admin OR user with can_view on MIM-018 (Users) screen */
 const SettingsGuard = ({ children }: { children: React.ReactNode }) => {
   const user = useSelector((state: RootState) => state.auth.user);
-  if (isSuperuser(user)) return <>{children}</>;
-  // Allow if user has any user management permission
-  const hasUserPerm = user?.permissions?.some((p: string) =>
-    p.includes('user') || p.includes('Users')
-  );
-  if (!hasUserPerm) return <Navigate to="/dashboard" replace />;
-  return <>{children}</>;
+  const { canView } = usePermissions();
+  if (hasAdminAccess(user) || canView('MIM-018')) return <>{children}</>;
+  return <Navigate to="/dashboard" replace />;
 };
 
-// Users-specific routes: superuser OR has user management permissions
+/** Same as SettingsGuard but redirects to /settings instead of /dashboard */
 const UserManagementGuard = ({ children }: { children: React.ReactNode }) => {
   const user = useSelector((state: RootState) => state.auth.user);
-  if (isSuperuser(user)) return <>{children}</>;
-  const hasUserPerm = user?.permissions?.some((p: string) =>
-    p.includes('user') || p.includes('Users')
-  );
-  if (!hasUserPerm) return <Navigate to="/settings" replace />;
-  return <>{children}</>;
+  const { canView } = usePermissions();
+  if (hasAdminAccess(user) || canView('MIM-018')) return <>{children}</>;
+  return <Navigate to="/settings" replace />;
 };
 
-// Superuser-only guard (Groups, General Settings)
+/** Superuser OR Admin only */
 const SuperuserGuard = ({ children }: { children: React.ReactNode }) => {
   const user = useSelector((state: RootState) => state.auth.user);
-  if (!user?.is_superuser) return <Navigate to="/settings" replace />;
+  if (!hasAdminAccess(user)) return <Navigate to="/settings" replace />;
   return <>{children}</>;
 };
 
 export const settingsRoutes = (
   <>
     <Route path="settings" element={<SettingsGuard>{withSuspense(SettingsHub)}</SettingsGuard>} />
-    <Route path="settings/groups" element={<UserManagementGuard>{withSuspense(GroupList)}</UserManagementGuard>} />
-    <Route path="settings/groups/:id" element={<UserManagementGuard>{withSuspense(GroupForm)}</UserManagementGuard>} />
-    <Route path="settings/users" element={<UserManagementGuard>{withSuspense(UserList)}</UserManagementGuard>} />
+
+    {/* User management */}
+    <Route path="settings/users"          element={<UserManagementGuard>{withSuspense(UserList)}</UserManagementGuard>} />
     <Route path="settings/users/view/:id" element={<UserManagementGuard>{withSuspense(UserView)}</UserManagementGuard>} />
-    <Route path="settings/users/:id" element={<UserManagementGuard>{withSuspense(UserForm)}</UserManagementGuard>} />
-    <Route path="settings/general-settings" element={<SuperuserGuard>{withSuspense(GeneralSettings)}</SuperuserGuard>} />
-    <Route path="settings/notifications" element={<SuperuserGuard>{withSuspense(NotificationSettings)}</SuperuserGuard>} />
-    <Route path="settings/alert-triggers" element={<SuperuserGuard>{withSuspense(AlertTriggerList)}</SuperuserGuard>} />
+    <Route path="settings/users/:id"      element={<UserManagementGuard>{withSuspense(UserForm)}</UserManagementGuard>} />
+
+    {/* Superuser-only */}
+    <Route path="settings/general-settings"    element={<SuperuserGuard>{withSuspense(GeneralSettings)}</SuperuserGuard>} />
+    <Route path="settings/notifications"       element={<SuperuserGuard>{withSuspense(NotificationSettings)}</SuperuserGuard>} />
+    <Route path="settings/alert-triggers"      element={<SuperuserGuard>{withSuspense(AlertTriggerList)}</SuperuserGuard>} />
     <Route path="settings/alert-triggers/create" element={<SuperuserGuard>{withSuspense(AlertTriggerForm)}</SuperuserGuard>} />
-    <Route path="settings/alert-triggers/:id" element={<SuperuserGuard>{withSuspense(AlertTriggerForm)}</SuperuserGuard>} />
-    <Route path="settings/templates" element={<SuperuserGuard>{withSuspense(TemplateList)}</SuperuserGuard>} />
-    <Route path="profile" element={withSuspense(UserView)} />
+    <Route path="settings/alert-triggers/:id"  element={<SuperuserGuard>{withSuspense(AlertTriggerForm)}</SuperuserGuard>} />
+    <Route path="settings/templates"           element={<SuperuserGuard>{withSuspense(TemplateList)}</SuperuserGuard>} />
+
+    {/* Permission Templates */}
+    <Route path="settings/permission-templates"      element={<UserManagementGuard>{withSuspense(PermissionTemplateList)}</UserManagementGuard>} />
+    <Route path="settings/permission-templates/:id"  element={<UserManagementGuard>{withSuspense(PermissionTemplateForm)}</UserManagementGuard>} />
+
+    {/* Profile — every authenticated user */}
+    <Route path="profile"      element={withSuspense(UserView)} />
     <Route path="profile/edit" element={withSuspense(UserForm)} />
   </>
 );

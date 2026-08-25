@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build output
+dist/
+build/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Git
+.git/
+.gitignore
+
+# Editor
+.vscode/
+.idea/
+.DS_Store
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose*
+
+# Test & coverage
+coverage/
+*.test.*
+*.spec.*
+
+# Logs
+*.log
+
+# Misc
+README.md
+k8s/
+*.md
+dist/stats.html

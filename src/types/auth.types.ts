@@ -34,7 +34,20 @@ export interface LoginResponse {
   user_type: string;
   is_default_password: boolean;
   is_superuser: boolean;
+  is_admin: boolean;
   permissions: string[];
+}
+
+export interface ScreenPermission {
+  screen_id?: number;
+  screen_code: string;
+  screen_name?: string;
+  can_view: boolean;
+  can_add: boolean;
+  can_edit: boolean;
+  can_delete: boolean;
+  can_export: boolean;
+  is_view_only?: boolean;
 }
 
 export interface User {
@@ -47,9 +60,11 @@ export interface User {
   profilepicture?: string | null;
   group_name?: string;
   is_superuser?: boolean;
+  is_admin?: boolean;
   is_staff?: boolean;
   groups?: Group[];
   permissions?: string[];
+  screen_permissions?: ScreenPermission[];
   channel_partner_type?: 'STAFF' | 'SUPERSTOCKIST' | 'DISTRIBUTOR' | 'RETAILER';
   superstockist?: string | null;
   distributor?: string | null;

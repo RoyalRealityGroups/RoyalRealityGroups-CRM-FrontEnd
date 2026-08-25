@@ -61,21 +61,17 @@ export const AppRoutes = () => (
       <Route
         path={ROUTES.DASHBOARD.substring(1)}
         element={
-          <ProtectedRoute permission="view_dashboard">
-            <Suspense fallback={<PageLoader />}>
-              <Dashboard />
-            </Suspense>
-          </ProtectedRoute>
+          <Suspense fallback={<PageLoader />}>
+            <Dashboard />
+          </Suspense>
         }
       />
       <Route
         path="dashboard/insights"
         element={
-          <ProtectedRoute permission="view_dashboard">
-            <Suspense fallback={<PageLoader />}>
-              <TodaysInsights />
-            </Suspense>
-          </ProtectedRoute>
+          <Suspense fallback={<PageLoader />}>
+            <TodaysInsights />
+          </Suspense>
         }
       />
       <Route path="projects/list" element={withSuspense(ProjectList)} />

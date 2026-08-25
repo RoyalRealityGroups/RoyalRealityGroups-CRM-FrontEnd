@@ -2,12 +2,12 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { authApi } from '../api/auth.api';
 import { useAppSelector } from '../store/hooks';
 
-export interface ScreenPermission {
+export interface MenuPermission {
   id: number;
   user: string;
-  screen: number;
-  screen_name: string;
-  screen_code: string;
+  menuitem_id: number;
+  menuitem_name: string;
+  menuitem_code: string;
   can_view: boolean;
   can_add: boolean;
   can_edit: boolean;
@@ -16,36 +16,59 @@ export interface ScreenPermission {
   is_view_only: boolean;
 }
 
+// Alias for backward compatibility
+export type ScreenPermission = MenuPermission;
+
 export interface PermissionContextValue {
-  permissions: ScreenPermission[];
+  permissions: MenuPermission[];
   isLoading: boolean;
-  canView: (screenCode: string) => boolean;
-  canAdd: (screenCode: string) => boolean;
-  canEdit: (screenCode: string) => boolean;
-  canDelete: (screenCode: string) => boolean;
-  canExport: (screenCode: string) => boolean;
-  getScreenPermissions: (screenCode: string) => ScreenPermission | undefined;
+  canView: (menuitemCode: string) => boolean;
+  canAdd: (menuitemCode: string) => boolean;
+  canEdit: (menuitemCode: string) => boolean;
+  canDelete: (menuitemCode: string) => boolean;
+  canExport: (menuitemCode: string) => boolean;
+  getScreenPermissions: (menuitemCode: string) => MenuPermission | undefined;
   refreshPermissions: () => Promise<void>;
 }
 
 export const PermissionContext = createContext<PermissionContextValue | null>(null);
 
+// Module-level state to survive component remounts
+let globalFetched = false;
+let globalPermissions: MenuPermission[] = [];
+
+export const resetPermissionState = () => {
+  globalFetched = false;
+  globalPermissions = [];
+};
+
 export const PermissionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Use Redux selector directly (Redux Provider sits above us in the tree).
-  // We can't use useAuth() here because it pulls in react-router hooks, and this
-  // provider renders OUTSIDE <BrowserRouter>.
   const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
-  const [permissions, setPermissions] = useState<ScreenPermission[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [permissions, setPermissions] = useState<MenuPermission[]>(globalPermissions);
+  const [isLoading, setIsLoading] = useState(!globalFetched);
 
   const fetchPermissions = useCallback(async () => {
+    if (globalFetched) {
+      setPermissions(globalPermissions);
+      setIsLoading(false);
+      return;
+    }
+
+    globalFetched = true;
+
     try {
       const data = await authApi.getPermissions();
       if (Array.isArray(data)) {
+        globalPermissions = data;
         setPermissions(data);
+      } else {
+        globalPermissions = [];
+        setPermissions([]);
       }
     } catch (error) {
       console.error('Failed to fetch permissions:', error);
+      globalPermissions = [];
+      setPermissions([]);
     } finally {
       setIsLoading(false);
     }
@@ -53,42 +76,55 @@ export const PermissionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   useEffect(() => {
     if (!isAuthenticated) {
-      // No session yet — clear any stale permissions, don't hit a protected endpoint.
+      resetPermissionState();
       setPermissions([]);
       setIsLoading(false);
       return;
     }
-    fetchPermissions();
+
+    if (!globalFetched) {
+      fetchPermissions();
+    } else {
+      setPermissions(globalPermissions);
+      setIsLoading(false);
+    }
   }, [fetchPermissions, isAuthenticated]);
 
-  const canView = useCallback((screenCode: string) => {
-    const perm = permissions.find(p => p.screen_code === screenCode);
+  const canView = useCallback((menuitemCode: string) => {
+    const perm = permissions.find(p => p.menuitem_code === menuitemCode);
     return perm?.can_view ?? false;
   }, [permissions]);
 
-  const canAdd = useCallback((screenCode: string) => {
-    const perm = permissions.find(p => p.screen_code === screenCode);
+  const canAdd = useCallback((menuitemCode: string) => {
+    const perm = permissions.find(p => p.menuitem_code === menuitemCode);
     return perm?.can_add ?? false;
   }, [permissions]);
 
-  const canEdit = useCallback((screenCode: string) => {
-    const perm = permissions.find(p => p.screen_code === screenCode);
+  const canEdit = useCallback((menuitemCode: string) => {
+    const perm = permissions.find(p => p.menuitem_code === menuitemCode);
     return perm?.can_edit ?? false;
   }, [permissions]);
 
-  const canDelete = useCallback((screenCode: string) => {
-    const perm = permissions.find(p => p.screen_code === screenCode);
+  const canDelete = useCallback((menuitemCode: string) => {
+    const perm = permissions.find(p => p.menuitem_code === menuitemCode);
     return perm?.can_delete ?? false;
   }, [permissions]);
 
-  const canExport = useCallback((screenCode: string) => {
-    const perm = permissions.find(p => p.screen_code === screenCode);
+  const canExport = useCallback((menuitemCode: string) => {
+    const perm = permissions.find(p => p.menuitem_code === menuitemCode);
     return perm?.can_export ?? false;
   }, [permissions]);
 
-  const getScreenPermissions = useCallback((screenCode: string) => {
-    return permissions.find(p => p.screen_code === screenCode);
+  const getScreenPermissions = useCallback((menuitemCode: string) => {
+    return permissions.find(p => p.menuitem_code === menuitemCode);
   }, [permissions]);
+
+  const refreshPermissions = useCallback(async () => {
+    globalFetched = false;
+    globalPermissions = [];
+    setIsLoading(true);
+    await fetchPermissions();
+  }, [fetchPermissions]);
 
   const value: PermissionContextValue = {
     permissions,
@@ -99,7 +135,7 @@ export const PermissionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     canDelete,
     canExport,
     getScreenPermissions,
-    refreshPermissions: fetchPermissions,
+    refreshPermissions,
   };
 
   return (

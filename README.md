@@ -66,6 +66,12 @@ Runs the production build locally on http://localhost:4173 for verification befo
 npm run lint
 ```
 
+## Docker build
+
+```bash
+docker build --build-arg VITE_API_BASE_URL=http://baseurl.com -t imagename:latest .
+```
+
 ## Project Structure
 
 ```

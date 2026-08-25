@@ -25,7 +25,7 @@ import { useAppSelector } from '../store/hooks';
 import { useMenu } from '../hooks/useMenu';
 import { useBreadcrumbs } from '../contexts/BreadcrumbContext';
 import { usePageTitle } from '../hooks';
-import { isSuperuser } from '../utils/permissions';
+import { isSuperuser, hasAdminAccess } from '../utils/permissions';
 import type { MenuItemDetail } from '../types/menu.types';
 import SvgIcon from '../components/common/SvgIcon';
 import { getHubContainerStyles } from '../utils/spacing';
@@ -76,14 +76,31 @@ const SettingsHub: React.FC = () => {
 
   // Check if user has permission to view menu item
   const hasAccessToMenuItem = (menuitem: MenuItemDetail): boolean => {
-    // Superuser sees everything
-    if (isSuperuser(user)) return true;
+    // Superuser or Admin sees everything
+    if (hasAdminAccess(user)) return true;
     
     // If no permissions defined, show to all
     if (!menuitem.permissions || menuitem.permissions.length === 0) return true;
     
     // Check if user has any of the required permissions
-    return menuitem.permissions.some(permission => user?.permissions?.includes(permission));
+    // Handle both old format (string array) and new format (screen_permissions)
+    return menuitem.permissions.some(permission => {
+      // Check old permissions array (if it's strings)
+      if (user?.permissions && Array.isArray(user.permissions)) {
+        const hasOldPerm = user.permissions.some((p: unknown) => 
+          typeof p === 'string' && p.includes(permission)
+        );
+        if (hasOldPerm) return true;
+      }
+      // Check new screen_permissions
+      if (user?.screen_permissions && Array.isArray(user.screen_permissions)) {
+        const hasScreenPerm = user.screen_permissions.some(
+          (sp: any) => sp.screen_code === permission && sp.can_view
+        );
+        if (hasScreenPerm) return true;
+      }
+      return false;
+    });
   };
 
   // Get menu items for Settings submenu
@@ -117,7 +134,8 @@ const SettingsHub: React.FC = () => {
   // Add superuser-only settings that are not in the menu system
   const allSettingsItems = React.useMemo(() => {
     const items = [...settingsMenuItems];
-    if (user?.is_superuser) {
+    const isAdminOrSuperuser = user?.is_superuser || user?.is_admin;
+    if (isAdminOrSuperuser) {
       // Add Notifications settings if not already present
       const hasNotif = items.some((i) => i.link === '/settings/notifications');
       if (!hasNotif) {

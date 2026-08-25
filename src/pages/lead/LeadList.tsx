@@ -368,6 +368,10 @@ const LeadList: React.FC = () => {
       valueGetter: (value: any) => value?.name || '-',
     },
     {
+      field: 'created_by_name', headerName: 'Created By', width: 130,
+      valueGetter: (value: any) => value || '-',
+    },
+    {
       field: 'bucket', headerName: 'Bucket', width: 160, headerAlign: 'center', align: 'center',
       renderCell: (params) => {
         const bucketColors: Record<string, 'default' | 'warning' | 'success'> = {
