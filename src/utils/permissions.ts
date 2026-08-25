@@ -81,7 +81,7 @@ export const canExportOnScreen = (user: User | null, screenCode: string): boolea
 };
 
 // Check if user has specific permission
-// Supports both old format ("Sales.add_salesorder") and new screen-based format ("LEAD")
+// Supports both old format ("Sales.add_salesorder") and new screen-based format ("LEAD" or "DSH-001")
 export const hasPermission = (user: User | null, permission: string): boolean => {
   if (!user) return false;
   
@@ -91,7 +91,7 @@ export const hasPermission = (user: User | null, permission: string): boolean =>
   // Check screen_permissions (new system) - array of objects
   if (user.screen_permissions && Array.isArray(user.screen_permissions)) {
     const screenPerm = user.screen_permissions.find(
-      (p: ScreenPermission) => p.screen_code === permission
+      (p: ScreenPermission) => p.screen_code === permission || p.menuitem_code === permission
     );
     if (screenPerm?.can_view) return true;
   }
