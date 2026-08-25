@@ -115,7 +115,7 @@ const UserForm: React.FC = () => {
       username: '', email: '', phone: '',
       first_name: '', last_name: '',
       password: '', gender: '', device_access: 3,
-      is_active: true, user_status: 'ACTIVE',
+      is_active: true, is_admin: false, user_status: 'ACTIVE',
       must_reset_password: true,
       designation: '', joining_date: '', reporting_manager: null,
       lead_data_scope: 'OWN', followup_data_scope: 'OWN',
@@ -124,6 +124,7 @@ const UserForm: React.FC = () => {
   });
 
   const isActive = watch('is_active');
+  const isAdmin = watch('is_admin');
 
   useEffect(() => {
     if (isProfileMode) {
@@ -236,6 +237,7 @@ const UserForm: React.FC = () => {
       gender: userData.gender || '',
       device_access: userData.device_access || 3,
       is_active: userData.is_active,
+      is_admin: userData.is_admin || false,
       user_status: userData.user_status || 'ACTIVE',
       must_reset_password: userData.must_reset_password ?? true,
       designation: userData.designation || '',
@@ -676,15 +678,34 @@ const UserForm: React.FC = () => {
                         />
                       )} />
                   </Grid>
+
+                  <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                    <Controller name="is_admin" control={control}
+                      render={({ field }) => (
+                        <FormControlLabel
+                          control={<Switch {...field} checked={!!field.value} disabled={isSubmitting} color="warning" />}
+                          label={
+                            <Box>
+                              <Typography variant="body2" fontWeight={600}>Admin User</Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                {field.value ? 'Has all permissions (no restrictions)' : 'Needs specific permissions'}
+                              </Typography>
+                            </Box>
+                          }
+                        />
+                      )} />
+                  </Grid>
                 </Grid>
 
                 <Divider sx={{ my: 3 }} />
 
                 {/* ── Screen Permissions ── */}
-                <SectionTitle title="Screen Permissions" />
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                  Choose how to assign permissions to this user.
-                </Typography>
+                {!isAdmin && (
+                  <>
+                    <SectionTitle title="Screen Permissions" />
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                      Choose how to assign permissions to this user.
+                    </Typography>
 
                 {/* Permission Type Selection */}
                 <FormControl component="fieldset" sx={{ mb: 2 }}>
@@ -783,6 +804,8 @@ const UserForm: React.FC = () => {
                       disabled={isSubmitting}
                     />
                   </Box>
+                )}
+                  </>
                 )}
               </>
             )}

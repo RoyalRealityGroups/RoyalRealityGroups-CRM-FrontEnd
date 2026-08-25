@@ -704,7 +704,7 @@ const AppBar: React.FC<AppBarProps> = ({ onMenuClick }) => {
             <ListItemIcon><LockIcon fontSize="small" /></ListItemIcon>
             Change Password
           </MenuItem>
-          {(user?.is_superuser || canView('USER_PERMISSION')) && (
+          {(user?.is_superuser || user?.is_admin || canView('MIM-018')) && (
             <MenuItem onClick={() => { handleClose(); navigate('/settings'); }}>
               <ListItemIcon><SettingsIcon fontSize="small" /></ListItemIcon>
               Settings

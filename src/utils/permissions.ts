@@ -13,12 +13,18 @@ interface ScreenPermission {
   can_export: boolean;
 }
 
+// Check if user has admin-level access (superuser or is_admin)
+export const hasAdminAccess = (user: User | null): boolean => {
+  if (!user) return false;
+  return user.is_superuser || user.is_admin || false;
+};
+
 // Get screen permission object for a specific screen
 export const getScreenPermission = (user: User | null, screenCode: string): ScreenPermission | null => {
   if (!user) return null;
   
-  // Superuser has all permissions
-  if (user.is_superuser) {
+  // Superuser or Admin has all permissions
+  if (hasAdminAccess(user)) {
     return {
       screen_code: screenCode,
       menuitem_code: screenCode,
@@ -43,7 +49,7 @@ export const getScreenPermission = (user: User | null, screenCode: string): Scre
 // Check if user can view a screen
 export const canViewScreen = (user: User | null, screenCode: string): boolean => {
   if (!user) return false;
-  if (user.is_superuser) return true;
+  if (hasAdminAccess(user)) return true;
   const perm = getScreenPermission(user, screenCode);
   return perm?.can_view || false;
 };
@@ -51,7 +57,7 @@ export const canViewScreen = (user: User | null, screenCode: string): boolean =>
 // Check if user can add records on a screen
 export const canAddOnScreen = (user: User | null, screenCode: string): boolean => {
   if (!user) return false;
-  if (user.is_superuser) return true;
+  if (hasAdminAccess(user)) return true;
   const perm = getScreenPermission(user, screenCode);
   return perm?.can_add || false;
 };
@@ -59,7 +65,7 @@ export const canAddOnScreen = (user: User | null, screenCode: string): boolean =
 // Check if user can edit records on a screen
 export const canEditOnScreen = (user: User | null, screenCode: string): boolean => {
   if (!user) return false;
-  if (user.is_superuser) return true;
+  if (hasAdminAccess(user)) return true;
   const perm = getScreenPermission(user, screenCode);
   return perm?.can_edit || false;
 };
@@ -67,7 +73,7 @@ export const canEditOnScreen = (user: User | null, screenCode: string): boolean 
 // Check if user can delete records on a screen
 export const canDeleteOnScreen = (user: User | null, screenCode: string): boolean => {
   if (!user) return false;
-  if (user.is_superuser) return true;
+  if (hasAdminAccess(user)) return true;
   const perm = getScreenPermission(user, screenCode);
   return perm?.can_delete || false;
 };
@@ -75,7 +81,7 @@ export const canDeleteOnScreen = (user: User | null, screenCode: string): boolea
 // Check if user can export records on a screen
 export const canExportOnScreen = (user: User | null, screenCode: string): boolean => {
   if (!user) return false;
-  if (user.is_superuser) return true;
+  if (hasAdminAccess(user)) return true;
   const perm = getScreenPermission(user, screenCode);
   return perm?.can_export || false;
 };
@@ -85,8 +91,8 @@ export const canExportOnScreen = (user: User | null, screenCode: string): boolea
 export const hasPermission = (user: User | null, permission: string): boolean => {
   if (!user) return false;
   
-  // Superuser has all permissions
-  if (user.is_superuser) return true;
+  // Superuser or Admin has all permissions
+  if (hasAdminAccess(user)) return true;
   
   // Check screen_permissions (new system) - array of objects
   if (user.screen_permissions && Array.isArray(user.screen_permissions)) {
@@ -119,8 +125,8 @@ export const hasPermission = (user: User | null, permission: string): boolean =>
 export const hasAnyPermission = (user: User | null, permissions: string[]): boolean => {
   if (!user) return false;
   
-  // Superuser has all permissions
-  if (user.is_superuser) return true;
+  // Superuser or Admin has all permissions
+  if (hasAdminAccess(user)) return true;
   
   // Check if user has at least one of the permissions
   return permissions.some(permission => hasPermission(user, permission));
@@ -130,8 +136,8 @@ export const hasAnyPermission = (user: User | null, permissions: string[]): bool
 export const hasAllPermissions = (user: User | null, permissions: string[]): boolean => {
   if (!user) return false;
   
-  // Superuser has all permissions
-  if (user.is_superuser) return true;
+  // Superuser or Admin has all permissions
+  if (hasAdminAccess(user)) return true;
   
   // Check if user has all permissions
   return permissions.every(permission => hasPermission(user, permission));
@@ -141,8 +147,8 @@ export const hasAllPermissions = (user: User | null, permissions: string[]): boo
 export const isInGroup = (user: User | null, groupName: string): boolean => {
   if (!user) return false;
   
-  // Superuser bypasses group checks
-  if (user.is_superuser) return true;
+  // Superuser or Admin bypasses group checks
+  if (hasAdminAccess(user)) return true;
   
   // Check if user is in group
   return user.groups?.some(group => group.name === groupName) || false;
@@ -151,4 +157,9 @@ export const isInGroup = (user: User | null, groupName: string): boolean => {
 // Check if user is superuser
 export const isSuperuser = (user: User | null): boolean => {
   return user?.is_superuser || false;
+};
+
+// Check if user is admin (not superuser, but has admin flag)
+export const isAdmin = (user: User | null): boolean => {
+  return user?.is_admin || false;
 };

@@ -4,6 +4,7 @@ import { useSelector } from 'react-redux';
 import type { RootState } from '../store/store';
 import { PageLoader } from '../components/common/PageLoader';
 import { usePermissions } from '../contexts/PermissionContext';
+import { hasAdminAccess } from '../utils/permissions';
 
 const SettingsHub         = lazy(() => import('../pages/SettingsHub'));
 const UserList            = lazy(() => import('../pages/settings/UserList'));
@@ -21,11 +22,11 @@ const withSuspense = (C: React.LazyExoticComponent<any>) => (
   <Suspense fallback={<PageLoader />}><C /></Suspense>
 );
 
-/** Superuser OR user with can_view on USER_PERMISSION screen */
+/** Superuser OR Admin OR user with can_view on MIM-018 (Users) screen */
 const SettingsGuard = ({ children }: { children: React.ReactNode }) => {
   const user = useSelector((state: RootState) => state.auth.user);
   const { canView } = usePermissions();
-  if (user?.is_superuser || canView('USER_PERMISSION')) return <>{children}</>;
+  if (hasAdminAccess(user) || canView('MIM-018')) return <>{children}</>;
   return <Navigate to="/dashboard" replace />;
 };
 
@@ -33,14 +34,14 @@ const SettingsGuard = ({ children }: { children: React.ReactNode }) => {
 const UserManagementGuard = ({ children }: { children: React.ReactNode }) => {
   const user = useSelector((state: RootState) => state.auth.user);
   const { canView } = usePermissions();
-  if (user?.is_superuser || canView('USER_PERMISSION')) return <>{children}</>;
+  if (hasAdminAccess(user) || canView('MIM-018')) return <>{children}</>;
   return <Navigate to="/settings" replace />;
 };
 
-/** Superuser only */
+/** Superuser OR Admin only */
 const SuperuserGuard = ({ children }: { children: React.ReactNode }) => {
   const user = useSelector((state: RootState) => state.auth.user);
-  if (!user?.is_superuser) return <Navigate to="/settings" replace />;
+  if (!hasAdminAccess(user)) return <Navigate to="/settings" replace />;
   return <>{children}</>;
 };
 

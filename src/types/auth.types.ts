@@ -34,6 +34,7 @@ export interface LoginResponse {
   user_type: string;
   is_default_password: boolean;
   is_superuser: boolean;
+  is_admin: boolean;
   permissions: string[];
 }
 
@@ -59,6 +60,7 @@ export interface User {
   profilepicture?: string | null;
   group_name?: string;
   is_superuser?: boolean;
+  is_admin?: boolean;
   is_staff?: boolean;
   groups?: Group[];
   permissions?: string[];

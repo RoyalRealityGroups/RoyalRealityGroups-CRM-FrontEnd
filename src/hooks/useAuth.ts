@@ -67,6 +67,7 @@ export const useAuth = () => {
         phone: response.phone,
         group_name: response.group_name,
         is_superuser: response.is_superuser,
+        is_admin: response.is_admin || false,
         permissions: response.permissions || [],
         screen_permissions: (response as any).screen_permissions || [],
         channel_partner_type: (response as any).channel_partner_type || 'STAFF',

@@ -92,7 +92,7 @@ const UserView: React.FC = () => {
     );
   }
 
-  const canEditUser = isProfileMode || canEdit('USER_PERMISSION') || currentUser?.is_superuser;
+  const canEditUser = isProfileMode || canEdit('MIM-018') || currentUser?.is_superuser || currentUser?.is_admin;
 
   const grantedScreens = user.screen_permissions?.filter(
     (p) => p.can_view || p.can_add || p.can_edit || p.can_delete || p.can_export

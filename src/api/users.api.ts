@@ -55,6 +55,7 @@ export interface UserFormData {
   gender?: number | string;
   device_access?: number;
   is_active?: boolean;
+  is_admin?: boolean;
   profilepicture?: File | null;
   remove_profilepicture?: boolean;
   designation?: string;
@@ -83,6 +84,7 @@ export interface UserDetail {
   device_access?: number;
   device_access_name?: string;
   is_active: boolean;
+  is_admin?: boolean;
   is_staff?: boolean;
   is_email_verified: boolean;
   is_phone_verified: boolean;

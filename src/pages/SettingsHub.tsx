@@ -25,7 +25,7 @@ import { useAppSelector } from '../store/hooks';
 import { useMenu } from '../hooks/useMenu';
 import { useBreadcrumbs } from '../contexts/BreadcrumbContext';
 import { usePageTitle } from '../hooks';
-import { isSuperuser } from '../utils/permissions';
+import { isSuperuser, hasAdminAccess } from '../utils/permissions';
 import type { MenuItemDetail } from '../types/menu.types';
 import SvgIcon from '../components/common/SvgIcon';
 import { getHubContainerStyles } from '../utils/spacing';
@@ -76,8 +76,8 @@ const SettingsHub: React.FC = () => {
 
   // Check if user has permission to view menu item
   const hasAccessToMenuItem = (menuitem: MenuItemDetail): boolean => {
-    // Superuser sees everything
-    if (isSuperuser(user)) return true;
+    // Superuser or Admin sees everything
+    if (hasAdminAccess(user)) return true;
     
     // If no permissions defined, show to all
     if (!menuitem.permissions || menuitem.permissions.length === 0) return true;
@@ -134,7 +134,8 @@ const SettingsHub: React.FC = () => {
   // Add superuser-only settings that are not in the menu system
   const allSettingsItems = React.useMemo(() => {
     const items = [...settingsMenuItems];
-    if (user?.is_superuser) {
+    const isAdminOrSuperuser = user?.is_superuser || user?.is_admin;
+    if (isAdminOrSuperuser) {
       // Add Notifications settings if not already present
       const hasNotif = items.some((i) => i.link === '/settings/notifications');
       if (!hasNotif) {

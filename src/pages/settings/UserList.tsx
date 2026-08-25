@@ -208,7 +208,7 @@ const UserList: React.FC = () => {
       filterable: false,
       renderCell: (params) => (
         <Box>
-          {(user?.is_superuser || canEdit('USER_PERMISSION')) && params.row.id !== user?.id && (
+          {(user?.is_superuser || user?.is_admin || canEdit('MIM-018')) && params.row.id !== user?.id && (
             <IconButton
               size="small"
               onClick={() => navigate(`/settings/users/${params.row.id}`)}
@@ -217,7 +217,7 @@ const UserList: React.FC = () => {
               <EditIcon fontSize="small" />
             </IconButton>
           )}
-          {(user?.is_superuser || canDelete('USER_PERMISSION')) && params.row.id !== user?.id && (
+          {(user?.is_superuser || user?.is_admin || canDelete('MIM-018')) && params.row.id !== user?.id && (
             <IconButton
               size="small"
               onClick={() => {
@@ -316,7 +316,7 @@ const UserList: React.FC = () => {
                 ),
               }}
             />
-            {(user?.is_superuser || canAdd('USER_PERMISSION')) && (
+            {(user?.is_superuser || user?.is_admin || canAdd('MIM-018')) && (
               <Button
               variant="contained"
               color="primary"
