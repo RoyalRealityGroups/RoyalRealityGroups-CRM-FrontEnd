@@ -472,3 +472,115 @@ export const companyLocationApi = {
     return response.data;
   },
 };
+
+// =============================================================================
+// Permission Template Types and API
+// =============================================================================
+
+export interface PermissionTemplateDetail {
+  menuitem_id: string;
+  menuitem_name: string;
+  menuitem_code: string;
+  can_view: boolean;
+  can_add: boolean;
+  can_edit: boolean;
+  can_delete: boolean;
+  can_export: boolean;
+}
+
+export interface PermissionTemplate {
+  id: string;
+  name: string;
+  description: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at?: string;
+  details: PermissionTemplateDetail[];
+}
+
+export interface PermissionTemplateMini {
+  id: string;
+  name: string;
+  description: string;
+  is_active: boolean;
+}
+
+export interface PermissionTemplateFormData {
+  name: string;
+  description?: string;
+  is_active?: boolean;
+  details_input: Array<{
+    menuitem_id: string;
+    can_view: boolean;
+    can_add: boolean;
+    can_edit: boolean;
+    can_delete: boolean;
+    can_export: boolean;
+  }>;
+}
+
+export interface PermissionTemplateListResponse {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: PermissionTemplate[];
+}
+
+const TEMPLATE_BASE_URL = '/api/usermanagement/permission-templates';
+
+export const permissionTemplateApi = {
+  // List all permission templates
+  list: async (params?: { page?: number; page_size?: number; search?: string; is_active?: boolean }): Promise<PermissionTemplateListResponse> => {
+    const response = await apiClient.get<PermissionTemplateListResponse>(TEMPLATE_BASE_URL + '/', { params });
+    // Handle both paginated and non-paginated responses
+    if (Array.isArray(response.data)) {
+      return { count: response.data.length, next: null, previous: null, results: response.data };
+    }
+    return response.data;
+  },
+
+  // Get mini list for dropdowns
+  mini: async (): Promise<PermissionTemplateMini[]> => {
+    const response = await apiClient.get(`${TEMPLATE_BASE_URL}/mini/`);
+    // Handle both array and paginated response
+    if (Array.isArray(response.data)) {
+      return response.data;
+    }
+    if (response.data?.results && Array.isArray(response.data.results)) {
+      return response.data.results;
+    }
+    return [];
+  },
+
+  // Get single template
+  get: async (id: string): Promise<PermissionTemplate> => {
+    const response = await apiClient.get<PermissionTemplate>(`${TEMPLATE_BASE_URL}/${id}/`);
+    return response.data;
+  },
+
+  // Create new template
+  create: async (data: PermissionTemplateFormData): Promise<PermissionTemplate> => {
+    const response = await apiClient.post<PermissionTemplate>(`${TEMPLATE_BASE_URL}/`, data);
+    return response.data;
+  },
+
+  // Update template
+  update: async (id: string, data: Partial<PermissionTemplateFormData>): Promise<PermissionTemplate> => {
+    const response = await apiClient.patch<PermissionTemplate>(`${TEMPLATE_BASE_URL}/${id}/`, data);
+    return response.data;
+  },
+
+  // Delete template
+  delete: async (id: string): Promise<void> => {
+    await apiClient.delete(`${TEMPLATE_BASE_URL}/${id}/`);
+  },
+
+  // Apply template to user
+  applyToUser: async (templateId: string, userId: string, merge: boolean = false): Promise<{ message: string; applied_count: number }> => {
+    const response = await apiClient.post<{ message: string; applied_count: number }>(
+      `${TEMPLATE_BASE_URL}/${templateId}/apply/${userId}/`,
+      { merge }
+    );
+    return response.data;
+  },
+};

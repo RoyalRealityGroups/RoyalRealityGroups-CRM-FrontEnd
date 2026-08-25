@@ -14,6 +14,8 @@ const NotificationSettings = lazy(() => import('../pages/settings/NotificationSe
 const AlertTriggerList    = lazy(() => import('../pages/settings/AlertTriggerList'));
 const AlertTriggerForm    = lazy(() => import('../pages/settings/AlertTriggerForm'));
 const TemplateList        = lazy(() => import('../pages/settings/TemplateList'));
+const PermissionTemplateList = lazy(() => import('../pages/settings/PermissionTemplateList'));
+const PermissionTemplateForm = lazy(() => import('../pages/settings/PermissionTemplateForm'));
 
 const withSuspense = (C: React.LazyExoticComponent<any>) => (
   <Suspense fallback={<PageLoader />}><C /></Suspense>
@@ -58,6 +60,10 @@ export const settingsRoutes = (
     <Route path="settings/alert-triggers/create" element={<SuperuserGuard>{withSuspense(AlertTriggerForm)}</SuperuserGuard>} />
     <Route path="settings/alert-triggers/:id"  element={<SuperuserGuard>{withSuspense(AlertTriggerForm)}</SuperuserGuard>} />
     <Route path="settings/templates"           element={<SuperuserGuard>{withSuspense(TemplateList)}</SuperuserGuard>} />
+
+    {/* Permission Templates */}
+    <Route path="settings/permission-templates"      element={<UserManagementGuard>{withSuspense(PermissionTemplateList)}</UserManagementGuard>} />
+    <Route path="settings/permission-templates/:id"  element={<UserManagementGuard>{withSuspense(PermissionTemplateForm)}</UserManagementGuard>} />
 
     {/* Profile — every authenticated user */}
     <Route path="profile"      element={withSuspense(UserView)} />

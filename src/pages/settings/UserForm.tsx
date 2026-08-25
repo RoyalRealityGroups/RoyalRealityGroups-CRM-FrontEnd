@@ -15,6 +15,8 @@ import {
   Divider,
   InputAdornment,
   IconButton,
+  Radio,
+  RadioGroup,
 } from '@mui/material';
 import SearchableDropdown from '../../components/common/SearchableDropdown';
 import ScreenPermissionPicker from '../../components/settings/ScreenPermissionPicker';
@@ -36,7 +38,7 @@ import type { RootState } from '../../store/store';
 import { useAppDispatch } from '../../store/hooks';
 import { setUser } from '../../store/slices/authSlice';
 import { authApi } from '../../api/auth.api';
-import { usersApi, type UserFormData, type MenuPermissionInput, type MenuItem as MenuItemType } from '../../api/users.api';
+import { usersApi, type UserFormData, type MenuPermissionInput, type MenuItem as MenuItemType, permissionTemplateApi, type PermissionTemplateMini } from '../../api/users.api';
 import { menuApi } from '../../api/menu.api';
 import { useBreadcrumbs } from '../../contexts/BreadcrumbContext';
 import { useToast } from '../../contexts/ToastContext';
@@ -99,6 +101,10 @@ const UserForm: React.FC = () => {
 
   // Permission state: keyed by menuitem_id (string for UUID support)
   const [permissionsMap, setPermissionsMap] = useState<Record<string, MenuPermissionInput>>({});
+  // Selected permission template
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
+  // Permission type: 'template' or 'direct'
+  const [permissionType, setPermissionType] = useState<'template' | 'direct'>('template');
 
   const { control, handleSubmit, reset, watch, formState: { errors } } = useForm<UserFormData>({
     defaultValues: {
@@ -138,7 +144,6 @@ const UserForm: React.FC = () => {
     queryFn: async () => {
       // Use getAllMenuItems which returns flat list of all menuitems
       const allItems = await menuApi.getAllMenuItems();
-      console.log('DEBUG: getAllMenuItems returned:', allItems);
       return allItems.map((item) => ({
         id: item.id,
         code: item.code,
@@ -151,15 +156,49 @@ const UserForm: React.FC = () => {
     staleTime: 10 * 60 * 1000,
   });
 
+  // Fetch permission templates for dropdown
+  const { data: permissionTemplates } = useQuery({
+    queryKey: ['permissionTemplatesMini'],
+    queryFn: () => permissionTemplateApi.mini(),
+    staleTime: 0, // Always refetch to get latest templates
+  });
+
+  // Handle template selection - load template details and merge with permissions
+  const handleTemplateSelect = async (templateId: string) => {
+    setSelectedTemplateId(templateId);
+    if (!templateId) return;
+
+    try {
+      const template = await permissionTemplateApi.get(templateId);
+      if (template.details?.length) {
+        const templatePermissions: Record<string, MenuPermissionInput> = {};
+        template.details.forEach((d) => {
+          templatePermissions[String(d.menuitem_id)] = {
+            menuitem_id: d.menuitem_id,
+            can_view: d.can_view,
+            can_add: d.can_add,
+            can_edit: d.can_edit,
+            can_delete: d.can_delete,
+            can_export: d.can_export,
+          };
+        });
+        // Merge: template permissions + existing direct permissions (direct takes precedence)
+        setPermissionsMap((prev) => ({ ...templatePermissions, ...prev }));
+      }
+    } catch (error) {
+      console.error('Failed to load template:', error);
+    }
+  };
+
   // Convert menu items for ScreenPermissionPicker
   const availableMenuItems: MenuItemType[] = useMemo(() => {
-    console.log('DEBUG: menuData in useMemo:', menuData);
     if (!menuData || !Array.isArray(menuData)) return [];
     // Remove duplicates by id and sort by sequence
-    const uniqueById = new Map<number, MenuItemType>();
+    const uniqueById = new Map<string, MenuItemType>();
     menuData.forEach((item, idx) => {
-      if (!uniqueById.has(item.id)) {
-        uniqueById.set(item.id, {
+      const key = String(item.id);
+      if (!uniqueById.has(key)) {
+        uniqueById.set(key, {
           id: item.id,
           code: item.code,
           name: item.name,
@@ -169,9 +208,7 @@ const UserForm: React.FC = () => {
         });
       }
     });
-    const result = Array.from(uniqueById.values()).sort((a, b) => (a.sequence || 0) - (b.sequence || 0));
-    console.log('DEBUG: availableMenuItems result:', result);
-    return result;
+    return Array.from(uniqueById.values()).sort((a, b) => (a.sequence || 0) - (b.sequence || 0));
   }, [menuData]);
 
   // Fetch user data in edit mode
@@ -634,14 +671,100 @@ const UserForm: React.FC = () => {
                 {/* ── Screen Permissions ── */}
                 <SectionTitle title="Screen Permissions" />
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                  Search and add screens this user can access, then set their allowed actions.
+                  Choose how to assign permissions to this user.
                 </Typography>
-                <ScreenPermissionPicker
-                  availableScreens={availableMenuItems}
-                  value={permissionsMap}
-                  onChange={setPermissionsMap}
-                  disabled={isSubmitting}
-                />
+
+                {/* Permission Type Selection */}
+                <FormControl component="fieldset" sx={{ mb: 2 }}>
+                  <RadioGroup
+                    row
+                    value={permissionType}
+                    onChange={(e) => {
+                      setPermissionType(e.target.value as 'template' | 'direct');
+                      // Clear permissions when switching
+                      setPermissionsMap({});
+                      setSelectedTemplateId('');
+                    }}
+                  >
+                    <FormControlLabel
+                      value="template"
+                      control={<Radio />}
+                      label={
+                        <Box>
+                          <Typography variant="body2" fontWeight={600}>Use Permission Template</Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            Apply a predefined set of permissions
+                          </Typography>
+                        </Box>
+                      }
+                      disabled={isSubmitting}
+                    />
+                    <FormControlLabel
+                      value="direct"
+                      control={<Radio />}
+                      label={
+                        <Box>
+                          <Typography variant="body2" fontWeight={600}>Custom Permissions</Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            Manually select individual screens
+                          </Typography>
+                        </Box>
+                      }
+                      disabled={isSubmitting}
+                      sx={{ ml: 4 }}
+                    />
+                  </RadioGroup>
+                </FormControl>
+
+                {/* Show Template Dropdown OR Direct Permissions based on selection */}
+                {permissionType === 'template' ? (
+                  <Box sx={{ mt: 2 }}>
+                    <Typography variant="subtitle2" sx={{ mb: 0.5, fontWeight: 600 }}>
+                      Select Permission Template
+                    </Typography>
+                    <FormControl fullWidth size="small">
+                      <Select
+                        value={selectedTemplateId}
+                        onChange={(e) => handleTemplateSelect(e.target.value as string)}
+                        disabled={isSubmitting}
+                        displayEmpty
+                      >
+                        <MenuItem value="">
+                          <em>Select a template...</em>
+                        </MenuItem>
+                        {Array.isArray(permissionTemplates) && permissionTemplates.map((template) => (
+                          <MenuItem key={template.id} value={template.id}>
+                            {template.name}
+                            {template.description && (
+                              <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+                                — {template.description}
+                              </Typography>
+                            )}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                    {selectedTemplateId && Object.keys(permissionsMap).length > 0 && (
+                      <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+                        <Typography variant="caption" color="text.secondary">
+                          Template includes {Object.keys(permissionsMap).length} screen(s)
+                        </Typography>
+                      </Box>
+                    )}
+                  </Box>
+                ) : (
+                  <Box sx={{ mt: 2 }}>
+                    <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
+                      Select Screens & Permissions
+                    </Typography>
+                    <ScreenPermissionPicker
+                      availableScreens={availableMenuItems}
+                      value={permissionsMap}
+                      onChange={setPermissionsMap}
+                      disabled={isSubmitting}
+                    />
+                  </Box>
+                )}
               </>
             )}
           </form>
