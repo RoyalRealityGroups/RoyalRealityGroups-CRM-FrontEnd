@@ -38,7 +38,7 @@ export interface MenuItemDetail {
   description?: string;
   link?: string; // Backend might return 'link' instead of 'path'
   menu?: number; // FK to Menu
-  submenu?: number; // FK to Submenu
+  submenu?: number | { id: number | string; name: string; code?: string }; // FK to Submenu or nested object
   permission?: number | { id: number; name: string; codename: string }; // FK to Permission
 }
 

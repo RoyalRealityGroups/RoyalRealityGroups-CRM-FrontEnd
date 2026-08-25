@@ -40,7 +40,37 @@ export interface MenuItem {
   icon?: string;
   link?: string;
   sequence?: number;
+  menu?: {
+    id: number | string;
+    name: string;
+    code?: string;
+  } | null;
+  submenu?: {
+    id: number | string;
+    name: string;
+    code?: string;
+  } | null;
 }
+
+// Helper to format display name with full parent context
+const formatDisplayName = (menuItem: MenuItem): string => {
+  const parts: string[] = [];
+  
+  // Add menu name (top-level parent)
+  if (menuItem.menu?.name) {
+    parts.push(menuItem.menu.name);
+  }
+  
+  // Add submenu name (if different from menu)
+  if (menuItem.submenu?.name && menuItem.submenu.name !== menuItem.menu?.name) {
+    parts.push(menuItem.submenu.name);
+  }
+  
+  if (parts.length > 0) {
+    return `${menuItem.name} (${parts.join(' > ')})`;
+  }
+  return menuItem.name;
+};
 
 export interface MenuPermissionInput {
   menuitem_id: string | number;
@@ -84,7 +114,10 @@ const ScreenPermissionPicker: React.FC<ScreenPermissionPickerProps> = ({
     return availableMenuItems.filter(
       (m) =>
         !addedIds.includes(String(m.id)) &&
-        (q === '' || m.name.toLowerCase().includes(q) || m.code.toLowerCase().includes(q))
+        (q === '' || 
+         m.name.toLowerCase().includes(q) || 
+         m.code.toLowerCase().includes(q) ||
+         (m.submenu?.name?.toLowerCase().includes(q) ?? false))
     );
   }, [availableMenuItems, addedIds, search]);
 
@@ -223,7 +256,7 @@ const ScreenPermissionPicker: React.FC<ScreenPermissionPickerProps> = ({
                 >
                   <ShieldIcon fontSize="small" sx={{ mr: 1.5, color: 'primary.main', flexShrink: 0 }} />
                   <ListItemText
-                    primary={menuItem.name}
+                    primary={formatDisplayName(menuItem)}
                     secondary={menuItem.code}
                     primaryTypographyProps={{ variant: 'body2', fontWeight: 500 }}
                     secondaryTypographyProps={{ variant: 'caption' }}
@@ -268,7 +301,7 @@ const ScreenPermissionPicker: React.FC<ScreenPermissionPickerProps> = ({
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <ShieldIcon fontSize="small" sx={{ color: 'primary.main' }} />
                       <Typography variant="body2" fontWeight={600}>
-                        {menuItem.name}
+                        {formatDisplayName(menuItem)}
                       </Typography>
                     </Box>
                     <IconButton

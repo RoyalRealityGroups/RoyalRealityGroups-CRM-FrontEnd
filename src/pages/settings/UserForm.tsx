@@ -144,6 +144,8 @@ const UserForm: React.FC = () => {
         code: item.code,
         name: item.name,
         sequence: item.sequence,
+        menu: typeof item.menu === 'object' ? item.menu : null,
+        submenu: typeof item.submenu === 'object' ? item.submenu : null,
       }));
     },
     staleTime: 10 * 60 * 1000,
@@ -162,6 +164,8 @@ const UserForm: React.FC = () => {
           code: item.code,
           name: item.name,
           sequence: item.sequence ?? idx,
+          menu: item.menu,
+          submenu: item.submenu,
         });
       }
     });

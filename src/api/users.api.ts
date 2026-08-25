@@ -9,6 +9,16 @@ export interface MenuItem {
   link?: string;
   sequence?: number;
   order?: number;
+  menu?: {
+    id: number | string;
+    name: string;
+    code?: string;
+  } | null;
+  submenu?: {
+    id: number | string;
+    name: string;
+    code?: string;
+  } | null;
 }
 
 // Alias for backward compatibility
