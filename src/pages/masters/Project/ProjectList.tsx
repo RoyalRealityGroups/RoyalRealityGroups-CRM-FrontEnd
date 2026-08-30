@@ -141,7 +141,7 @@ const ProjectList: React.FC = () => {
     { field: 'status', headerName: 'Status', width: 140, headerAlign: 'center', align: 'center',
       renderCell: (p) => {
         const statusColors: Record<string, 'default' | 'info' | 'success' | 'warning' | 'error'> = {
-          UPCOMING: 'info', ACTIVE: 'success', COMPLETED: 'warning', SOLD_OUT: 'error',
+          UNDER_CONSTRUCTION: 'warning', READY_TO_OCCUPY: 'success',
         };
         // If user can't edit, just show chip without dropdown
         if (!canEdit) {
