@@ -327,8 +327,8 @@ const ProjectFormPage: React.FC = () => {
         developer_name: project.developer_name || '',
         project_type: project.project_type || 'PLOT',
         location: project.location || null,
-        approval_type: project.approval_type || 'PENDING',
-        status: project.status || 'UPCOMING',
+        approval_type: project.approval_type || 'GVMC',
+        status: project.status || 'UNDER_CONSTRUCTION',
         overview: project.overview || '',
         description: project.description || '',
         amenities: project.amenities || '',
@@ -336,7 +336,7 @@ const ProjectFormPage: React.FC = () => {
         floor_plans_text: project.floor_plans_text || '',
       });
     } else if (!isEdit) {
-      setForm({ name: '', developer_name: '', project_type: 'PLOT', location: null, approval_type: 'PENDING', status: 'UPCOMING', overview: '', description: '', amenities: '', specifications: '', floor_plans_text: '' });
+      setForm({ name: '', developer_name: '', project_type: 'PLOT', location: null, approval_type: 'GVMC', status: 'UNDER_CONSTRUCTION', overview: '', description: '', amenities: '', specifications: '', floor_plans_text: '' });
     }
   }, [project, isEdit]);
 
@@ -458,7 +458,7 @@ const ProjectFormPage: React.FC = () => {
                 <Grid size={{ xs: 12, sm: 4 }}>
                   <FormControl fullWidth size="small">
                     <InputLabel>Approval</InputLabel>
-                    <Select label="Approval" value={form.approval_type || 'PENDING'} onChange={(e) => setForm({ ...form, approval_type: e.target.value })} sx={{ bgcolor: 'white' }}>
+                    <Select label="Approval" value={form.approval_type || 'GVMC'} onChange={(e) => setForm({ ...form, approval_type: e.target.value })} sx={{ bgcolor: 'white' }}>
                       {(choices?.approval_types || []).map((c) => <MenuItem key={c.value} value={c.value}>{c.label}</MenuItem>)}
                     </Select>
                   </FormControl>
@@ -466,7 +466,7 @@ const ProjectFormPage: React.FC = () => {
                 <Grid size={{ xs: 12, sm: 4 }}>
                   <FormControl fullWidth size="small">
                     <InputLabel>Status</InputLabel>
-                    <Select label="Status" value={form.status || 'UPCOMING'} onChange={(e) => setForm({ ...form, status: e.target.value })} sx={{ bgcolor: 'white' }}>
+                    <Select label="Status" value={form.status || 'UNDER_CONSTRUCTION'} onChange={(e) => setForm({ ...form, status: e.target.value })} sx={{ bgcolor: 'white' }}>
                       {(choices?.project_statuses || []).map((c) => <MenuItem key={c.value} value={c.value}>{c.label}</MenuItem>)}
                     </Select>
                   </FormControl>
