@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box, Paper, Grid, Typography, Button, Divider,
   CircularProgress, Alert, Dialog, DialogContent, DialogActions, DialogTitle,
-  Chip, IconButton, Card, CardContent,
+  Chip, IconButton,
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
@@ -17,10 +17,6 @@ import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import CloseIcon from '@mui/icons-material/Close';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import DescriptionIcon from '@mui/icons-material/Description';
-import PoolIcon from '@mui/icons-material/Pool';
-import SettingsIcon from '@mui/icons-material/Settings';
 import GridViewIcon from '@mui/icons-material/GridView';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -336,41 +332,6 @@ const ImageLightbox: React.FC<LightboxProps> = ({ images, initialIndex, open, on
   );
 };
 
-// Info Card Component
-interface InfoCardProps {
-  icon: React.ReactNode;
-  title: string;
-  children: React.ReactNode;
-  color?: string;
-}
-
-const InfoCard: React.FC<InfoCardProps> = ({ icon, title, children, color = '#1976d2' }) => (
-  <Card
-    elevation={0}
-    sx={{
-      height: '100%',
-      border: '1px solid',
-      borderColor: 'divider',
-      borderRadius: { xs: 2, md: 3 },
-      transition: 'all 0.3s ease',
-      '&:hover': {
-        boxShadow: { xs: 0, md: 4 },
-        borderColor: { xs: 'divider', md: color },
-      },
-    }}
-  >
-    <CardContent sx={{ p: { xs: 2, md: 3 } }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-        <Box sx={{ p: 0.75, borderRadius: 1.5, bgcolor: `${color}15`, color: color }}>
-          {icon}
-        </Box>
-        <Typography variant="subtitle1" fontWeight={600}>{title}</Typography>
-      </Box>
-      {children}
-    </CardContent>
-  </Card>
-);
-
 // Main Component
 const ProjectView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -483,12 +444,8 @@ const ProjectView: React.FC = () => {
     );
   }
 
-  const amenitiesList = project.amenities
-    ? project.amenities.split(/[,\n]/).map((a) => a.trim()).filter(Boolean)
-    : [];
-
   return (
-    <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 1400, mx: 'auto' }}>
+    <Box sx={{ p: { xs: 2, md: 3 }, width: '100%' }}>
       {/* Back Button */}
       <Button
         startIcon={<ArrowBackIcon />}
@@ -633,58 +590,18 @@ const ProjectView: React.FC = () => {
         </Grid>
       </Paper>
 
-      {/* Project Details Grid */}
-      <Grid container spacing={{ xs: 2, md: 3 }}>
-        {/* Description Card */}
-        <Grid size={{ xs: 12, md: 6 }}>
-          <InfoCard icon={<DescriptionIcon />} title="Description" color="#1976d2">
-            <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.7, color: 'text.secondary' }}>
-              {project.description || 'No detailed description available.'}
-            </Typography>
-          </InfoCard>
-        </Grid>
-
-        {/* Specifications Card */}
-        <Grid size={{ xs: 12, md: 6 }}>
-          <InfoCard icon={<SettingsIcon />} title="Specifications" color="#9c27b0">
-            <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.7, color: 'text.secondary' }}>
-              {project.specifications || 'No specifications available.'}
-            </Typography>
-          </InfoCard>
-        </Grid>
-
-        {/* Amenities Card */}
-        <Grid size={{ xs: 12, md: 6 }}>
-          <InfoCard icon={<PoolIcon />} title="Amenities" color="#00897b">
-            {amenitiesList.length > 0 ? (
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                {amenitiesList.map((amenity, idx) => (
-                  <Chip
-                    key={idx}
-                    icon={<CheckCircleIcon sx={{ fontSize: 14 }} />}
-                    label={amenity}
-                    variant="outlined"
-                    color="success"
-                    size="small"
-                    sx={{ borderRadius: 1, fontSize: '0.75rem' }}
-                  />
-                ))}
-              </Box>
-            ) : (
-              <Typography variant="body2" color="text.secondary">No amenities listed.</Typography>
-            )}
-          </InfoCard>
-        </Grid>
-
-        {/* Floor Plans Card */}
-        <Grid size={{ xs: 12, md: 6 }}>
-          <InfoCard icon={<GridViewIcon />} title="Floor Plans" color="#ff5722">
-            <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.7, color: 'text.secondary' }}>
-              {project.floor_plans_text || 'No floor plan details available.'}
-            </Typography>
-          </InfoCard>
-        </Grid>
-      </Grid>
+      {/* Floor Plans */}
+      <Paper elevation={0} sx={{ borderRadius: { xs: 2, md: 4 }, p: { xs: 2, md: 3 }, border: '1px solid', borderColor: 'divider' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+          <Box sx={{ p: 0.75, borderRadius: 1.5, bgcolor: '#ff572215', color: '#ff5722', display: 'flex' }}>
+            <GridViewIcon fontSize="small" />
+          </Box>
+          <Typography variant="subtitle1" fontWeight={600}>Floor Plans</Typography>
+        </Box>
+        <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.7, color: 'text.secondary' }}>
+          {project.floor_plans_text || 'No floor plan details available.'}
+        </Typography>
+      </Paper>
 
       {/* Image Upload Dialog */}
       <Dialog open={imageDialogOpen} onClose={() => setImageDialogOpen(false)} maxWidth="sm" fullWidth>

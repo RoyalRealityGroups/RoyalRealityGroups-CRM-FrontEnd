@@ -2,8 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box, Paper, Grid, Button, TextField, CircularProgress, Typography, 
-  IconButton, Chip, Card, CardContent, Divider, Dialog, DialogTitle,
-  DialogContent, DialogActions, FormControl, InputLabel, Select, MenuItem,
+  IconButton, Chip, Divider, Dialog,
+  DialogContent, FormControl, InputLabel, Select, MenuItem,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import SaveIcon from '@mui/icons-material/Save';
@@ -16,9 +16,6 @@ import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import CloseIcon from '@mui/icons-material/Close';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
-import DescriptionIcon from '@mui/icons-material/Description';
-import PoolIcon from '@mui/icons-material/Pool';
-import SettingsIcon from '@mui/icons-material/Settings';
 import GridViewIcon from '@mui/icons-material/GridView';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -229,38 +226,6 @@ const EditImageCarousel: React.FC<EditCarouselProps> = ({
   );
 };
 
-// Editable Info Card
-interface EditCardProps {
-  icon: React.ReactNode;
-  title: string;
-  value: string;
-  onChange: (value: string) => void;
-  placeholder?: string;
-  color?: string;
-  rows?: number;
-}
-
-const EditInfoCard: React.FC<EditCardProps> = ({ icon, title, value, onChange, placeholder, color = '#1976d2', rows = 4 }) => (
-  <Card elevation={0} sx={{ height: '100%', border: '1px solid', borderColor: 'divider', borderRadius: { xs: 2, md: 3 } }}>
-    <CardContent sx={{ p: { xs: 2, md: 2.5 } }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-        <Box sx={{ p: 0.75, borderRadius: 1.5, bgcolor: `${color}15`, color: color }}>{icon}</Box>
-        <Typography variant="subtitle1" fontWeight={600}>{title}</Typography>
-      </Box>
-      <TextField
-        fullWidth
-        multiline
-        rows={rows}
-        size="small"
-        placeholder={placeholder}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        sx={{ '& .MuiOutlinedInput-root': { bgcolor: 'grey.50' } }}
-      />
-    </CardContent>
-  </Card>
-);
-
 // Main Component
 const ProjectFormPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -388,7 +353,7 @@ const ProjectFormPage: React.FC = () => {
   };
 
   return (
-    <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 1400, mx: 'auto' }}>
+    <Box sx={{ p: { xs: 2, md: 3 }, width: '100%' }}>
       {/* Back Button */}
       <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/projects/list')} sx={{ mb: 2 }}>
         Back to Projects
@@ -534,53 +499,26 @@ const ProjectFormPage: React.FC = () => {
         </Grid>
       </Paper>
 
-      {/* Details Grid - Same as View */}
-      <Grid container spacing={{ xs: 2, md: 3 }}>
-        <Grid size={{ xs: 12, md: 6 }}>
-          <EditInfoCard
-            icon={<DescriptionIcon />}
-            title="Description"
-            color="#1976d2"
-            value={form.description || ''}
-            onChange={(val) => setForm({ ...form, description: val })}
-            placeholder="Full project description..."
-            rows={5}
-          />
-        </Grid>
-        <Grid size={{ xs: 12, md: 6 }}>
-          <EditInfoCard
-            icon={<SettingsIcon />}
-            title="Specifications"
-            color="#9c27b0"
-            value={form.specifications || ''}
-            onChange={(val) => setForm({ ...form, specifications: val })}
-            placeholder="Total Area: 50 Acres&#10;Total Units: 500..."
-            rows={5}
-          />
-        </Grid>
-        <Grid size={{ xs: 12, md: 6 }}>
-          <EditInfoCard
-            icon={<PoolIcon />}
-            title="Amenities"
-            color="#00897b"
-            value={form.amenities || ''}
-            onChange={(val) => setForm({ ...form, amenities: val })}
-            placeholder="Swimming Pool&#10;Gym&#10;Club House..."
-            rows={5}
-          />
-        </Grid>
-        <Grid size={{ xs: 12, md: 6 }}>
-          <EditInfoCard
-            icon={<GridViewIcon />}
-            title="Floor Plans"
-            color="#ff5722"
-            value={form.floor_plans_text || ''}
-            onChange={(val) => setForm({ ...form, floor_plans_text: val })}
-            placeholder="Ground Floor: 1200 sq.ft&#10;First Floor: 1100 sq.ft..."
-            rows={5}
-          />
-        </Grid>
-      </Grid>
+      {/* Floor Plans */}
+      <Paper elevation={0} sx={{ borderRadius: { xs: 2, md: 4 }, p: { xs: 2, md: 3 }, border: '1px solid', borderColor: 'divider' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+          <Box sx={{ p: 0.75, borderRadius: 1.5, bgcolor: '#ff572215', color: '#ff5722', display: 'flex' }}>
+            <GridViewIcon fontSize="small" />
+          </Box>
+          <Typography variant="subtitle1" fontWeight={600}>Floor Plans</Typography>
+        </Box>
+        <TextField
+          fullWidth
+          multiline
+          rows={4}
+          size="small"
+          placeholder="Ground Floor: 1200 sq.ft&#10;First Floor: 1100 sq.ft..."
+          value={form.floor_plans_text || ''}
+          onChange={(e) => setForm({ ...form, floor_plans_text: e.target.value })}
+          sx={{ '& .MuiOutlinedInput-root': { bgcolor: 'grey.50' } }}
+        />
+      </Paper>
+
     </Box>
   );
 };
