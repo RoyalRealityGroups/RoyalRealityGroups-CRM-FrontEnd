@@ -22,7 +22,7 @@ export const CONTACT_EMAIL_REGEX = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
 export const CONTACT_PHONE_MIN_LENGTH = 10;
 export const CONTACT_PHONE_MAX_LENGTH = 15;
 export const PHONE_FIELD_HELPER_TEXT =
-  'Enter mobile number with country code (up to 15 digits). Example: +91 9876543210';
+  'Enter mobile number with country code (up to 10 digits). Example: +91 9876543210';
 
 export const sanitizePhoneInput = (value: string): string =>
   value.replace(/\D/g, '').slice(0, 10);
