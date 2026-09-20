@@ -184,7 +184,7 @@ const TodaysInsights = () => {
 
       {/* Summary Cards Row */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid size={{ xs: 6, sm: 4, md: 2.4 }}>
+        <Grid size={{ xs: 6, sm: 4, md: 3 }}>
           <MiniStat
             title="Total Calls"
             value={summary.total_calls}
@@ -193,7 +193,29 @@ const TodaysInsights = () => {
             subtitle={summary.peak_hour ? `Peak: ${summary.peak_hour.label}` : undefined}
           />
         </Grid>
-        <Grid size={{ xs: 6, sm: 4, md: 2.4 }}>
+        <Grid size={{ xs: 6, sm: 4, md: 3 }}>
+          <MiniStat
+            title="Connected"
+            value={summary.connected_calls ?? 0}
+            icon={<IncomingIcon />}
+            color="#2e7d32"
+            subtitle={
+              summary.total_calls > 0
+                ? `${Math.round(((summary.connected_calls ?? 0) / summary.total_calls) * 100)}% answered`
+                : undefined
+            }
+          />
+        </Grid>
+        <Grid size={{ xs: 6, sm: 4, md: 3 }}>
+          <MiniStat
+            title="Dialed"
+            value={summary.dialed_calls ?? 0}
+            icon={<MissedIcon />}
+            color="#c62828"
+            subtitle="Called, no answer"
+          />
+        </Grid>
+        <Grid size={{ xs: 6, sm: 4, md: 3 }}>
           <MiniStat
             title="Leads Entered"
             value={summary.leads_entered}
@@ -201,7 +223,7 @@ const TodaysInsights = () => {
             color="#388e3c"
           />
         </Grid>
-        <Grid size={{ xs: 6, sm: 4, md: 2.4 }}>
+        <Grid size={{ xs: 6, sm: 4, md: 3 }}>
           <MiniStat
             title="Follow-ups Done"
             value={summary.follow_ups_done}
@@ -209,7 +231,7 @@ const TodaysInsights = () => {
             color="#f57c00"
           />
         </Grid>
-        <Grid size={{ xs: 6, sm: 4, md: 2.4 }}>
+        <Grid size={{ xs: 6, sm: 4, md: 3 }}>
           <MiniStat
             title="Site Visits"
             value={summary.site_visits}
@@ -218,7 +240,7 @@ const TodaysInsights = () => {
             subtitle={summary.site_visits_completed > 0 ? `${summary.site_visits_completed} completed` : undefined}
           />
         </Grid>
-        <Grid size={{ xs: 6, sm: 4, md: 2.4 }}>
+        <Grid size={{ xs: 6, sm: 4, md: 3 }}>
           <MiniStat
             title="Bookings"
             value={summary.bookings}
