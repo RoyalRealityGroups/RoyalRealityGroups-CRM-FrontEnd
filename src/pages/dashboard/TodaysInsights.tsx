@@ -23,8 +23,13 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  TablePagination,
   IconButton,
   Tooltip,
+  TextField,
+  MenuItem,
+  Button,
+  LinearProgress,
 } from '@mui/material';
 import {
   Phone as PhoneIcon,
@@ -38,7 +43,10 @@ import {
   CallMade as OutgoingIcon,
   CallReceived as IncomingIcon,
   CallMissed as MissedIcon,
+  Clear as ClearIcon,
 } from '@mui/icons-material';
+import { TimePicker } from '@mui/x-date-pickers/TimePicker';
+import type { Dayjs } from 'dayjs';
 import { reReportsApi } from '../../api/reReports';
 import { usePageTitle } from '../../hooks';
 import { useBreadcrumbs } from '../../contexts/BreadcrumbContext';
@@ -107,6 +115,298 @@ const formatDuration = (secs: number) => {
   return `${hrs}h ${mins % 60}m`;
 };
 
+// ---------- Recent Calls (filterable + paginated) ----------
+interface EmployeeOption {
+  id: string;
+  name: string;
+}
+
+const CALL_TYPE_OPTIONS = [
+  { value: 'outgoing', label: 'Outgoing' },
+  { value: 'incoming', label: 'Incoming' },
+  { value: 'missed', label: 'Missed' },
+  { value: 'rejected', label: 'Rejected' },
+  { value: 'unknown', label: 'Unknown' },
+];
+
+const RecentCallsCard = ({ isAdminView }: { isAdminView: boolean }) => {
+  const navigate = useNavigate();
+
+  // Filters
+  const [fromTime, setFromTime] = useState<Dayjs | null>(null);
+  const [toTime, setToTime] = useState<Dayjs | null>(null);
+  const [callType, setCallType] = useState<string>('');
+  const [employee, setEmployee] = useState<string>('');
+
+  // Pagination (page is 0-based for MUI TablePagination)
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
+
+  // Data
+  const [rows, setRows] = useState<any[]>([]);
+  const [count, setCount] = useState(0);
+  const [employees, setEmployees] = useState<EmployeeOption[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const colSpan = isAdminView ? 6 : 5;
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      setLoading(true);
+      try {
+        const res = await reReportsApi.getTodaysCalls({
+          from_time: fromTime && fromTime.isValid() ? fromTime.format('HH:mm') : undefined,
+          to_time: toTime && toTime.isValid() ? toTime.format('HH:mm') : undefined,
+          call_type: callType || undefined,
+          employee: employee || undefined,
+          page: page + 1, // backend is 1-based
+          page_size: pageSize,
+        });
+        if (cancelled) return;
+        setRows(res.results || []);
+        setCount(res.count || 0);
+        if (res.employees && res.employees.length > 0) {
+          setEmployees(res.employees);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Failed to load calls:', error);
+          setRows([]);
+          setCount(0);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [fromTime, toTime, callType, employee, page, pageSize]);
+
+  // Any filter change resets to the first page.
+  const onFilterChange = (setter: (v: string) => void) => (value: string) => {
+    setter(value);
+    setPage(0);
+  };
+
+  const onTimeChange = (setter: (v: Dayjs | null) => void) => (value: Dayjs | null) => {
+    setter(value);
+    setPage(0);
+  };
+
+  const clearFilters = () => {
+    setFromTime(null);
+    setToTime(null);
+    setCallType('');
+    setEmployee('');
+    setPage(0);
+  };
+
+  // Range sanity: if both set and From is after To, flag it (don't block fetch).
+  const invalidRange = !!(
+    fromTime && toTime && fromTime.isValid() && toTime.isValid() && fromTime.isAfter(toTime)
+  );
+
+  const hasFilters = !!fromTime || !!toTime || callType !== '' || employee !== '';
+
+  return (
+    <Paper sx={{ p: 2 }}>
+      <Box
+        sx={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 1.5,
+          mb: 2,
+        }}
+      >
+        <Typography variant="h6" sx={{ fontWeight: 600 }}>
+          Recent Calls
+          {count > 0 && (
+            <Typography component="span" variant="body2" color="text.secondary" sx={{ ml: 1 }}>
+              ({count} total)
+            </Typography>
+          )}
+        </Typography>
+
+        {/* Filters */}
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, alignItems: 'center' }}>
+          <TimePicker
+            label="From time"
+            value={fromTime}
+            onChange={onTimeChange(setFromTime)}
+            ampm
+            slotProps={{
+              textField: {
+                size: 'small',
+                sx: { minWidth: 150 },
+                error: invalidRange,
+                helperText: invalidRange ? 'From is after To' : undefined,
+              },
+              field: { clearable: true },
+            }}
+          />
+
+          <TimePicker
+            label="To time"
+            value={toTime}
+            onChange={onTimeChange(setToTime)}
+            ampm
+            slotProps={{
+              textField: {
+                size: 'small',
+                sx: { minWidth: 150 },
+                error: invalidRange,
+              },
+              field: { clearable: true },
+            }}
+          />
+
+          <TextField
+            select
+            size="small"
+            label="Call type"
+            value={callType}
+            onChange={(e) => onFilterChange(setCallType)(e.target.value)}
+            sx={{ minWidth: 140 }}
+          >
+            <MenuItem value="">All types</MenuItem>
+            {CALL_TYPE_OPTIONS.map((ct) => (
+              <MenuItem key={ct.value} value={ct.value}>
+                {ct.label}
+              </MenuItem>
+            ))}
+          </TextField>
+
+          {isAdminView && (
+            <TextField
+              select
+              size="small"
+              label="Called by"
+              value={employee}
+              onChange={(e) => onFilterChange(setEmployee)(e.target.value)}
+              sx={{ minWidth: 170 }}
+            >
+              <MenuItem value="">All employees</MenuItem>
+              {employees.map((emp) => (
+                <MenuItem key={emp.id} value={emp.id}>
+                  {emp.name}
+                </MenuItem>
+              ))}
+            </TextField>
+          )}
+
+          {hasFilters && (
+            <Button size="small" startIcon={<ClearIcon fontSize="small" />} onClick={clearFilters}>
+              Clear
+            </Button>
+          )}
+        </Box>
+      </Box>
+
+      <Box sx={{ height: 3, mb: 0.5 }}>{loading && <LinearProgress />}</Box>
+
+      <TableContainer>
+        <Table size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell sx={{ fontWeight: 600 }}>Phone</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Type</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Duration</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Time</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Lead</TableCell>
+              {isAdminView && <TableCell sx={{ fontWeight: 600 }}>Called By</TableCell>}
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {rows.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={colSpan} align="center">
+                  <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
+                    {loading
+                      ? 'Loading calls…'
+                      : hasFilters
+                        ? 'No calls match the selected filters'
+                        : 'No calls recorded today'}
+                  </Typography>
+                </TableCell>
+              </TableRow>
+            ) : (
+              rows.map((call: any) => {
+                const config = callTypeConfig[call.call_type] || callTypeConfig.unknown;
+                const callTime = new Date(call.called_at);
+                return (
+                  <TableRow key={call.id} hover>
+                    <TableCell>
+                      <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+                        {call.phone_number}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        size="small"
+                        label={config.label}
+                        color={config.color}
+                        variant="outlined"
+                        sx={{ height: 22, fontSize: '0.7rem' }}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2">{formatDuration(call.duration_secs)}</Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2">
+                        {callTime.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      {call.lead_name ? (
+                        <Tooltip title="View Lead">
+                          <Typography
+                            variant="body2"
+                            sx={{ color: 'primary.main', cursor: 'pointer', fontWeight: 500 }}
+                            onClick={() => call.lead_id && navigate(`/lead/view/${call.lead_id}`)}
+                          >
+                            {call.lead_name}
+                          </Typography>
+                        </Tooltip>
+                      ) : (
+                        <Typography variant="body2" color="text.secondary">—</Typography>
+                      )}
+                    </TableCell>
+                    {isAdminView && (
+                      <TableCell>
+                        <Typography variant="body2">{call.called_by_name}</Typography>
+                      </TableCell>
+                    )}
+                  </TableRow>
+                );
+              })
+            )}
+          </TableBody>
+        </Table>
+      </TableContainer>
+
+      <TablePagination
+        component="div"
+        count={count}
+        page={count > 0 ? page : 0}
+        onPageChange={(_e, newPage) => setPage(newPage)}
+        rowsPerPage={pageSize}
+        onRowsPerPageChange={(e) => {
+          setPageSize(parseInt(e.target.value, 10));
+          setPage(0);
+        }}
+        rowsPerPageOptions={[10, 20, 50]}
+        labelRowsPerPage="Rows per page:"
+      />
+    </Paper>
+  );
+};
+
 // ---------- Main Component ----------
 const TodaysInsights = () => {
   const navigate = useNavigate();
@@ -154,7 +454,7 @@ const TodaysInsights = () => {
     );
   }
 
-  const { summary, calls_by_type, leads_by_source, followups_by_type, hourly_distribution, recent_calls } = data;
+  const { summary, calls_by_type, leads_by_source, followups_by_type, hourly_distribution } = data;
 
   // Prepare hourly chart data
   const hourlyChartData = (hourly_distribution || []).map((h: any) => ({
@@ -370,84 +670,8 @@ const TodaysInsights = () => {
         </Grid>
       </Grid>
 
-      {/* Recent Calls Table */}
-      <Paper sx={{ p: 2 }}>
-        <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>Recent Calls</Typography>
-        <TableContainer>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell sx={{ fontWeight: 600 }}>Phone</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Type</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Duration</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Time</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Lead</TableCell>
-                {data.is_admin_view && <TableCell sx={{ fontWeight: 600 }}>Called By</TableCell>}
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {(recent_calls || []).length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={data.is_admin_view ? 6 : 5} align="center">
-                    <Typography variant="body2" color="text.secondary">No calls recorded today</Typography>
-                  </TableCell>
-                </TableRow>
-              ) : (
-                recent_calls.map((call: any) => {
-                  const config = callTypeConfig[call.call_type] || callTypeConfig.unknown;
-                  const callTime = new Date(call.called_at);
-                  return (
-                    <TableRow key={call.id} hover>
-                      <TableCell>
-                        <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                          {call.phone_number}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          size="small"
-                          label={config.label}
-                          color={config.color}
-                          variant="outlined"
-                          sx={{ height: 22, fontSize: '0.7rem' }}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2">{formatDuration(call.duration_secs)}</Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2">
-                          {callTime.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        {call.lead_name ? (
-                          <Tooltip title="View Lead">
-                            <Typography
-                              variant="body2"
-                              sx={{ color: 'primary.main', cursor: 'pointer', fontWeight: 500 }}
-                              onClick={() => call.lead_id && navigate(`/lead/view/${call.lead_id}`)}
-                            >
-                              {call.lead_name}
-                            </Typography>
-                          </Tooltip>
-                        ) : (
-                          <Typography variant="body2" color="text.secondary">—</Typography>
-                        )}
-                      </TableCell>
-                      {data.is_admin_view && (
-                        <TableCell>
-                          <Typography variant="body2">{call.called_by_name}</Typography>
-                        </TableCell>
-                      )}
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </Paper>
+      {/* Recent Calls — filterable + paginated */}
+      <RecentCallsCard isAdminView={!!data.is_admin_view} />
     </Box>
   );
 };
