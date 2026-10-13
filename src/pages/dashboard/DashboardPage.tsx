@@ -26,6 +26,16 @@ import {
   TableHead,
   TableRow,
   Chip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  IconButton,
+  Avatar,
+  Divider,
+  ToggleButton,
+  ToggleButtonGroup,
+  Tooltip,
+  LinearProgress,
 } from '@mui/material';
 import {
   People as LeadsIcon,
@@ -34,6 +44,11 @@ import {
   BookOnline as BookingIcon,
   Phone as PhoneIcon,
   TrendingUp as TrendIcon,
+  Close as CloseIcon,
+  Badge as BadgeIcon,
+  Event as EventIcon,
+  SupervisorAccount as ManagerIcon,
+  Email as EmailIcon,
 } from '@mui/icons-material';
 import { reReportsApi } from '../../api/reReports';
 import { usePageTitle } from '../../hooks';
@@ -82,6 +97,280 @@ const StatCard = ({ title, value, icon, color, onClick, subtitle }: StatCardProp
   </Paper>
 );
 
+// ---------- Helpers ----------
+const PERIOD_OPTIONS = [
+  { value: 'today', label: 'Day' },
+  { value: 'this_week', label: 'Week' },
+  { value: 'this_month', label: 'Month' },
+  { value: 'last_month', label: 'Last Month' },
+  { value: 'all', label: 'All Time' },
+];
+
+const formatMoney = (n: number) => {
+  if (!n) return '₹0';
+  if (n >= 10000000) return `₹${(n / 10000000).toFixed(2)} Cr`;
+  if (n >= 100000) return `₹${(n / 100000).toFixed(2)} L`;
+  if (n >= 1000) return `₹${(n / 1000).toFixed(1)} K`;
+  return `₹${n.toLocaleString('en-IN')}`;
+};
+
+const formatDate = (iso?: string | null) => {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+};
+
+const bookingStatusColor: Record<string, 'success' | 'info' | 'warning' | 'error' | 'default'> = {
+  REGISTERED: 'success',
+  AGREEMENT: 'info',
+  BOOKED: 'warning',
+  CANCELLED: 'error',
+};
+
+// Compact KPI tile used inside the detail dialog.
+const DetailKpi = ({ label, value, color }: { label: string; value: string | number; color?: string }) => (
+  <Paper
+    variant="outlined"
+    sx={{ p: 1.5, textAlign: 'center', borderColor: 'divider', minWidth: 0 }}
+  >
+    <Typography variant="h6" sx={{ fontWeight: 700, color: color || 'text.primary', lineHeight: 1.2 }} noWrap>
+      {value}
+    </Typography>
+    <Typography variant="caption" color="text.secondary" noWrap>{label}</Typography>
+  </Paper>
+);
+
+// ---------- Employee Detail Dialog ----------
+interface EmployeeDetailDialogProps {
+  employeeId: string | null;
+  employeeName: string;
+  open: boolean;
+  onClose: () => void;
+}
+
+const EmployeeDetailDialog = ({ employeeId, employeeName, open, onClose }: EmployeeDetailDialogProps) => {
+  const [period, setPeriod] = useState<string>('this_month');
+  const [detail, setDetail] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+
+  // Reset to Month each time a new employee is opened.
+  useEffect(() => {
+    if (open) setPeriod('this_month');
+  }, [open, employeeId]);
+
+  useEffect(() => {
+    if (!open || !employeeId) return;
+    let cancelled = false;
+    const load = async () => {
+      setLoading(true);
+      try {
+        const res = await reReportsApi.getEmployeePerformanceDetail(employeeId, { period });
+        if (!cancelled) setDetail(res);
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Failed to load employee detail:', error);
+          setDetail(null);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, employeeId, period]);
+
+  const profile = detail?.profile;
+  const summary = detail?.summary;
+  const bookings = detail?.bookings || [];
+  const initials = (profile?.name || employeeName || '?')
+    .split(' ')
+    .map((p: string) => p[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
+
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth scroll="paper">
+      <DialogTitle sx={{ p: 0 }}>
+        {/* Profile header */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 2.5, pb: 2 }}>
+          <Avatar sx={{ bgcolor: 'primary.main', width: 52, height: 52, fontWeight: 700 }}>
+            {initials}
+          </Avatar>
+          <Box sx={{ minWidth: 0, flex: 1 }}>
+            <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1.2 }} noWrap>
+              {profile?.name || employeeName}
+            </Typography>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 0.5, alignItems: 'center' }}>
+              {profile?.designation && (
+                <Chip icon={<BadgeIcon sx={{ fontSize: 15 }} />} label={profile.designation} size="small" variant="outlined" />
+              )}
+              {profile?.status && (
+                <Chip
+                  label={profile.status}
+                  size="small"
+                  color={profile.is_active ? 'success' : 'default'}
+                  variant="outlined"
+                />
+              )}
+            </Box>
+          </Box>
+          <IconButton onClick={onClose} size="small" aria-label="close">
+            <CloseIcon />
+          </IconButton>
+        </Box>
+
+        {/* Meta row: joining / tenure / manager / email */}
+        <Box
+          sx={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: { xs: 1.5, sm: 3 },
+            px: 2.5,
+            pb: 1.5,
+          }}
+        >
+          <Tooltip title="Joining date">
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+              <EventIcon sx={{ fontSize: 17, color: 'text.secondary' }} />
+              <Typography variant="body2" color="text.secondary">
+                Joined {formatDate(profile?.joining_date)}
+                {profile?.tenure_days != null && ` (${Math.floor(profile.tenure_days / 30)}m)`}
+              </Typography>
+            </Box>
+          </Tooltip>
+          {profile?.reporting_manager && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+              <ManagerIcon sx={{ fontSize: 17, color: 'text.secondary' }} />
+              <Typography variant="body2" color="text.secondary">{profile.reporting_manager}</Typography>
+            </Box>
+          )}
+          {profile?.email && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 0 }}>
+              <EmailIcon sx={{ fontSize: 17, color: 'text.secondary' }} />
+              <Typography variant="body2" color="text.secondary" noWrap>{profile.email}</Typography>
+            </Box>
+          )}
+        </Box>
+
+        {/* Period toggle */}
+        <Box sx={{ px: 2.5, pb: 1.5 }}>
+          <ToggleButtonGroup
+            value={period}
+            exclusive
+            size="small"
+            onChange={(_e, v) => v && setPeriod(v)}
+            sx={{ flexWrap: 'wrap' }}
+          >
+            {PERIOD_OPTIONS.map((p) => (
+              <ToggleButton key={p.value} value={p.value} sx={{ textTransform: 'none', px: 1.5 }}>
+                {p.label}
+              </ToggleButton>
+            ))}
+          </ToggleButtonGroup>
+        </Box>
+        <Box sx={{ height: 3 }}>{loading && <LinearProgress />}</Box>
+      </DialogTitle>
+
+      <Divider />
+
+      <DialogContent dividers sx={{ p: 2.5 }}>
+        {/* KPI strip */}
+        <Grid container spacing={1.5} sx={{ mb: 2.5 }}>
+          <Grid size={{ xs: 4, sm: 2 }}><DetailKpi label="Calls" value={summary?.calls ?? 0} color="#1976d2" /></Grid>
+          <Grid size={{ xs: 4, sm: 2 }}><DetailKpi label="Leads" value={summary?.leads ?? 0} color="#388e3c" /></Grid>
+          <Grid size={{ xs: 4, sm: 2 }}><DetailKpi label="Visits" value={summary?.site_visits ?? 0} color="#7b1fa2" /></Grid>
+          <Grid size={{ xs: 4, sm: 2 }}><DetailKpi label="Bookings" value={summary?.bookings ?? 0} color="#00838f" /></Grid>
+          <Grid size={{ xs: 4, sm: 2 }}><DetailKpi label="Registered" value={summary?.registrations ?? 0} color="#2e7d32" /></Grid>
+          <Grid size={{ xs: 4, sm: 2 }}><DetailKpi label="Booking Value" value={formatMoney(summary?.booking_value ?? 0)} color="#1565c0" /></Grid>
+        </Grid>
+
+        {(summary?.revenue > 0 || summary?.incentive > 0) && (
+          <Grid container spacing={1.5} sx={{ mb: 2.5 }}>
+            <Grid size={{ xs: 6, sm: 3 }}><DetailKpi label="Revenue" value={formatMoney(summary?.revenue ?? 0)} color="#2e7d32" /></Grid>
+            <Grid size={{ xs: 6, sm: 3 }}><DetailKpi label="Incentive" value={formatMoney(summary?.incentive ?? 0)} color="#ef6c00" /></Grid>
+          </Grid>
+        )}
+
+        {/* Bookings / Registrations list — scrollable */}
+        <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
+          Bookings &amp; Registrations
+          <Typography component="span" variant="body2" color="text.secondary" sx={{ ml: 1 }}>
+            ({bookings.length})
+          </Typography>
+        </Typography>
+
+        <TableContainer sx={{ maxHeight: 340, border: 1, borderColor: 'divider', borderRadius: 1 }}>
+          <Table size="small" stickyHeader>
+            <TableHead>
+              <TableRow>
+                <TableCell sx={{ fontWeight: 600, bgcolor: 'background.paper' }}>Date</TableCell>
+                <TableCell sx={{ fontWeight: 600, bgcolor: 'background.paper' }}>Customer</TableCell>
+                <TableCell sx={{ fontWeight: 600, bgcolor: 'background.paper' }}>Project</TableCell>
+                <TableCell sx={{ fontWeight: 600, bgcolor: 'background.paper' }}>Unit</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 600, bgcolor: 'background.paper' }}>Value</TableCell>
+                <TableCell align="center" sx={{ fontWeight: 600, bgcolor: 'background.paper' }}>Status</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {bookings.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} align="center">
+                    <Typography variant="body2" color="text.secondary" sx={{ py: 3 }}>
+                      {loading ? 'Loading…' : 'No bookings in this period'}
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                bookings.map((b: any) => (
+                  <TableRow key={b.id} hover>
+                    <TableCell>
+                      <Typography variant="body2" noWrap>{formatDate(b.booking_date)}</Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2" sx={{ fontWeight: 500 }} noWrap>{b.customer_name}</Typography>
+                      {b.customer_mobile && (
+                        <Typography variant="caption" color="text.secondary">{b.customer_mobile}</Typography>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2" noWrap>{b.project_name || '—'}</Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2" noWrap>
+                        {b.unit_number || '—'}
+                        {b.unit_type && (
+                          <Typography component="span" variant="caption" color="text.secondary"> ({b.unit_type})</Typography>
+                        )}
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="right">
+                      <Typography variant="body2" noWrap>
+                        {formatMoney(b.agreed_price ?? b.booking_amount ?? 0)}
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="center">
+                      <Chip
+                        label={b.status_label || b.status}
+                        size="small"
+                        color={bookingStatusColor[b.status] || 'default'}
+                        variant="outlined"
+                        sx={{ height: 22, fontSize: '0.7rem' }}
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 // ---------- Main Component ----------
 const DashboardPage = () => {
   const navigate = useNavigate();
@@ -91,6 +380,9 @@ const DashboardPage = () => {
 
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+
+  // Employee drill-down dialog
+  const [selectedEmp, setSelectedEmp] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     setBreadcrumbs([]);
@@ -216,6 +508,9 @@ const DashboardPage = () => {
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
           <TrendIcon sx={{ color: '#1976d2' }} />
           <Typography variant="h6" sx={{ fontWeight: 600 }}>Employee Performance</Typography>
+          <Typography variant="caption" color="text.secondary" sx={{ ml: 0.5 }}>
+            — click an employee for full details
+          </Typography>
         </Box>
         <TableContainer>
           <Table size="small">
@@ -243,9 +538,19 @@ const DashboardPage = () => {
                 </TableRow>
               ) : (
                 (data?.employee_performance || []).map((emp: any) => (
-                  <TableRow key={emp.employee_id} hover>
+                  <TableRow
+                    key={emp.employee_id}
+                    hover
+                    onClick={() => setSelectedEmp({ id: emp.employee_id, name: emp.employee_name })}
+                    sx={{ cursor: 'pointer' }}
+                  >
                     <TableCell>
-                      <Typography variant="body2" sx={{ fontWeight: 500 }}>{emp.employee_name}</Typography>
+                      <Typography
+                        variant="body2"
+                        sx={{ fontWeight: 500, color: 'primary.main' }}
+                      >
+                        {emp.employee_name}
+                      </Typography>
                       {emp.designation && <Typography variant="caption" color="text.secondary">{emp.designation}</Typography>}
                     </TableCell>
                     <TableCell align="center">
@@ -369,6 +674,14 @@ const DashboardPage = () => {
           </Table>
         </TableContainer>
       </Paper>
+
+      {/* Employee drill-down dialog */}
+      <EmployeeDetailDialog
+        open={!!selectedEmp}
+        employeeId={selectedEmp?.id ?? null}
+        employeeName={selectedEmp?.name ?? ''}
+        onClose={() => setSelectedEmp(null)}
+      />
     </Box>
   );
 };

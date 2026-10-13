@@ -45,6 +45,15 @@ export const reReportsApi = {
     return response.data;
   },
 
+  // Employee Performance - single-employee drill-down (period: today|this_week|this_month|last_month|this_year|all)
+  getEmployeePerformanceDetail: async (employeeId: string, params?: { period?: string }) => {
+    const response = await apiClient.get(
+      `/api/re-reports/employee-performance/${employeeId}/detail/`,
+      { params },
+    );
+    return response.data;
+  },
+
   // Dashboard
   getDashboardSummary: async () => {
     const response = await apiClient.get('/api/re-reports/dashboard-summary/');
@@ -54,6 +63,20 @@ export const reReportsApi = {
   // Today's Insights - detailed view
   getTodaysInsights: async () => {
     const response = await apiClient.get('/api/re-reports/todays-insights/');
+    return response.data;
+  },
+
+  // Today's calls - paginated + filterable (Recent Calls card)
+  getTodaysCalls: async (params?: {
+    from_time?: string; // 'HH:MM'
+    to_time?: string;   // 'HH:MM'
+    hour?: number;      // legacy single-hour filter
+    call_type?: string;
+    employee?: string;
+    page?: number;
+    page_size?: number;
+  }) => {
+    const response = await apiClient.get('/api/re-reports/todays-insights/calls/', { params });
     return response.data;
   },
 
