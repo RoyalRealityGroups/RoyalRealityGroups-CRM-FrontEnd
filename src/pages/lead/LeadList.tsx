@@ -34,6 +34,9 @@ import {
   EventNote as FollowUpIcon,
   FileDownload as ExcelIcon,
   PictureAsPdf as PdfIcon,
+  FiberNew as NewLeadIcon,
+  LocalFireDepartment as HotLeadIcon,
+  EmojiEvents as ProspectIcon,
 } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSelector } from 'react-redux';
@@ -91,9 +94,9 @@ const LeadList: React.FC = () => {
   const [bucketTab, setBucketTab] = useState(0); // 0=New Lead, 1=Hot Lead, 2=Prospects
 
   const BUCKET_TABS = [
-    { label: 'New Leads', value: 'NEW_LEAD' },
-    { label: 'Hot Leads', value: 'HOT_LEAD' },
-    { label: 'Prospects', value: 'PROSPECTS' },
+    { label: 'New Leads', value: 'NEW_LEAD', color: '#1976d2', icon: <NewLeadIcon /> },
+    { label: 'Hot Leads', value: 'HOT_LEAD', color: '#e53935', icon: <HotLeadIcon /> },
+    { label: 'Prospects', value: 'PROSPECTS', color: '#2e7d32', icon: <ProspectIcon /> },
   ];
 
   // Dialog state
@@ -461,20 +464,51 @@ const LeadList: React.FC = () => {
         onAdd={handleOpenCreate}
       />
 
-      {/* Bucket Tabs */}
-      <Paper sx={{ mb: 2 }}>
+      {/* Bucket Tabs — color-coded pipeline segments */}
+      <Paper sx={{ mb: 2, p: 0.75, bgcolor: 'action.hover' }}>
         <Tabs
           value={bucketTab}
           onChange={(_, newValue) => { setBucketTab(newValue); setPaginationModel((p) => ({ ...p, page: 0 })); }}
           variant="fullWidth"
+          TabIndicatorProps={{ sx: { display: 'none' } }}
           sx={{
-            '& .MuiTab-root': { fontWeight: 600, textTransform: 'none', fontSize: '0.9rem' },
-            '& .Mui-selected': { color: 'primary.main' },
+            minHeight: 0,
+            '& .MuiTabs-flexContainer': { gap: 1 },
+            '& .MuiTab-root': {
+              minHeight: 44,
+              borderRadius: 1.5,
+              fontWeight: 600,
+              textTransform: 'none',
+              fontSize: '0.9rem',
+              color: 'text.secondary',
+              transition: 'all 0.2s ease',
+              gap: 0.75,
+            },
+            '& .MuiTab-root:hover': {
+              bgcolor: 'background.paper',
+              color: 'text.primary',
+            },
           }}
         >
-          {BUCKET_TABS.map((tab) => (
-            <Tab key={tab.value} label={tab.label} />
-          ))}
+          {BUCKET_TABS.map((tab, idx) => {
+            const selected = bucketTab === idx;
+            return (
+              <Tab
+                key={tab.value}
+                icon={tab.icon}
+                iconPosition="start"
+                label={tab.label}
+                sx={{
+                  ...(selected && {
+                    bgcolor: tab.color,
+                    color: '#fff !important',
+                    boxShadow: 2,
+                    '&:hover': { bgcolor: tab.color, color: '#fff !important' },
+                  }),
+                }}
+              />
+            );
+          })}
         </Tabs>
       </Paper>
 
