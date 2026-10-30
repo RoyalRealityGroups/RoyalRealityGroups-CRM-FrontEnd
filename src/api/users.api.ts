@@ -85,6 +85,9 @@ export interface UserDetail {
   device_access_name?: string;
   is_active: boolean;
   is_admin?: boolean;
+  /** Permanent soft-delete marker. Deleted users are excluded from all lists by
+   *  the backend, so this is effectively always false for rows returned here. */
+  is_deleted?: boolean;
   is_staff?: boolean;
   is_email_verified: boolean;
   is_phone_verified: boolean;
@@ -326,7 +329,8 @@ export const usersApi = {
     return response.data;
   },
 
-  // Delete user (soft delete - set is_active to false)
+  // Delete user — permanent soft-delete (sets is_deleted=true & is_active=false
+  // on the backend; the row and all historical FK references are retained).
   delete: async (id: string): Promise<UserDeleteResponse> => {
     const response = await apiClient.delete<UserDeleteResponse>(`${BASE_URL}/${id}/`);
     return response.data || {};
