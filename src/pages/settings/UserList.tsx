@@ -365,9 +365,8 @@ const UserList: React.FC = () => {
         <DialogTitle>Delete User</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            This permanently removes "{selectedUser?.fullname}" from the application. The user can no
-            longer log in and will disappear from all lists. Their historical records (leads, follow-ups,
-            site visits, bookings) stay intact. This action cannot be undone.
+            Delete "{selectedUser?.fullname}"? They'll be removed from the app and can't log in.
+            This can't be undone.
           </DialogContentText>
         </DialogContent>
         <DialogActions>
