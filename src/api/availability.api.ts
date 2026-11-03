@@ -78,6 +78,18 @@ export const availabilityApi = {
     return res.data;
   },
 
+  // available units for a project (used by Booking form)
+  // status: 'AVAILABLE' (default) | 'AVAILABLE,BLOCKED' | 'ALL'
+  getAvailableUnits: async (
+    projectId: string,
+    status = 'AVAILABLE',
+  ): Promise<AvailabilityUnit[]> => {
+    const res = await apiClient.get(`${BASE}/projects/${projectId}/available_units/`, {
+      params: { status },
+    });
+    return res.data;
+  },
+
   // all dropdowns
   getChoices: async (): Promise<AvailabilityChoices> => {
     const res = await apiClient.get(`${BASE}/projects/choices/`);

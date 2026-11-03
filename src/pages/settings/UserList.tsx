@@ -90,12 +90,10 @@ const UserList: React.FC = () => {
       setDeleteDialogOpen(false);
       setSelectedUser(null);
 
-      if (response?.status === 'inactive') {
-        toastError(response?.message || 'User cannot be deleted and has been marked as inactive.');
-        return;
-      }
-
-      toastSuccess(response?.message || 'User deleted successfully');
+      // Deletion is now a permanent, terminal soft-delete — the backend removes
+      // the user from the application (is_deleted=true, is_active=false) and
+      // drops them from every list. Always show a success toast.
+      toastSuccess(response?.message || 'User permanently removed from the application.');
     },
     onError: (error: any) => {
       const message = error.response?.data?.message || 'Failed to delete user';
@@ -221,10 +219,6 @@ const UserList: React.FC = () => {
             <IconButton
               size="small"
               onClick={() => {
-                if (params.row.is_active) {
-                  toastError('Please deactivate the user before deleting.');
-                  return;
-                }
                 setSelectedUser(params.row);
                 setDeleteDialogOpen(true);
               }}
@@ -371,7 +365,8 @@ const UserList: React.FC = () => {
         <DialogTitle>Delete User</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Are you sure you want to delete user "{selectedUser?.fullname}"? This action cannot be undone.
+            Delete "{selectedUser?.fullname}"? They'll be removed from the app and can't log in.
+            This can't be undone.
           </DialogContentText>
         </DialogContent>
         <DialogActions>
@@ -382,7 +377,7 @@ const UserList: React.FC = () => {
             Cancel
           </Button>
           <Button onClick={handleDelete} color="error" disabled={deleteMutation.isPending}>
-            {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
+            {deleteMutation.isPending ? 'Removing...' : 'Delete Permanently'}
           </Button>
         </DialogActions>
       </Dialog>

@@ -12,11 +12,13 @@ import {
   Visibility as ViewIcon, Edit as EditIcon, Cancel as CancelIcon,
   Search as SearchIcon, Assignment as ContractIcon, Verified as RegIcon,
   FileDownload as ExcelIcon, PictureAsPdf as PdfIcon, History as HistoryIcon,
+  Add as AddIcon,
 } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { bookingApi } from '../../api/booking';
 import { leadApi } from '../../api/lead.api';
 import { inventoryApi } from '../../api/inventory.api';
+import { availabilityApi } from '../../api/availability.api';
 import apiClient from '../../api/axios.config';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../../store/store';
@@ -43,6 +45,7 @@ const BOOKING_STATUSES = [
 const emptyForm: BookingFormData = {
   lead: '', customer_name: '', customer_mobile: '', customer_email: '',
   project: '', unit_type: 'PLOT', plot: '', flat: '',
+  availability_project: '', availability_unit: '',
   agreed_price: undefined, booking_amount: 0,
   booking_date: new Date().toISOString().split('T')[0],
   sales_executive: '', remarks: '',
@@ -76,6 +79,14 @@ const BookingList: React.FC = () => {
   const [cancelTarget, setCancelTarget] = useState<Booking | null>(null);
   const [cancelReason, setCancelReason] = useState('');
 
+  // Quick "Add Lead" dialog (opened from the + next to Lead dropdown)
+  const emptyQuickLead = {
+    name: '', mobile: '', email: '', lead_source: 'MANUAL',
+    budget: '', preferred_area: '', assigned_employee_id: '',
+  };
+  const [quickLeadOpen, setQuickLeadOpen] = useState(false);
+  const [quickLead, setQuickLead] = useState({ ...emptyQuickLead });
+
   useEffect(() => {
     setBreadcrumbs([
       { label: 'Home', path: '/', icon: <HomeIcon fontSize="small" /> },
@@ -94,10 +105,25 @@ const BookingList: React.FC = () => {
     staleTime: 0,
   });
 
+  // Projects for the FILTER bar — still the legacy mini list (shows all historical projects)
   const { data: projects } = useQuery({
     queryKey: ['projects-mini'],
     queryFn: async () => { const r = await apiClient.get('/api/projects/mini/'); return r.data.results || r.data; },
     staleTime: 5 * 60 * 1000,
+  });
+
+  // Projects for the BOOKING FORM dropdown — sourced from the Availability List.
+  // No is_active filter here: we want every availability project to be bookable,
+  // exactly like the Availability List screen shows them.
+  const { data: availabilityProjects = [] } = useQuery({
+    queryKey: ['availability-projects-booking'],
+    queryFn: async () => {
+      const r: any = await availabilityApi.getProjects({ page_size: 500 });
+      // Endpoint is paginated → {results: [...]}, but guard for a plain array too.
+      if (Array.isArray(r)) return r;
+      return r?.results ?? [];
+    },
+    staleTime: 0,
   });
 
   const { data: leads } = useQuery({
@@ -112,16 +138,82 @@ const BookingList: React.FC = () => {
     staleTime: 5 * 60 * 1000,
   });
 
-  const { data: availablePlots } = useQuery({
-    queryKey: ['available-plots', form.project],
-    queryFn: () => inventoryApi.getPlots({ project: form.project, status__in: 'AVAILABLE,BLOCKED' }),
-    enabled: !!form.project && form.unit_type === 'PLOT' && dialogOpen,
+  // Lead source choices for the quick-add-lead dialog
+  const { data: leadChoices } = useQuery({
+    queryKey: ['lead-choices'],
+    queryFn: () => leadApi.getChoices(),
+    staleTime: 10 * 60 * 1000,
+    enabled: quickLeadOpen,
   });
 
-  const { data: availableFlats } = useQuery({
-    queryKey: ['available-flats', form.project],
-    queryFn: () => inventoryApi.getFlats({ project: form.project, status__in: 'AVAILABLE,BLOCKED' }),
-    enabled: !!form.project && form.unit_type === 'FLAT' && dialogOpen,
+  // Create a lead from the booking form, then auto-select it
+  const createLeadMutation = useMutation({
+    mutationFn: (data: any) => leadApi.createLead(data),
+    onSuccess: (newLead: any) => {
+      toastSuccess(`Lead "${newLead.name}" created`);
+      // Refresh the lead dropdown list so the new lead appears everywhere
+      queryClient.invalidateQueries({ queryKey: ['leads-dropdown'] });
+      queryClient.invalidateQueries({ queryKey: ['leads'] }); // Lead Management list
+      // Auto-select the new lead and prefill customer fields
+      setForm((p) => ({
+        ...p,
+        lead: newLead.id,
+        customer_name: newLead.name || p.customer_name,
+        customer_mobile: newLead.mobile || p.customer_mobile,
+        customer_email: newLead.email || p.customer_email,
+      }));
+      setQuickLeadOpen(false);
+      setQuickLead({ ...emptyQuickLead });
+    },
+    onError: (err: any) => {
+      const data = err?.response?.data;
+      const msg = data?.mobile?.[0] || data?.name?.[0] || data?.detail
+        || data?.non_field_errors?.[0] || 'Failed to create lead';
+      toastError(msg);
+    },
+  });
+
+  const handleQuickLeadSave = () => {
+    if (!quickLead.name.trim() || !quickLead.mobile.trim()) {
+      toastError('Lead name and mobile are required');
+      return;
+    }
+    createLeadMutation.mutate({
+      name: quickLead.name.trim(),
+      mobile: quickLead.mobile.trim(),
+      email: quickLead.email.trim() || undefined,
+      lead_source: quickLead.lead_source || 'MANUAL',
+      budget: quickLead.budget.trim() || undefined,
+      preferred_area: quickLead.preferred_area.trim() || undefined,
+      assigned_employee_id: quickLead.assigned_employee_id || undefined,
+      status: 'ONGOING',
+      bucket: 'NEW_LEAD',
+    });
+  };
+
+  // Available units for the selected Availability project.
+  // Includes AVAILABLE + BLOCKED (held) so held units can still be booked.
+  // In edit mode we include ALL so the currently-booked unit still shows.
+  const {
+    data: availableUnits,
+    isLoading: unitsLoading,
+    isError: unitsError,
+    error: unitsErrObj,
+  } = useQuery({
+    queryKey: ['availability-available-units', form.availability_project, editing?.id],
+    queryFn: async () => {
+      // Only AVAILABLE units are bookable. In edit mode we pull ALL so the
+      // already-booked unit still appears in the dropdown.
+      const res = await availabilityApi.getAvailableUnits(
+        form.availability_project!,
+        editing ? 'ALL' : 'AVAILABLE',
+      );
+      // Normalise: endpoint returns a plain array, but guard against a
+      // paginated {results: [...]} shape just in case.
+      return Array.isArray(res) ? res : ((res as any)?.results ?? []);
+    },
+    enabled: !!form.availability_project && dialogOpen,
+    staleTime: 0,
   });
 
   const saveMutation = useMutation({
@@ -168,6 +260,12 @@ const BookingList: React.FC = () => {
       unit_type: item.unit_type || 'PLOT',
       plot: typeof item.plot === 'object' ? (item.plot as any)?.id || '' : item.plot || '',
       flat: typeof item.flat === 'object' ? (item.flat as any)?.id || '' : item.flat || '',
+      availability_project: typeof (item as any).availability_project === 'object'
+        ? ((item as any).availability_project as any)?.id || ''
+        : (item as any).availability_project || '',
+      availability_unit: typeof (item as any).availability_unit === 'object'
+        ? ((item as any).availability_unit as any)?.id || ''
+        : (item as any).availability_unit || '',
       agreed_price: item.agreed_price ? Number(item.agreed_price) : undefined,
       booking_amount: item.booking_amount ? Number(item.booking_amount) : 0,
       booking_date: item.booking_date || '',
@@ -192,20 +290,29 @@ const BookingList: React.FC = () => {
       customer_name: lead?.name || p.customer_name,
       customer_mobile: lead?.mobile || p.customer_mobile,
       customer_email: lead?.email || p.customer_email,
-      project: lead?.interested_project || p.project,
+      // Note: lead.interested_project points to the legacy ProjectManagement
+      // project, which no longer drives the booking form. User picks the
+      // Availability project explicitly.
     }));
   };
 
   const leadSelected = !!form.lead;
 
   const handleSubmit = () => {
-    if (!form.customer_name || !form.project || !form.booking_amount || !form.booking_date) {
+    if (!form.customer_name || !form.availability_project || !form.booking_amount || !form.booking_date) {
       toastError('Customer Name, Project, Total Cost and Date are required');
       return;
     }
-    if (form.unit_type === 'PLOT' && !form.plot) { toastError('Please select a plot'); return; }
-    if (form.unit_type === 'FLAT' && !form.flat) { toastError('Please select a flat'); return; }
-    saveMutation.mutate(form);
+    if (!form.availability_unit) { toastError('Please select a unit'); return; }
+    // Only send availability fields; clear legacy project/plot/flat so backend
+    // uses the Availability flow.
+    const payload: BookingFormData = {
+      ...form,
+      project: undefined,
+      plot: undefined,
+      flat: undefined,
+    };
+    saveMutation.mutate(payload);
   };
 
   const handleView = async (booking: Booking) => {
@@ -339,14 +446,23 @@ const BookingList: React.FC = () => {
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid size={{ xs: 12, md: 6 }}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Lead</InputLabel>
-                <Select value={form.lead || ''} label="Lead"
-                  onChange={(e) => handleLeadChange(e.target.value)}>
-                  <MenuItem value="">— No lead —</MenuItem>
-                  {leads?.results?.map((l: any) => <MenuItem key={l.id} value={l.id}>{l.name} ({l.code})</MenuItem>)}
-                </Select>
-              </FormControl>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Lead</InputLabel>
+                  <Select value={form.lead || ''} label="Lead"
+                    onChange={(e) => handleLeadChange(e.target.value)}>
+                    <MenuItem value="">— No lead —</MenuItem>
+                    {leads?.results?.map((l: any) => <MenuItem key={l.id} value={l.id}>{l.name} ({l.code})</MenuItem>)}
+                  </Select>
+                </FormControl>
+                <Tooltip title="Add new lead">
+                  <IconButton color="primary" size="small"
+                    onClick={() => { setQuickLead({ ...emptyQuickLead }); setQuickLeadOpen(true); }}
+                    sx={{ border: '1px solid', borderColor: 'primary.main', borderRadius: 1.5, flexShrink: 0 }}>
+                    <AddIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              </Box>
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
               <TextField fullWidth required size="small" label="Customer Name"
@@ -369,52 +485,75 @@ const BookingList: React.FC = () => {
             <Grid size={{ xs: 12, md: 6 }}>
               <FormControl fullWidth required size="small">
                 <InputLabel>Project</InputLabel>
-                <Select value={form.project || ''} label="Project"
+                <Select value={form.availability_project || ''} label="Project"
                   onChange={(e) => {
                     const projectId = e.target.value;
-                    const selected = (projects || []).find((p: any) => p.id === projectId);
-                    const unitType = selected?.project_type === 'FLAT' ? 'FLAT' : 'PLOT';
-                    setForm((p) => ({ ...p, project: projectId, unit_type: unitType, plot: '', flat: '' }));
+                    const selected = (availabilityProjects || []).find((p: any) => p.id === projectId);
+                    // unit_type stays for display/legacy; derive from project type
+                    const unitType = selected?.project_type === 'PLOTS' ? 'PLOT' : 'FLAT';
+                    setForm((p) => ({
+                      ...p,
+                      availability_project: projectId,
+                      availability_unit: '',
+                      unit_type: unitType,
+                      plot: '', flat: '',
+                    }));
                   }}>
-                  {(projects || []).map((p: any) => <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>)}
+                  {(availabilityProjects || []).map((p: any) => (
+                    <MenuItem key={p.id} value={p.id}>
+                      {p.name} · {p.available_units ?? 0} available
+                    </MenuItem>
+                  ))}
                 </Select>
               </FormControl>
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
-              <FormControl fullWidth required size="small" disabled={!!form.project}>
-                <InputLabel>Unit Type</InputLabel>
-                <Select value={form.unit_type} label="Unit Type"
-                  onChange={(e) => setForm((p) => ({ ...p, unit_type: e.target.value as any, plot: '', flat: '' }))}>
-                  <MenuItem value="PLOT">Plot</MenuItem>
-                  <MenuItem value="FLAT">Flat / Unit</MenuItem>
+              <FormControl fullWidth required size="small" disabled={!form.availability_project || unitsLoading}>
+                <InputLabel>Select Unit</InputLabel>
+                <Select value={form.availability_unit || ''} label="Select Unit"
+                  onChange={(e) => {
+                    const unitId = e.target.value;
+                    const unit = (availableUnits || []).find((u: any) => u.id === unitId);
+                    setForm((p) => ({
+                      ...p,
+                      availability_unit: unitId,
+                      // auto-fill price if empty
+                      agreed_price: p.agreed_price ?? (unit?.price ? Number(unit.price) : undefined),
+                      booking_amount: p.booking_amount || (unit?.price ? Number(unit.price) : 0),
+                    }));
+                  }}>
+                  <MenuItem value="">
+                    {unitsLoading ? 'Loading units…' : '— Select —'}
+                  </MenuItem>
+                  {(availableUnits || []).map((u: any) => (
+                    <MenuItem key={u.id} value={u.id}>
+                      {u.block_name ? `${u.block_name} · ` : ''}
+                      {u.unit_number}
+                      {u.unit_type_display ? ` · ${u.unit_type_display}` : ''}
+                      {u.floor != null ? ` · Floor ${u.floor}` : ''}
+                      {u.price ? ` · ₹${Number(u.price).toLocaleString('en-IN')}` : ''}
+                      {u.status && u.status !== 'AVAILABLE' ? ` · [${u.status}]` : ''}
+                    </MenuItem>
+                  ))}
                 </Select>
               </FormControl>
             </Grid>
-            <Grid size={{ xs: 12 }}>
-              {form.unit_type === 'PLOT' ? (
-                <FormControl fullWidth required size="small">
-                  <InputLabel>Select Plot</InputLabel>
-                  <Select value={form.plot || ''} label="Select Plot"
-                    onChange={(e) => setForm((p) => ({ ...p, plot: e.target.value }))}>
-                    <MenuItem value="">— Select —</MenuItem>
-                    {availablePlots?.results?.map((p: any) => (
-                      <MenuItem key={p.id} value={p.id}>Plot {p.plot_number} · {p.area_sqyd} SqYd · ₹{p.total_price ? Number(p.total_price).toLocaleString('en-IN') : '—'}</MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              ) : (
-                <FormControl fullWidth required size="small">
-                  <InputLabel>Select Flat</InputLabel>
-                  <Select value={form.flat || ''} label="Select Flat"
-                    onChange={(e) => setForm((p) => ({ ...p, flat: e.target.value }))}>
-                    <MenuItem value="">— Select —</MenuItem>
-                    {availableFlats?.results?.map((f: any) => (
-                      <MenuItem key={f.id} value={f.id}>Unit {f.unit_number} · Floor {f.floor} · {f.flat_type} · ₹{f.price ? Number(f.price).toLocaleString('en-IN') : '—'}</MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              )}
-            </Grid>
+            {form.availability_project && unitsError && (
+              <Grid size={{ xs: 12 }}>
+                <Alert severity="error">
+                  Failed to load units: {(unitsErrObj as any)?.response?.data?.detail
+                    || (unitsErrObj as any)?.message || 'Unknown error'}
+                </Alert>
+              </Grid>
+            )}
+            {form.availability_project && !unitsLoading && !unitsError && (availableUnits?.length === 0) && (
+              <Grid size={{ xs: 12 }}>
+                <Alert severity="warning">
+                  No available units in this project. All units may be booked/registered,
+                  or you haven't added units yet in the Availability List.
+                </Alert>
+              </Grid>
+            )}
             <Grid size={{ xs: 12, md: 4 }}>
               <TextField fullWidth size="small" type="number" label="Agreed Price (₹)"
                 value={form.agreed_price ?? ''}
@@ -562,6 +701,74 @@ const BookingList: React.FC = () => {
           {viewItem && canEdit && viewItem.status !== 'REGISTERED' && viewItem.status !== 'CANCELLED' && (
             <Button variant="contained" onClick={() => { setViewItem(null); handleOpenEdit(viewItem); }}>Edit</Button>
           )}
+        </DialogActions>
+      </Dialog>
+
+      {/* Quick Add Lead Dialog */}
+      <Dialog open={quickLeadOpen} onClose={() => setQuickLeadOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <AddIcon fontSize="small" /> Add New Lead
+        </DialogTitle>
+        <DialogContent>
+          <Grid container spacing={2} sx={{ mt: 0.5 }}>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <TextField fullWidth required size="small" label="Lead Name" autoFocus
+                value={quickLead.name}
+                onChange={(e) => setQuickLead((p) => ({ ...p, name: e.target.value }))} />
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <TextField fullWidth required size="small" label="Mobile"
+                value={quickLead.mobile}
+                onChange={(e) => setQuickLead((p) => ({ ...p, mobile: e.target.value }))} />
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <TextField fullWidth size="small" label="Email" type="email"
+                value={quickLead.email}
+                onChange={(e) => setQuickLead((p) => ({ ...p, email: e.target.value }))} />
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Lead Source</InputLabel>
+                <Select value={quickLead.lead_source} label="Lead Source"
+                  onChange={(e) => setQuickLead((p) => ({ ...p, lead_source: e.target.value }))}>
+                  {(leadChoices?.lead_sources || [
+                    { value: 'MANUAL', label: 'Manual Entry' },
+                  ]).map((s: any) => (
+                    <MenuItem key={s.value} value={s.value}>{s.label}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <TextField fullWidth size="small" label="Budget"
+                value={quickLead.budget}
+                onChange={(e) => setQuickLead((p) => ({ ...p, budget: e.target.value }))} />
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <TextField fullWidth size="small" label="Preferred Area"
+                value={quickLead.preferred_area}
+                onChange={(e) => setQuickLead((p) => ({ ...p, preferred_area: e.target.value }))} />
+            </Grid>
+            <Grid size={{ xs: 12 }}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Assign to Employee</InputLabel>
+                <Select value={quickLead.assigned_employee_id} label="Assign to Employee"
+                  onChange={(e) => setQuickLead((p) => ({ ...p, assigned_employee_id: e.target.value }))}>
+                  <MenuItem value="">— None —</MenuItem>
+                  {(employees || []).map((emp: any) => (
+                    <MenuItem key={emp.id} value={emp.id}>{emp.name || emp.username}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setQuickLeadOpen(false)}>Cancel</Button>
+          <Button variant="contained" startIcon={<AddIcon />}
+            onClick={handleQuickLeadSave} disabled={createLeadMutation.isPending}>
+            {createLeadMutation.isPending ? 'Saving…' : 'Create Lead'}
+          </Button>
         </DialogActions>
       </Dialog>
 

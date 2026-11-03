@@ -3,17 +3,17 @@ import { BrowserRouter } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
-import { ThemeProvider, CssBaseline } from '@mui/material';
+import { CssBaseline } from '@mui/material';
 import { store } from './store/store';
 import { queryClient } from './api/queryClient';
 import { ToastProvider } from './contexts/ToastContext';
 import { ScreenSettingsProvider } from './contexts/ScreenSettingsContext';
 import { PermissionProvider } from './contexts/PermissionContext';
+import { ThemeSettingsProvider } from './contexts/ThemeSettingsContext';
 import AutoDismissAlertManager from './components/common/AutoDismissAlertManager';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import OfflineIndicator from './components/common/OfflineIndicator';
 import { AppRoutes } from './routes';
-import { theme } from './theme/theme';
 
 const App: React.FC = () => {
   useEffect(() => {
@@ -64,7 +64,7 @@ const App: React.FC = () => {
     <ErrorBoundary>
       <Provider store={store}>
         <QueryClientProvider client={queryClient}>
-          <ThemeProvider theme={theme}>
+          <ThemeSettingsProvider>
             <ToastProvider>
               <ScreenSettingsProvider>
                 <PermissionProvider>
@@ -78,7 +78,7 @@ const App: React.FC = () => {
                 </PermissionProvider>
               </ScreenSettingsProvider>
             </ToastProvider>
-          </ThemeProvider>
+          </ThemeSettingsProvider>
         </QueryClientProvider>
       </Provider>
     </ErrorBoundary>
