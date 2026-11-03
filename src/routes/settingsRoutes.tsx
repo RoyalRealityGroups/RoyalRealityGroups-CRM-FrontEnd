@@ -11,6 +11,7 @@ const UserList            = lazy(() => import('../pages/settings/UserList'));
 const UserForm            = lazy(() => import('../pages/settings/UserForm'));
 const UserView            = lazy(() => import('../pages/settings/UserView'));
 const GeneralSettings     = lazy(() => import('../pages/settings/GeneralSettings'));
+const AppearanceSettings  = lazy(() => import('../pages/settings/AppearanceSettings'));
 const NotificationSettings = lazy(() => import('../pages/settings/NotificationSettings'));
 const AlertTriggerList    = lazy(() => import('../pages/settings/AlertTriggerList'));
 const AlertTriggerForm    = lazy(() => import('../pages/settings/AlertTriggerForm'));
@@ -56,6 +57,7 @@ export const settingsRoutes = (
 
     {/* Superuser-only */}
     <Route path="settings/general-settings"    element={<SuperuserGuard>{withSuspense(GeneralSettings)}</SuperuserGuard>} />
+    <Route path="settings/appearance"          element={<SuperuserGuard>{withSuspense(AppearanceSettings)}</SuperuserGuard>} />
     <Route path="settings/notifications"       element={<SuperuserGuard>{withSuspense(NotificationSettings)}</SuperuserGuard>} />
     <Route path="settings/alert-triggers"      element={<SuperuserGuard>{withSuspense(AlertTriggerList)}</SuperuserGuard>} />
     <Route path="settings/alert-triggers/create" element={<SuperuserGuard>{withSuspense(AlertTriggerForm)}</SuperuserGuard>} />

@@ -23,6 +23,10 @@ import { projectsApi } from '../../../api/projects';
 import { useToast } from '../../../contexts/ToastContext';
 import { usePageTitle } from '../../../hooks';
 import { useBreadcrumbs } from '../../../contexts/BreadcrumbContext';
+import {
+  validateSingleFile, validateFiles, formatFileSize,
+  MAX_FILE_SIZE_BYTES, MAX_TOTAL_UPLOAD_BYTES,
+} from '../../../utils/validation';
 import type { Project, ProjectFormData, ProjectImage } from '../../../types/project.types';
 import HomeIcon from '@mui/icons-material/Home';
 import BusinessIcon from '@mui/icons-material/Business';
@@ -88,7 +92,9 @@ const EditImageCarousel: React.FC<EditCarouselProps> = ({
         <Typography variant="body1" color="text.secondary" sx={{ mb: 1 }}>
           Click to upload elevation images
         </Typography>
-        <Typography variant="caption" color="text.disabled">JPG, PNG, WebP (multiple)</Typography>
+        <Typography variant="caption" color="text.disabled">
+          JPG, PNG, WebP (multiple) · max {formatFileSize(MAX_FILE_SIZE_BYTES)} each
+        </Typography>
         <input
           type="file"
           hidden
@@ -238,6 +244,9 @@ const ProjectFormPage: React.FC = () => {
 
   const [form, setForm] = useState<ProjectFormData | null>(null);
   const [brochureFile, setBrochureFile] = useState<File | null>(null);
+  // Floor plans — bulk upload of PDFs / images
+  const [floorPlanFiles, setFloorPlanFiles] = useState<File[]>([]);
+  const [existingFloorPlans, setExistingFloorPlans] = useState<any[]>([]);
   const [elevationFiles, setElevationFiles] = useState<File[]>([]);
   const [elevationPreviews, setElevationPreviews] = useState<string[]>([]);
   const [existingElevations, setExistingElevations] = useState<ProjectImage[]>([]);
@@ -268,6 +277,16 @@ const ProjectFormPage: React.FC = () => {
     queryFn: () => projectsApi.getImages(id!),
     enabled: isEdit,
   });
+
+  const { data: floorPlanData } = useQuery({
+    queryKey: ['project-floor-plans', id],
+    queryFn: () => projectsApi.getFloorPlans(id!),
+    enabled: isEdit,
+  });
+
+  useEffect(() => {
+    if (floorPlanData) setExistingFloorPlans(floorPlanData);
+  }, [floorPlanData]);
 
   useEffect(() => {
     // Try projectImages query first
@@ -309,6 +328,7 @@ const ProjectFormPage: React.FC = () => {
     mutationFn: async (payload: ProjectFormData) => {
       const saved = isEdit ? await projectsApi.update(id!, payload) : await projectsApi.create(payload);
       if (elevationFiles.length > 0) await projectsApi.uploadImages(saved.id, elevationFiles, 'ELEVATION');
+      if (floorPlanFiles.length > 0) await projectsApi.uploadFloorPlans(saved.id, floorPlanFiles);
       return saved;
     },
     onSuccess: (saved) => {
@@ -317,11 +337,25 @@ const ProjectFormPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       queryClient.invalidateQueries({ queryKey: ['project', saved.id] });
       queryClient.invalidateQueries({ queryKey: ['project-images', saved.id] });
+      queryClient.invalidateQueries({ queryKey: ['project-floor-plans', saved.id] });
       queryClient.invalidateQueries({ queryKey: ['project', id] });
       queryClient.invalidateQueries({ queryKey: ['project-images', id] });
+      queryClient.invalidateQueries({ queryKey: ['project-floor-plans', id] });
       navigate(`/projects/view/${saved.id}`);
     },
-    onError: (err: any) => toastError(err.response?.data?.message || 'Save failed'),
+    onError: (err: any) => {
+      const statusCode = err?.response?.status;
+      // 413 = Payload Too Large; Django may also return a 400/500 with a
+      // RequestDataTooBig message when the request body exceeds the limit.
+      const raw = JSON.stringify(err?.response?.data || '').toLowerCase();
+      if (statusCode === 413 || raw.includes('too big') || raw.includes('too large') || raw.includes('request data')) {
+        toastError(
+          `Upload too large. The total size of files in one save must stay under ${formatFileSize(MAX_TOTAL_UPLOAD_BYTES)}. Please remove some files or upload fewer at a time.`,
+        );
+        return;
+      }
+      toastError(err?.response?.data?.message || err?.response?.data?.detail || 'Save failed');
+    },
   });
 
   const deleteImageMutation = useMutation({
@@ -336,8 +370,35 @@ const ProjectFormPage: React.FC = () => {
   });
 
   const handleAddImages = (files: File[]) => {
-    setElevationFiles(prev => [...prev, ...files]);
-    setElevationPreviews(prev => [...prev, ...files.map(f => URL.createObjectURL(f))]);
+    if (files.length === 0) return;
+
+    // Reject files that are individually too large, keep the valid ones
+    const accepted: File[] = [];
+    const rejected: string[] = [];
+    files.forEach((f) => {
+      const res = validateSingleFile(f, {
+        maxBytes: MAX_FILE_SIZE_BYTES,
+        allowedExtensions: ['.jpg', '.jpeg', '.png', '.webp', '.gif'],
+      });
+      if (res.valid) accepted.push(f);
+      else rejected.push(res.error!);
+    });
+
+    if (rejected.length > 0) {
+      toastError(rejected[0]); // show the first problem clearly
+    }
+    if (accepted.length === 0) return;
+
+    // Check the combined total of everything queued so far + the new ones
+    const combined = [...elevationFiles, ...accepted];
+    const totalRes = validateFiles(combined, { maxTotalBytes: MAX_TOTAL_UPLOAD_BYTES });
+    if (!totalRes.valid) {
+      toastError(totalRes.error!);
+      return;
+    }
+
+    setElevationFiles(prev => [...prev, ...accepted]);
+    setElevationPreviews(prev => [...prev, ...accepted.map(f => URL.createObjectURL(f))]);
   };
 
   const handleDeleteNewImage = (index: number) => {
@@ -345,11 +406,73 @@ const ProjectFormPage: React.FC = () => {
     setElevationPreviews(prev => prev.filter((_, i) => i !== index));
   };
 
+  // ── Floor plan bulk upload handlers ─────────────────────────────────────────
+  const handleAddFloorPlans = (files: File[]) => {
+    if (files.length === 0) return;
+
+    const accepted: File[] = [];
+    const rejected: string[] = [];
+    files.forEach((f) => {
+      const res = validateSingleFile(f, {
+        maxBytes: MAX_FILE_SIZE_BYTES,
+        allowedExtensions: ['.pdf', '.jpg', '.jpeg', '.png', '.webp'],
+      });
+      if (res.valid) accepted.push(f);
+      else rejected.push(res.error!);
+    });
+
+    if (rejected.length > 0) toastError(rejected[0]);
+    if (accepted.length === 0) return;
+
+    // Validate combined size of the floor-plan batch
+    const combined = [...floorPlanFiles, ...accepted];
+    const totalRes = validateFiles(combined, { maxTotalBytes: MAX_TOTAL_UPLOAD_BYTES });
+    if (!totalRes.valid) { toastError(totalRes.error!); return; }
+
+    setFloorPlanFiles(prev => [...prev, ...accepted]);
+  };
+
+  const handleRemoveNewFloorPlan = (index: number) => {
+    setFloorPlanFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const deleteFloorPlanMutation = useMutation({
+    mutationFn: (fpId: string) => projectsApi.deleteFloorPlan(fpId),
+    onSuccess: () => {
+      success('Floor plan deleted');
+      setExistingFloorPlans(prev => prev.filter((f) => f.id !== (deleteFloorPlanMutation.variables as any)));
+      queryClient.invalidateQueries({ queryKey: ['project-floor-plans', id] });
+    },
+    onError: () => toastError('Failed to delete floor plan'),
+  });
+
   if (!form) return <Box sx={{ p: 4, display: 'flex', justifyContent: 'center' }}><CircularProgress /></Box>;
 
   const handleSubmit = () => {
     if (!form.name.trim()) { toastError('Project name is required'); return; }
-    saveMutation.mutate({ ...form, brochure: brochureFile || undefined });
+
+    // The main save request carries the brochure — validate its size.
+    if (brochureFile) {
+      const res = validateFiles([brochureFile], { maxTotalBytes: MAX_TOTAL_UPLOAD_BYTES });
+      if (!res.valid) { toastError(res.error!); return; }
+    }
+
+    // Elevation images upload as a separate request — validate their total too.
+    if (elevationFiles.length > 0) {
+      const res = validateFiles(elevationFiles, { maxTotalBytes: MAX_TOTAL_UPLOAD_BYTES });
+      if (!res.valid) { toastError(res.error!); return; }
+    }
+
+    // Floor plans upload as a separate request — validate their total too.
+    if (floorPlanFiles.length > 0) {
+      const res = validateFiles(floorPlanFiles, { maxTotalBytes: MAX_TOTAL_UPLOAD_BYTES });
+      if (!res.valid) { toastError(res.error!); return; }
+    }
+
+    saveMutation.mutate({
+      ...form,
+      brochure: brochureFile || undefined,
+    });
   };
 
   return (
@@ -454,7 +577,9 @@ const ProjectFormPage: React.FC = () => {
 
               {/* Brochure */}
               <Box sx={{ mb: 2 }}>
-                <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>Brochure (PDF)</Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
+                  Brochure (PDF) · max {formatFileSize(MAX_FILE_SIZE_BYTES)}
+                </Typography>
                 <Box
                   component="label"
                   sx={{
@@ -478,7 +603,13 @@ const ProjectFormPage: React.FC = () => {
                       <DeleteIcon fontSize="small" />
                     </IconButton>
                   )}
-                  <input type="file" hidden accept=".pdf" onChange={(e) => setBrochureFile(e.target.files?.[0] || null)} />
+                  <input type="file" hidden accept=".pdf" onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (!f) return;
+                    const res = validateSingleFile(f, { allowedExtensions: ['.pdf'] });
+                    if (!res.valid) { toastError(res.error!); e.target.value = ''; return; }
+                    setBrochureFile(f);
+                  }} />
                 </Box>
               </Box>
 
@@ -505,12 +636,94 @@ const ProjectFormPage: React.FC = () => {
           <Box sx={{ p: 0.75, borderRadius: 1.5, bgcolor: '#ff572215', color: '#ff5722', display: 'flex' }}>
             <GridViewIcon fontSize="small" />
           </Box>
-          <Typography variant="subtitle1" fontWeight={600}>Floor Plans</Typography>
+          <Typography variant="subtitle1" fontWeight={600}>Floor Plan</Typography>
         </Box>
+
+        {/* Floor plan bulk upload (PDF / image) */}
+        <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+          Floor Plan Documents (PDF or Image) · multiple allowed · max {formatFileSize(MAX_FILE_SIZE_BYTES)} each
+        </Typography>
+
+        {/* Upload button */}
+        <Button
+          component="label"
+          variant="outlined"
+          startIcon={<CloudUploadIcon />}
+          sx={{ mb: 2, borderRadius: 2 }}
+        >
+          Upload Floor Plans
+          <input
+            type="file"
+            hidden
+            multiple
+            accept=".pdf,image/*"
+            onChange={(e) => {
+              handleAddFloorPlans(Array.from(e.target.files || []));
+              e.target.value = '';
+            }}
+          />
+        </Button>
+
+        {/* Existing floor plans (edit mode) */}
+        {existingFloorPlans.length > 0 && (
+          <Box sx={{ mb: 1.5 }}>
+            <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
+              Uploaded floor plans
+            </Typography>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              {existingFloorPlans.map((fp) => (
+                <Box key={fp.id} sx={{
+                  display: 'flex', alignItems: 'center', gap: 1.5, p: 1.5,
+                  border: '1px solid', borderColor: 'divider', borderRadius: 2, bgcolor: 'grey.50',
+                }}>
+                  <PictureAsPdfIcon sx={{ color: '#ff5722' }} />
+                  <Typography variant="body2" sx={{ flex: 1 }} noWrap>{fp.title || 'Floor plan'}</Typography>
+                  <Button size="small" component="a" href={fp.file_url || fp.file} target="_blank" rel="noopener noreferrer">
+                    View
+                  </Button>
+                  <IconButton size="small" color="error" onClick={() => deleteFloorPlanMutation.mutate(fp.id)}>
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </Box>
+              ))}
+            </Box>
+          </Box>
+        )}
+
+        {/* Newly selected floor plans (not yet saved) */}
+        {floorPlanFiles.length > 0 && (
+          <Box sx={{ mb: 1.5 }}>
+            <Typography variant="caption" color="success.main" sx={{ mb: 0.5, display: 'block' }}>
+              New — will upload on save ({floorPlanFiles.length})
+            </Typography>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              {floorPlanFiles.map((f, i) => (
+                <Box key={`${f.name}-${i}`} sx={{
+                  display: 'flex', alignItems: 'center', gap: 1.5, p: 1.5,
+                  border: '1px solid', borderColor: 'success.light', borderRadius: 2, bgcolor: '#f0fdf4',
+                }}>
+                  <PictureAsPdfIcon sx={{ color: 'success.main' }} />
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Typography variant="body2" noWrap>{f.name}</Typography>
+                    <Typography variant="caption" color="text.secondary">{formatFileSize(f.size)}</Typography>
+                  </Box>
+                  <IconButton size="small" onClick={() => handleRemoveNewFloorPlan(i)}>
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </Box>
+              ))}
+            </Box>
+          </Box>
+        )}
+
+        {/* Optional text notes for floor plan */}
+        <Typography variant="caption" color="text.secondary" sx={{ mt: 2, mb: 0.5, display: 'block' }}>
+          Floor Plan Notes (optional)
+        </Typography>
         <TextField
           fullWidth
           multiline
-          rows={4}
+          rows={3}
           size="small"
           placeholder="Ground Floor: 1200 sq.ft&#10;First Floor: 1100 sq.ft..."
           value={form.floor_plans_text || ''}

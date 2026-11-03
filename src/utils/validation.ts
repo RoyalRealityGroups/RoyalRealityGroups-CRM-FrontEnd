@@ -260,3 +260,92 @@ export const validateNumber = (
   
   return true;
 };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// File upload validation
+// Backend limits (BaseProject/settings.py):
+//   DATA_UPLOAD_MAX_MEMORY_SIZE = 10MB  (total request body)
+//   FILE_UPLOAD_MAX_MEMORY_SIZE = 10MB  (per file streamed to memory)
+// We validate on the client so the user gets a clear message instead of a
+// silent 413 / "Save failed".
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Max size for a single file, in bytes (10 MB). */
+export const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+
+/**
+ * Safe total request size we allow before the backend's 10MB request-body
+ * limit rejects it. We keep a small headroom for form fields + multipart overhead.
+ */
+export const MAX_TOTAL_UPLOAD_BYTES = 9.5 * 1024 * 1024;
+
+/** Human-readable file size, e.g. 10485760 -> "10 MB". */
+export const formatFileSize = (bytes: number): string => {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+};
+
+export interface FileValidationResult {
+  valid: boolean;
+  error?: string;
+}
+
+/**
+ * Validate a single file against the per-file size limit and (optional)
+ * allowed extensions.
+ */
+export const validateSingleFile = (
+  file: File,
+  opts?: { maxBytes?: number; allowedExtensions?: string[] },
+): FileValidationResult => {
+  const maxBytes = opts?.maxBytes ?? MAX_FILE_SIZE_BYTES;
+
+  if (opts?.allowedExtensions && opts.allowedExtensions.length > 0) {
+    const name = file.name.toLowerCase();
+    const ok = opts.allowedExtensions.some((ext) =>
+      name.endsWith(ext.toLowerCase().startsWith('.') ? ext.toLowerCase() : `.${ext.toLowerCase()}`),
+    );
+    if (!ok) {
+      return {
+        valid: false,
+        error: `"${file.name}" is not an allowed file type. Allowed: ${opts.allowedExtensions.join(', ')}.`,
+      };
+    }
+  }
+
+  if (file.size > maxBytes) {
+    return {
+      valid: false,
+      error: `"${file.name}" is ${formatFileSize(file.size)} — the limit is ${formatFileSize(maxBytes)} per file.`,
+    };
+  }
+
+  return { valid: true };
+};
+
+/**
+ * Validate a collection of files: each file individually + the combined total.
+ * Returns the first error found (one clear message at a time keeps the UX simple).
+ */
+export const validateFiles = (
+  files: File[],
+  opts?: { maxBytes?: number; maxTotalBytes?: number; allowedExtensions?: string[] },
+): FileValidationResult => {
+  const maxTotal = opts?.maxTotalBytes ?? MAX_TOTAL_UPLOAD_BYTES;
+
+  for (const file of files) {
+    const single = validateSingleFile(file, opts);
+    if (!single.valid) return single;
+  }
+
+  const total = files.reduce((sum, f) => sum + f.size, 0);
+  if (total > maxTotal) {
+    return {
+      valid: false,
+      error: `Total upload size is ${formatFileSize(total)} — the limit is ${formatFileSize(maxTotal)} per save. Please remove some files or upload in smaller batches.`,
+    };
+  }
+
+  return { valid: true };
+};
