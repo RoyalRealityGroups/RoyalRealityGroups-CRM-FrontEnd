@@ -19,6 +19,7 @@ import {
   ViewModule as ViewModuleIcon,
   ViewList as ViewListIcon,
   ArrowForward as ArrowForwardIcon,
+  Palette as PaletteIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAppSelector } from '../store/hooks';
@@ -69,6 +70,7 @@ const SettingsHub: React.FC = () => {
     const iconMap: Record<string, React.ReactElement> = {
       settings: <SettingsIcon sx={{ fontSize }} />,
       tune: <TuneIcon sx={{ fontSize }} />,
+      palette: <PaletteIcon sx={{ fontSize }} />,
     };
     
     return iconMap[normalizedIconName?.toLowerCase() || ''] || <SettingsIcon sx={{ fontSize }} />;
@@ -136,6 +138,19 @@ const SettingsHub: React.FC = () => {
     const items = [...settingsMenuItems];
     const isAdminOrSuperuser = user?.is_superuser || user?.is_admin;
     if (isAdminOrSuperuser) {
+      // Add Appearance settings if not already present
+      const hasAppearance = items.some((i) => i.link === '/settings/appearance');
+      if (!hasAppearance) {
+        items.push({
+          id: 'appearance-settings',
+          name: 'Appearance',
+          code: 'MI-APPEARANCE',
+          icon: 'palette',
+          link: '/settings/appearance',
+          sequence: 98,
+          description: 'Customize colors and fonts for the application',
+        } as any);
+      }
       // Add Notifications settings if not already present
       const hasNotif = items.some((i) => i.link === '/settings/notifications');
       if (!hasNotif) {

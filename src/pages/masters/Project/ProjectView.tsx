@@ -598,8 +598,41 @@ const ProjectView: React.FC = () => {
           </Box>
           <Typography variant="subtitle1" fontWeight={600}>Floor Plans</Typography>
         </Box>
+
+        {/* Floor plan documents (multiple PDFs / images) */}
+        {(project.floor_plan_files && project.floor_plan_files.length > 0) ? (
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
+            {project.floor_plan_files.map((fp: any) => (
+              <Button
+                key={fp.id}
+                variant="outlined"
+                startIcon={<PictureAsPdfIcon />}
+                href={fp.file_url || fp.file}
+                target="_blank"
+                rel="noopener noreferrer"
+                sx={{ borderRadius: 2 }}
+              >
+                {fp.title || 'Floor Plan'}
+              </Button>
+            ))}
+          </Box>
+        ) : project.floor_plan_file ? (
+          <Button
+            variant="outlined"
+            startIcon={<PictureAsPdfIcon />}
+            href={project.floor_plan_file}
+            target="_blank"
+            rel="noopener noreferrer"
+            sx={{ mb: 2 }}
+          >
+            View Floor Plan Document
+          </Button>
+        ) : null}
+
         <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.7, color: 'text.secondary' }}>
-          {project.floor_plans_text || 'No floor plan details available.'}
+          {project.floor_plans_text || (
+            (project.floor_plan_files?.length || project.floor_plan_file) ? '' : 'No floor plan details available.'
+          )}
         </Typography>
       </Paper>
 

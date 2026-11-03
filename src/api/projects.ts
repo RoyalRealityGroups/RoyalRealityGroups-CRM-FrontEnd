@@ -27,6 +27,7 @@ export const projectsApi = {
     const hasFiles = data.elevation_image instanceof File ||
                      data.thumbnail instanceof File ||
                      data.brochure instanceof File ||
+                     data.floor_plan_file instanceof File ||
                      data.sub instanceof File;
     if (hasFiles) {
       const formData = new FormData();
@@ -47,6 +48,7 @@ export const projectsApi = {
     const hasFiles = data.elevation_image instanceof File ||
                      data.thumbnail instanceof File ||
                      data.brochure instanceof File ||
+                     data.floor_plan_file instanceof File ||
                      data.sub instanceof File;
     if (hasFiles) {
       const formData = new FormData();
@@ -98,5 +100,22 @@ export const projectsApi = {
 
   deleteImage: async (imageId: string): Promise<void> => {
     await apiClient.delete(`${BASE}/images/${imageId}/`);
+  },
+
+  // ── Floor plan files (bulk PDF / image) ─────────────────────────────────────
+  getFloorPlans: async (projectId: string): Promise<any[]> => {
+    const response = await apiClient.get(`${BASE}/${projectId}/floor-plans/`);
+    return Array.isArray(response.data) ? response.data : (response.data.results || []);
+  },
+
+  uploadFloorPlans: async (projectId: string, files: File[]): Promise<{ created: any[]; count: number }> => {
+    const formData = new FormData();
+    files.forEach((f) => formData.append('files', f));
+    const response = await apiClient.post(`${BASE}/${projectId}/floor-plans/upload/`, formData);
+    return response.data;
+  },
+
+  deleteFloorPlan: async (floorPlanId: string): Promise<void> => {
+    await apiClient.delete(`${BASE}/floor-plans/${floorPlanId}/`);
   },
 };
