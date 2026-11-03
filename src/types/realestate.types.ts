@@ -95,10 +95,13 @@ export interface BookingFormData {
   customer_name: string;
   customer_mobile?: string;
   customer_email?: string;
-  project: string;
+  project?: string;
   unit_type: 'PLOT' | 'FLAT';
   plot?: string;
   flat?: string;
+  // Availability List integration
+  availability_project?: string;
+  availability_unit?: string;
   agreed_price?: number;
   booking_amount: number;
   booking_date: string;

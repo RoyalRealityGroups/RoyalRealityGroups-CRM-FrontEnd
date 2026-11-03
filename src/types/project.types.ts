@@ -39,6 +39,8 @@ export interface Project {
   floor_plans?: string[];
   gallery?: string[];
   brochure?: string | null;
+  floor_plan_file?: string | null;
+  floor_plan_files?: Array<{ id: string; file: string; file_url?: string; title?: string; order?: number }>;
   images?: ProjectImage[];
   
   is_active: boolean;
@@ -72,6 +74,7 @@ export interface ProjectFormData {
   floor_plans?: string[];
   gallery?: string[];
   brochure?: string | File | null;
+  floor_plan_file?: string | File | null;
 }
 
 export interface ProjectMini {
