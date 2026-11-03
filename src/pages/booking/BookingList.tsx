@@ -112,14 +112,18 @@ const BookingList: React.FC = () => {
     staleTime: 5 * 60 * 1000,
   });
 
-  // Projects for the BOOKING FORM dropdown — sourced from the Availability List
-  const { data: availabilityProjects } = useQuery({
+  // Projects for the BOOKING FORM dropdown — sourced from the Availability List.
+  // No is_active filter here: we want every availability project to be bookable,
+  // exactly like the Availability List screen shows them.
+  const { data: availabilityProjects = [] } = useQuery({
     queryKey: ['availability-projects-booking'],
     queryFn: async () => {
-      const r = await availabilityApi.getProjects({ page_size: 500, is_active: true });
-      return r.results || r;
+      const r: any = await availabilityApi.getProjects({ page_size: 500 });
+      // Endpoint is paginated → {results: [...]}, but guard for a plain array too.
+      if (Array.isArray(r)) return r;
+      return r?.results ?? [];
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
   });
 
   const { data: leads } = useQuery({
